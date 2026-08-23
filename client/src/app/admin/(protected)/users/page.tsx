@@ -1,8 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ShieldAlert, Users } from "lucide-react";
+import { Eye, ShieldAlert, Users, type LucideIcon } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +11,34 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { StatCard } from "@/components/shared/stat-card";
+import { useVisitorStats } from "@/hooks/use-visitor-stats";
+import { periodCutoffs } from "@/lib/date-buckets";
 import { formatBDT, formatDateTime } from "@/lib/format";
+
+const PERIODS = [
+  { key: "today", label: "Today" },
+  { key: "thisWeek", label: "This week" },
+  { key: "thisMonth", label: "This month" },
+  { key: "thisYear", label: "This year" },
+  { key: "allTime", label: "All time" },
+] as const;
+
+function PeriodStatsRow({
+  icon,
+  counts,
+}: {
+  icon: LucideIcon;
+  counts: Record<(typeof PERIODS)[number]["key"], number> | undefined;
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {PERIODS.map((p) => (
+        <StatCard key={p.key} icon={icon} label={p.label} value={counts ? counts[p.key] : "…"} />
+      ))}
+    </div>
+  );
+}
 
 interface AdminUser {
   id: string;
@@ -95,10 +123,46 @@ export default function AdminUsersPage() {
     queryKey: ["admin-users"],
     queryFn: () => api.get<AdminUser[]>("/api/admin/users"),
   });
+  const { data: visitorStats } = useVisitorStats();
+
+  // Real counts bucketed from each user's actual createdAt — currently all
+  // zero because /api/admin/users has no backend behind it yet (see
+  // CLAUDE.md), not because this is fake data. Once that endpoint returns
+  // real users, these numbers are correct without any further change here.
+  const userCounts = useMemo(() => {
+    if (!users) return undefined;
+    const cutoffs = periodCutoffs();
+    const counts = { today: 0, thisWeek: 0, thisMonth: 0, thisYear: 0, allTime: users.length };
+    for (const u of users) {
+      const createdAt = new Date(u.createdAt).getTime();
+      if (createdAt >= cutoffs.today) counts.today++;
+      if (createdAt >= cutoffs.thisWeek) counts.thisWeek++;
+      if (createdAt >= cutoffs.thisMonth) counts.thisMonth++;
+      if (createdAt >= cutoffs.thisYear) counts.thisYear++;
+    }
+    return counts;
+  }, [users]);
 
   return (
     <div className="space-y-6">
       <PageHeader title="Users" description="Everyone with a Gold BD account." />
+
+      <div className="space-y-3">
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+          <Eye className="size-3.5" strokeWidth={1.75} />
+          Site visitors (unique)
+        </h2>
+        <PeriodStatsRow icon={Eye} counts={visitorStats?.uniqueVisitors} />
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+          <Users className="size-3.5" strokeWidth={1.75} />
+          New accounts
+        </h2>
+        <PeriodStatsRow icon={Users} counts={userCounts} />
+      </div>
+
       <PendingKycReview />
       <Card>
         <CardHeader>

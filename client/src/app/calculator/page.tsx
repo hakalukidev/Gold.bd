@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ComponentType } from "react";
-import { ArrowLeftRight, Banknote, Coins, Gem, HandCoins, Percent, TrendingUp } from "lucide-react";
+import { ArrowLeftRight, Banknote, ChevronDown, ChevronUp, Coins, Gem, HandCoins, Percent, TrendingUp } from "lucide-react";
 import { useGoldRate } from "@/hooks/use-gold-rate";
-import { useGoldRateHistory } from "@/hooks/use-gold-rate-history";
 import { useT } from "@/lib/i18n/use-t";
 import { formatBDT } from "@/lib/format";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { GoldPriceTicker } from "@/components/landing/gold-price-ticker";
-import { LandingFooter } from "@/components/landing/landing-footer";
 import { LiveBadge } from "@/components/landing/today-price-section";
-import { RateChart } from "@/components/landing/rate-chart";
 import { GoldCoinIcon, SilverCoinIcon } from "@/components/landing/dollar-coin-icon";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 // 1 bhori (also spelled vori/tola), the standard South Asian gold-trading
 // unit, equals this many grams — the figure used across the BD jewellery trade.
@@ -61,20 +60,20 @@ function CalcCard({
 }) {
   const a = CARD_ACCENT_CLASSES[accent];
   return (
-    <section id={id} className={`scroll-mt-24 rounded-3xl border border-white/10 bg-white/5 p-6 transition-colors sm:p-8 ${a.hoverBorder}`}>
-      <div className="flex items-start gap-4">
-        <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${a.badge}`}>
-          <Icon className="size-5" />
+    <section id={id} className={`rounded-3xl border border-white/10 bg-white/5 p-4 transition-colors sm:p-5 ${a.hoverBorder}`}>
+      <div className="flex items-start gap-3">
+        <span className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${a.badge}`}>
+          <Icon className="size-4" />
         </span>
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             <span className={`text-xs font-semibold ${a.index}`}>{String(index).padStart(2, "0")}</span>
-            <h2 className="text-xl font-bold text-white sm:text-2xl">{title}</h2>
+            <h2 className="text-lg font-bold text-white sm:text-xl">{title}</h2>
           </div>
-          <p className="mt-1 text-sm text-neutral-400">{description}</p>
+          <p className="mt-0.5 hidden text-sm text-neutral-400 sm:block">{description}</p>
         </div>
       </div>
-      <div className="mt-6">{children}</div>
+      <div className="mt-3">{children}</div>
     </section>
   );
 }
@@ -90,21 +89,107 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; 
   );
 }
 
-function NumberInput({ id, value, onChange }: { id?: string; value: string; onChange: (v: string) => void }) {
+// Solid-metal fill — the same read as the "Buy Gold" CTA (button.tsx's
+// "gold-solid" variant: metal-color background, near-black `text-ink` on
+// top). Shared by the filled "amount in / amount out" field pair
+// (MoneyAmountField, ReadonlyField's `accent`) and, at hover strength, by
+// the standalone number-input steppers below.
+const METAL_FIELD_CLASSES = {
+  gold: "bg-gold",
+  silver: "bg-neutral-300",
+} as const;
+
+const STEPPER_ACCENT_CLASSES = {
+  gold: `${METAL_FIELD_CLASSES.gold} text-ink hover:bg-gold-light`,
+  silver: `${METAL_FIELD_CLASSES.silver} text-ink hover:bg-neutral-200`,
+} as const;
+
+/** Small stacked up/down buttons that replace the native number-input
+ *  spinner (unstylable — Firefox exposes no pseudo-element for it at all,
+ *  and WebKit's only goes so far) with one colored to match the field's
+ *  metal. Drives the input via stepUp()/stepDown() so it keeps honoring
+ *  whatever min/step the input itself declares, rather than reimplementing
+ *  that arithmetic here. */
+function NumberStepper({
+  inputRef,
+  onChange,
+  accent = "gold",
+  onMetal = false,
+}: {
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onChange: (v: string) => void;
+  accent?: keyof typeof STEPPER_ACCENT_CLASSES;
+  /** True when the input itself already fills its box with the metal color
+   *  (see MoneyAmountField/ReadonlyField's `accent`) — the stepper then reads
+   *  as a debossed cut into that surface (dark translucent) instead of
+   *  repeating the same solid fill, which would otherwise disappear into it. */
+  onMetal?: boolean;
+}) {
+  const bump = (dir: 1 | -1) => {
+    const el = inputRef.current;
+    if (!el) return;
+    try {
+      if (dir === 1) el.stepUp();
+      else el.stepDown();
+    } catch {
+      // Out-of-range or non-conforming current value — nothing to bump from.
+      return;
+    }
+    onChange(el.value);
+  };
+  const a = onMetal ? "bg-black/10 text-ink hover:bg-black/20" : STEPPER_ACCENT_CLASSES[accent];
   return (
-    <input
-      id={id}
-      type="number"
-      min="0"
-      inputMode="decimal"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-10 w-full rounded-lg border border-white/15 bg-ink px-3 text-sm text-white outline-none focus:border-gold/60"
-    />
+    <div className="absolute inset-y-0.5 right-0.5 flex w-5 flex-col overflow-hidden rounded-md">
+      <button type="button" tabIndex={-1} aria-label="Increase" onClick={() => bump(1)} className={`flex flex-1 items-center justify-center border-b border-black/25 transition-colors ${a}`}>
+        <ChevronUp className="size-3" strokeWidth={3} />
+      </button>
+      <button type="button" tabIndex={-1} aria-label="Decrease" onClick={() => bump(-1)} className={`flex flex-1 items-center justify-center transition-colors ${a}`}>
+        <ChevronDown className="size-3" strokeWidth={3} />
+      </button>
+    </div>
   );
 }
 
-function ReadonlyField({ value }: { value: string }) {
+function NumberInput({
+  id,
+  value,
+  onChange,
+  accent = "gold",
+}: {
+  id?: string;
+  value: string;
+  onChange: (v: string) => void;
+  accent?: keyof typeof METAL_FIELD_CLASSES;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div className="relative">
+      <input
+        ref={ref}
+        id={id}
+        type="number"
+        min="0"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`no-spinner h-10 w-full rounded-lg border border-transparent ${METAL_FIELD_CLASSES[accent]} px-3 pr-7 text-sm font-semibold text-ink outline-none focus:border-ink/40`}
+      />
+      <NumberStepper inputRef={ref} onChange={onChange} accent={accent} onMetal />
+    </div>
+  );
+}
+
+function ReadonlyField({ value, accent }: { value: string; accent?: keyof typeof METAL_FIELD_CLASSES }) {
+  if (accent) {
+    // Filled metal-color variant — the readonly counterpart to
+    // MoneyAmountField's filled input, for a matching "money in / metal out"
+    // pair (e.g. Amount → Estimated amount).
+    return (
+      <div className={`flex h-10 w-full items-center rounded-lg px-3 text-sm font-semibold text-ink ${METAL_FIELD_CLASSES[accent]}`}>
+        {value}
+      </div>
+    );
+  }
   return (
     <div className="flex h-10 w-full items-center rounded-lg border border-white/10 bg-ink px-3 text-sm text-white">
       {value}
@@ -403,7 +488,7 @@ function BalanceScale({
   const metal = APPARATUS_CLASSES[metalKey];
 
   return (
-    <div className="relative mx-auto mt-6 aspect-[2/1] max-w-md">
+    <div className="relative mx-auto mt-3 aspect-[2/1] max-w-[260px] sm:max-w-xs">
       <svg viewBox="0 0 400 200" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
         <defs>
           <linearGradient id={gradId} x1="0.15" y1="0.1" x2="0.9" y2="1">
@@ -446,13 +531,10 @@ function pileCount(value: number, step: number, max = 10): number {
   return Math.min(max, Math.round(value / step) || (value > 0 ? 1 : 0));
 }
 
-/** The editable "money in" field under the left pan — shared by both metal
- *  calculators so the input styling (banknote icon, focus ring) stays in sync. */
-const FIELD_ACCENT_CLASSES = {
-  gold: "focus:border-gold/60",
-  silver: "focus:border-neutral-300/60",
-} as const;
-
+/** The editable "money in" field under the left pan — filled in the
+ *  calculator's metal color (same "Buy Gold" CTA read as the stepper/
+ *  ReadonlyField's `accent`) rather than just accenting a dark box, so the
+ *  whole Amount → Estimated amount pair reads as one metal-colored unit. */
 function MoneyAmountField({
   id,
   label,
@@ -464,21 +546,24 @@ function MoneyAmountField({
   label: string;
   value: string;
   onChange: (v: string) => void;
-  accent?: keyof typeof FIELD_ACCENT_CLASSES;
+  accent?: keyof typeof METAL_FIELD_CLASSES;
 }) {
+  const ref = useRef<HTMLInputElement>(null);
   return (
     <Field label={label} htmlFor={id}>
       <div className="relative">
-        <Banknote className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-neutral-500" />
+        <Banknote className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-ink/60" />
         <input
+          ref={ref}
           id={id}
           type="number"
           min="0"
           inputMode="decimal"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`h-10 w-full rounded-lg border border-white/15 bg-ink pr-3 pl-8 text-sm text-white outline-none ${FIELD_ACCENT_CLASSES[accent]}`}
+          className={`no-spinner h-10 w-full rounded-lg border border-transparent ${METAL_FIELD_CLASSES[accent]} pr-7 pl-8 text-sm font-semibold text-ink outline-none focus:border-ink/40`}
         />
+        <NumberStepper inputRef={ref} onChange={onChange} accent={accent} onMetal />
       </div>
     </Field>
   );
@@ -510,10 +595,10 @@ function GoldCalculator() {
       {/* দাঁড়িপাল্লা — money piles up in the left pan, gold in the right, as you type. */}
       <BalanceScale left={<MoneyPile count={bundleCount} />} right={<BarPile count={barCount} />} />
 
-      <div className="mx-auto mt-4 grid max-w-sm grid-cols-2 gap-5 sm:gap-8">
+      <div className="mx-auto mt-3 grid max-w-sm grid-cols-2 gap-5 sm:gap-8">
         <MoneyAmountField id="gold-amount" label={c.amountLabel} value={amount} onChange={setAmount} />
         <Field label={c.resultLabel}>
-          <ReadonlyField value={`${grams.toFixed(3)} g`} />
+          <ReadonlyField value={`${grams.toFixed(3)} g`} accent="gold" />
         </Field>
       </div>
     </CalcCard>
@@ -525,6 +610,7 @@ function SilverCalculator() {
   const c = t.calculatorPage.silver;
   const [amount, setAmount] = useState("2000");
   const [rate, setRate] = useState("385");
+  const rateRef = useRef<HTMLInputElement>(null);
 
   const grams = useMemo(() => {
     const rateNum = Number(rate) || 0;
@@ -542,15 +628,19 @@ function SilverCalculator() {
         <label htmlFor="silver-rate" className="block text-center text-xs text-neutral-400">
           {c.rateLabel}
         </label>
-        <input
-          id="silver-rate"
-          type="number"
-          min="0"
-          inputMode="decimal"
-          value={rate}
-          onChange={(e) => setRate(e.target.value)}
-          className="mt-1 h-9 w-full rounded-lg border border-white/15 bg-ink px-3 text-center text-sm font-semibold text-neutral-200 outline-none focus:border-neutral-300/60"
-        />
+        <div className="relative mt-1">
+          <input
+            ref={rateRef}
+            id="silver-rate"
+            type="number"
+            min="0"
+            inputMode="decimal"
+            value={rate}
+            onChange={(e) => setRate(e.target.value)}
+            className="no-spinner h-9 w-full rounded-lg border border-white/15 bg-ink px-3 pr-7 text-center text-sm font-semibold text-neutral-200 outline-none focus:border-neutral-300/60"
+          />
+          <NumberStepper inputRef={rateRef} onChange={setRate} accent="silver" />
+        </div>
       </div>
 
       {/* দাঁড়িপাল্লা — money piles up in the left pan, silver in the right, as you type. */}
@@ -560,13 +650,13 @@ function SilverCalculator() {
         right={<BarPile count={barCount} variant="silver" />}
       />
 
-      <div className="mx-auto mt-4 grid max-w-sm grid-cols-2 gap-5 sm:gap-8">
+      <div className="mx-auto mt-3 grid max-w-sm grid-cols-2 gap-5 sm:gap-8">
         <MoneyAmountField id="silver-amount" label={c.amountLabel} value={amount} onChange={setAmount} accent="silver" />
         <Field label={c.resultLabel}>
-          <ReadonlyField value={`${grams.toFixed(3)} g`} />
+          <ReadonlyField value={`${grams.toFixed(3)} g`} accent="silver" />
         </Field>
       </div>
-      <p className="mt-3 text-center text-xs text-neutral-500">{c.rateNote}</p>
+      <p className="mt-2 hidden text-center text-xs text-neutral-500 sm:block">{c.rateNote}</p>
     </CalcCard>
   );
 }
@@ -600,7 +690,7 @@ function MakingChargeCalculator() {
 
   return (
     <CalcCard id="making-charge" icon={Percent} index={3} title={c.title} description={c.description}>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         <Field label={c.weightLabel} htmlFor="mc-weight">
           <NumberInput id="mc-weight" value={weight} onChange={setWeight} />
         </Field>
@@ -611,15 +701,15 @@ function MakingChargeCalculator() {
           <NumberInput id="mc-charge" value={chargePercent} onChange={setChargePercent} />
         </Field>
       </div>
-      <div className="mt-4 grid gap-4 border-t border-white/10 pt-4 sm:grid-cols-3">
+      <div className="mt-3 grid gap-3 border-t border-white/10 pt-3 sm:grid-cols-3">
         <Field label={c.goldValueLabel}>
-          <ReadonlyField value={formatBDT(goldValue)} />
+          <ReadonlyField value={formatBDT(goldValue)} accent="gold" />
         </Field>
         <Field label={c.chargeAmountLabel}>
-          <ReadonlyField value={formatBDT(chargeAmount)} />
+          <ReadonlyField value={formatBDT(chargeAmount)} accent="gold" />
         </Field>
         <Field label={c.totalLabel}>
-          <div className="flex h-10 w-full items-center rounded-lg border border-gold/40 bg-gold/10 px-3 text-sm font-semibold text-gold">
+          <div className="flex h-10 w-full items-center rounded-lg border border-transparent bg-gold px-3 text-sm font-bold text-ink">
             {formatBDT(total)}
           </div>
         </Field>
@@ -639,13 +729,13 @@ function BhoriGramCalculator() {
 
   return (
     <CalcCard id="bhori-gram" icon={ArrowLeftRight} index={4} title={c.title} description={c.description}>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div className="grid grid-cols-2 gap-3">
           <Field label={c.bhoriLabel} htmlFor="bg-bhori">
             <NumberInput id="bg-bhori" value={bhori} onChange={setBhori} />
           </Field>
           <Field label={c.gramLabel}>
-            <ReadonlyField value={gramsFromBhori.toFixed(4)} />
+            <ReadonlyField value={gramsFromBhori.toFixed(4)} accent="gold" />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -653,7 +743,7 @@ function BhoriGramCalculator() {
             <NumberInput id="bg-grams" value={grams} onChange={setGrams} />
           </Field>
           <Field label={c.bhoriLabel}>
-            <ReadonlyField value={bhoriFromGrams.toFixed(4)} />
+            <ReadonlyField value={bhoriFromGrams.toFixed(4)} accent="gold" />
           </Field>
         </div>
       </div>
@@ -690,7 +780,7 @@ function ZakatCalculator() {
 
   return (
     <CalcCard id="zakat" icon={HandCoins} index={5} title={c.title} description={c.description}>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         <Field label={c.weightLabel} htmlFor="zakat-weight">
           <NumberInput id="zakat-weight" value={weight} onChange={setWeight} />
         </Field>
@@ -699,7 +789,7 @@ function ZakatCalculator() {
             id="zakat-purity"
             value={purity}
             onChange={(e) => setPurity(Number(e.target.value) as (typeof PURITY_OPTIONS)[number])}
-            className="h-10 w-full rounded-lg border border-white/15 bg-ink px-3 text-sm text-white outline-none focus:border-gold/60"
+            className="h-10 w-full rounded-lg border border-transparent bg-gold px-3 text-sm font-semibold text-ink outline-none focus:border-ink/40"
           >
             {PURITY_OPTIONS.map((k) => (
               <option key={k} value={k}>
@@ -713,21 +803,21 @@ function ZakatCalculator() {
         </Field>
       </div>
 
-      <div className="mt-4 grid gap-4 border-t border-white/10 pt-4 sm:grid-cols-2">
+      <div className="mt-3 grid gap-3 border-t border-white/10 pt-3 sm:grid-cols-2">
         <Field label={c.marketValueLabel}>
-          <ReadonlyField value={formatBDT(marketValue)} />
+          <ReadonlyField value={formatBDT(marketValue)} accent="gold" />
         </Field>
         <Field label={c.zakatDueLabel}>
-          <div className="flex h-10 w-full items-center rounded-lg border border-gold/40 bg-gold/10 px-3 text-sm font-semibold text-gold">
+          <div className="flex h-10 w-full items-center rounded-lg border border-transparent bg-gold px-3 text-sm font-bold text-ink">
             {formatBDT(zakatDue)}
           </div>
         </Field>
       </div>
 
-      <p className={`mt-3 text-xs font-medium ${eligible ? "text-emerald-400" : "text-neutral-500"}`}>
+      <p className={`mt-2 text-xs font-medium ${eligible ? "text-emerald-400" : "text-neutral-500"}`}>
         {eligible ? c.eligible : c.notEligible}
       </p>
-      <p className="mt-1 text-xs text-neutral-500">{c.nisabNote}</p>
+      <p className="mt-0.5 hidden text-xs text-neutral-500 sm:block">{c.nisabNote}</p>
     </CalcCard>
   );
 }
@@ -742,84 +832,99 @@ const SECTION_LABEL_KEYS = {
   zakat: "zakat",
 } as const;
 
+type SectionId = (typeof SECTIONS)[number]["id"];
+const SECTION_IDS = SECTIONS.map((s) => s.id) as SectionId[];
+
 export default function CalculatorPage() {
   const t = useT();
   const c = t.calculatorPage;
-  const { data: rate } = useGoldRate();
-  const { data: history, isLoading: historyLoading } = useGoldRateHistory();
+  const [active, setActive] = useState<SectionId>("gold");
+
+  // Deep-link support: land on whichever calculator the URL hash names
+  // (e.g. /calculator#zakat), same as the old anchor-scroll nav did. A
+  // one-shot effect reading `window` (unavailable at SSR/initial-state time),
+  // not a derived value.
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above
+    if ((SECTION_IDS as string[]).includes(hash)) setActive(hash as SectionId);
+  }, []);
+
+  function selectTab(id: SectionId) {
+    setActive(id);
+    window.history.replaceState(null, "", `#${id}`);
+  }
 
   return (
-    <main className="flex flex-1 flex-col">
-      <GoldPriceTicker />
-      <LandingHeader />
-
-      {/* ---------- Hero: heading, quick nav, live trend chart ---------- */}
-      <section className="relative overflow-hidden bg-ink py-16 sm:py-20">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(212,166,42,0.16),transparent)]" />
-
-        <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
-          <div className="flex items-center justify-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-gold/15 text-gold">
-              <TrendingUp className="size-4.5" />
-            </span>
-            <LiveBadge label={t.todayPrice.live} />
-          </div>
-          <h1 className="mt-4 text-3xl font-bold text-white sm:text-4xl">{c.heading}</h1>
-          <p className="mt-3 text-neutral-300">{c.subheading}</p>
-
-          {/* Quick nav — jumps straight to a calculator card below. */}
-          <div className="mt-7 flex flex-wrap justify-center gap-2">
-            {SECTIONS.map(({ id, icon: Icon }) => (
-              <a
-                key={id}
-                href={`#${id}`}
-                className="flex items-center gap-1.5 rounded-full border border-gold/30 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-neutral-200 transition-colors hover:border-gold/60 hover:text-gold"
-              >
-                <Icon className="size-3.5" />
-                {c[SECTION_LABEL_KEYS[id]].title}
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* Live rate trend — reuses the same chart the landing page's rate tracker uses. */}
-        <div className="relative mx-auto mt-10 max-w-4xl px-4 sm:px-6">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 sm:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="font-medium text-white">{t.rateHistory.chartCardTitle}</p>
-              {rate && <p className="text-lg font-bold text-gold">{formatBDT(rate.pricePerGramBDT)}</p>}
-            </div>
-            <div className="mt-4">
-              {historyLoading ? (
-                <p className="text-sm text-neutral-400">{t.rateHistory.loading}</p>
-              ) : !history || history.length === 0 ? (
-                <p className="text-sm text-neutral-400">{t.rateHistory.noData}</p>
-              ) : history.length === 1 ? (
-                <div className="py-6 text-center">
-                  <p className="text-xs text-neutral-400">{t.rateHistory.singlePointLabel}</p>
-                  <p className="text-3xl font-semibold text-gold">{formatBDT(history[0].pricePerGramBDT)}</p>
-                  <p className="mt-2 text-xs text-neutral-500">{t.rateHistory.singlePointHint}</p>
-                </div>
-              ) : (
-                <RateChart data={history} />
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- Calculators ---------- */}
-      <div className="bg-ink py-16 sm:py-20">
-        <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 sm:px-6">
-          <GoldCalculator />
-          <SilverCalculator />
-          <MakingChargeCalculator />
-          <BhoriGramCalculator />
-          <ZakatCalculator />
-        </div>
+    <main className="flex h-dvh flex-col overflow-hidden bg-ink">
+      <div className="shrink-0">
+        <GoldPriceTicker />
+        <LandingHeader />
       </div>
 
-      <LandingFooter />
+      {/* ---------- Compact hero + tabs + the active calculator, sized to fit
+          in the remaining viewport height without needing to scroll. ---------- */}
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(212,166,42,0.12),transparent)]" />
+
+        <div className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-4 sm:px-6">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2">
+              <span className="flex size-6 items-center justify-center rounded-lg bg-gold/15 text-gold">
+                <TrendingUp className="size-3.5" />
+              </span>
+              <LiveBadge label={t.todayPrice.live} />
+            </div>
+            <h1 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">{c.heading}</h1>
+            <p className="mt-1 hidden text-sm text-neutral-300 sm:block">{c.subheading}</p>
+          </div>
+
+          {/* Calculator + its switcher — the switcher is a right-hand rail
+              panel (admin-panel-style: bordered card, left-rail active
+              indicator) instead of the pill row above the fold. */}
+          <Tabs
+            value={active}
+            onValueChange={(value) => selectTab(value as SectionId)}
+            orientation="vertical"
+            className="mt-4 flex-1 flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:gap-6"
+          >
+            <div className="min-w-0 flex-1">
+              <TabsContent value="gold" keepMounted>
+                <GoldCalculator />
+              </TabsContent>
+              <TabsContent value="silver" keepMounted>
+                <SilverCalculator />
+              </TabsContent>
+              <TabsContent value="making-charge" keepMounted>
+                <MakingChargeCalculator />
+              </TabsContent>
+              <TabsContent value="bhori-gram" keepMounted>
+                <BhoriGramCalculator />
+              </TabsContent>
+              <TabsContent value="zakat" keepMounted>
+                <ZakatCalculator />
+              </TabsContent>
+            </div>
+
+            <TabsList className="h-fit w-full shrink-0 flex-col gap-1 rounded-3xl border border-white/10 bg-white/5 p-3 sm:w-56">
+              {SECTIONS.map(({ id, icon: Icon }) => (
+                <TabsTrigger
+                  key={id}
+                  value={id}
+                  className={cn(
+                    "w-full justify-start gap-2.5 rounded-lg border-l-2 !border-transparent bg-transparent px-3 py-2 text-sm font-medium text-neutral-300 shadow-none transition-colors",
+                    "hover:bg-white/5 hover:text-white",
+                    "data-active:!border-gold data-active:!bg-gold/10 data-active:!text-gold data-active:!shadow-none"
+                  )}
+                >
+                  <Icon className="size-4 shrink-0" strokeWidth={1.75} />
+                  {c[SECTION_LABEL_KEYS[id]].title}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+      </div>
     </main>
   );
 }

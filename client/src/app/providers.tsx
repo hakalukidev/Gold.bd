@@ -4,6 +4,7 @@ import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { StoreProvider } from "@/store/provider";
+import { VisitorTracker } from "@/components/visitor-tracker";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -18,6 +19,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <StoreProvider>
       <QueryClientProvider client={queryClient}>
+        <VisitorTracker />
         {children}
         <Toaster richColors position="top-center" />
       </QueryClientProvider>

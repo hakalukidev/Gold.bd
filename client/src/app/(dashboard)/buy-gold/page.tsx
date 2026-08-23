@@ -1,20 +1,12 @@
-import { ArrowUpRight } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { GoldTradeForm } from "@/components/forms/gold-trade-form";
+import { PageHeader } from "@/components/shared/page-header";
+import { BuyGoldPanel } from "@/components/forms/buy-gold-panel";
+import { WalletBadge } from "@/components/shared/wallet-badge";
 
 export default function BuyGoldPage() {
   return (
-    <Card className="mx-auto max-w-md">
-      <CardHeader>
-        <span className="mb-1 flex size-9 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold">
-          <ArrowUpRight className="size-4.5" strokeWidth={1.75} />
-        </span>
-        <CardTitle className="text-xl">Buy gold</CardTitle>
-        <CardDescription>Cash is debited from your wallet at the current rate.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <GoldTradeForm side="BUY" />
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <PageHeader title="Buy 22K gold" description="Start from as low as ৳500" action={<WalletBadge />} />
+      <BuyGoldPanel />
+    </div>
   );
 }
