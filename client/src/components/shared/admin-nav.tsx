@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { History, Settings, ShieldCheck, Users } from "lucide-react";
+import { History, PanelBottom, Settings, ShieldCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Shared with admin-sidebar-nav.tsx so the two nav variants (compact mobile
@@ -12,6 +12,9 @@ export const ADMIN_NAV_LINKS = [
   { href: "/admin/rates", label: "Rates", icon: ShieldCheck },
   { href: "/admin/transactions", label: "Transactions", icon: History },
   { href: "/admin/settings", label: "Settings", icon: Settings },
+  // Its own nav item rather than folded into Settings — the "Follow us"
+  // social links it controls are a distinct, footer-only concern.
+  { href: "/admin/footer", label: "Footer", icon: PanelBottom },
 ];
 
 /** Compact horizontal nav — used in the mobile header below `lg`, where the
