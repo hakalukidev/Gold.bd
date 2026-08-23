@@ -38,13 +38,17 @@ export interface GoldRateSummary {
 /** Gold and silver rates cross the wire in the same shape. */
 export type MetalRateSummary = GoldRateSummary;
 
-/** Public-facing business details shown in the footer — set from the admin
- * settings page. Blank fields mean "not set yet"; the footer hides them
- * rather than showing an empty label. */
+/** Public-facing business details and social links shown in the footer —
+ * set from the admin settings/footer pages. Blank fields mean "not set yet";
+ * the footer hides them rather than showing an empty label/icon. */
 export interface SiteSettings {
   address: string;
   bin: string;
   phone: string;
+  facebookUrl: string;
+  instagramUrl: string;
+  linkedinUrl: string;
+  youtubeUrl: string;
 }
 
 /** Standard envelope returned by every /api/* route. */

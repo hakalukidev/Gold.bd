@@ -20,7 +20,7 @@ export default function AdminSettingsPage() {
 
   const form = useForm<SiteSettingsInput>({
     resolver: zodResolver(siteSettingsSchema),
-    defaultValues: { address: "", bin: "", phone: "" },
+    defaultValues: { address: "", bin: "", phone: "", facebookUrl: "", instagramUrl: "", linkedinUrl: "", youtubeUrl: "" },
   });
 
   // Seed the form once the current settings load — a one-shot sync, not a

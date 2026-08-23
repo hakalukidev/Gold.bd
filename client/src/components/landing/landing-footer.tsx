@@ -7,13 +7,6 @@ import { useSiteSettings } from "@/hooks/use-site-settings";
 import { cn } from "@/lib/utils";
 import { FacebookIcon, InstagramIcon, LinkedinIcon, YoutubeIcon } from "./social-icons";
 
-const SOCIAL_LINKS = [
-  { label: "Facebook", href: "#", icon: FacebookIcon },
-  { label: "Instagram", href: "#", icon: InstagramIcon },
-  { label: "LinkedIn", href: "#", icon: LinkedinIcon },
-  { label: "YouTube", href: "#", icon: YoutubeIcon },
-] as const;
-
 export function LandingFooter() {
   const t = useT();
   const { data: settings } = useSiteSettings();
@@ -24,6 +17,15 @@ export function LandingFooter() {
     { label: t.footer.binLabel, value: settings?.bin, icon: Hash },
     { label: t.footer.phoneLabel, value: settings?.phone, icon: Phone },
   ].filter((row) => row.value);
+
+  // Set from /admin/footer — same blank-hides-it rule as contactRows above,
+  // so an icon only shows up once its URL has actually been filled in.
+  const socialLinks = [
+    { label: "Facebook", href: settings?.facebookUrl, icon: FacebookIcon },
+    { label: "Instagram", href: settings?.instagramUrl, icon: InstagramIcon },
+    { label: "LinkedIn", href: settings?.linkedinUrl, icon: LinkedinIcon },
+    { label: "YouTube", href: settings?.youtubeUrl, icon: YoutubeIcon },
+  ].filter((link) => link.href);
 
   const columns = [
     {
@@ -61,19 +63,25 @@ export function LandingFooter() {
             </Link>
             <p className="mt-3 max-w-xs text-sm text-neutral-400">{t.footer.tagline}</p>
 
-            <p className="mt-6 text-xs font-semibold tracking-wide text-neutral-500 uppercase">{t.footer.followUs}</p>
-            <div className="mt-3 flex items-center gap-2">
-              {SOCIAL_LINKS.map(({ label, href, icon: Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  aria-label={label}
-                  className="flex size-9 items-center justify-center rounded-full border border-white/10 text-neutral-400 transition-colors hover:border-gold/40 hover:text-gold"
-                >
-                  <Icon className="size-4" />
-                </a>
-              ))}
-            </div>
+            {socialLinks.length > 0 && (
+              <>
+                <p className="mt-6 text-xs font-semibold tracking-wide text-neutral-500 uppercase">{t.footer.followUs}</p>
+                <div className="mt-3 flex items-center gap-2">
+                  {socialLinks.map(({ label, href, icon: Icon }) => (
+                    <a
+                      key={label}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={label}
+                      className="flex size-9 items-center justify-center rounded-full border border-white/10 text-neutral-400 transition-colors hover:border-gold/40 hover:text-gold"
+                    >
+                      <Icon className="size-4" />
+                    </a>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
           {columns.map((col) => (
             <div key={col.title}>

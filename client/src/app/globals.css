@@ -217,20 +217,6 @@
   }
 }
 
-/* Hides the browser's native number-input spinner so a custom-colored
-   up/down stepper (see calculator/page.tsx's NumberStepper) can take its
-   place — the native spinner can't be recolored across browsers, Firefox
-   included, which is why this exists instead of a webkit-only override. */
-.no-spinner {
-  -moz-appearance: textfield;
-}
-
-.no-spinner::-webkit-inner-spin-button,
-.no-spinner::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
 @keyframes live-dot-pulse {
   0%,
   100% {
