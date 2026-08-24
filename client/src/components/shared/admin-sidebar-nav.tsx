@@ -22,7 +22,7 @@ export function AdminSidebarNav() {
             href={link.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-2.5 rounded-lg border-l-2 px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-2.5 rounded-md border-l-2 px-3 py-2 text-sm font-medium transition-colors",
               active
                 ? "border-sidebar-primary bg-sidebar-accent text-sidebar-accent-foreground"
                 : "border-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"

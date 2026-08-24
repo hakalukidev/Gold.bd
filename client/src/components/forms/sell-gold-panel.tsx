@@ -4,14 +4,17 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowDownRight, Building2, Smartphone, Wallet as WalletIcon } from "lucide-react";
-import { sellGoldSchema } from "@/lib/validations/gold";
+import { ArrowDownRight, Wallet as WalletIcon } from "lucide-react";
+import { tradeGramsSchema } from "@/lib/validations/gold";
 import { ApiError } from "@/lib/api-client";
-import { useSellGold } from "@/hooks/use-gold-trade";
-import { useGoldRate } from "@/hooks/use-gold-rate";
+import { useSellMetal } from "@/hooks/use-gold-trade";
+import { useMetalRate } from "@/hooks/use-metal-rate";
 import { useWallet } from "@/hooks/use-wallet";
-import { computeSellPayout } from "@/lib/gold-fees";
+import { computeSellPayout, SELL_SPREAD_RATE } from "@/lib/gold-fees";
 import { formatBDT } from "@/lib/format";
+import { getLatestRate, type Metal } from "@/lib/mock-rates";
+import { MOCK_WALLET } from "@/lib/mock-wallet";
+import { METAL_LABEL, METALS, PAYOUT_METHODS } from "@/lib/trade-products";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,64 +25,51 @@ import { Badge } from "@/components/ui/badge";
 import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { cn } from "@/lib/utils";
 
-const METALS: { key: string; label: string; enabled: boolean }[] = [
-  { key: "gold", label: "Gold", enabled: true },
-  // No /api/silver/sell endpoint in this repo yet (see CLAUDE.md) — shown
-  // for parity with the reference design, disabled instead of faked.
-  { key: "silver", label: "Silver", enabled: false },
-];
-
-// Only "Gold.bd Wallet" actually credits anything today — mobile wallet /
-// bank cash-out are payment-gateway integrations this repo has no backend for.
-const PAYOUT_METHODS: { key: string; label: string; icon: typeof WalletIcon; enabled: boolean; note: string }[] = [
-  { key: "goldbd-wallet", label: "Gold.bd Wallet", icon: WalletIcon, enabled: true, note: "Cash is credited to your wallet instantly." },
-  { key: "mobile-wallet", label: "Mobile Wallet", icon: Smartphone, enabled: false, note: "Cash arrives in 3 working days." },
-  { key: "bank-account", label: "Bank Account", icon: Building2, enabled: false, note: "Cash arrives in 3 working days." },
-];
-
+/**
+ * Selling quotes the *fine* metal rate rather than a minted SKU price — the
+ * vault carries one gold balance and one silver balance, not per-SKU lots — and
+ * both metals go through the same `/api/{metal}/sell` mutation (see
+ * use-gold-trade.ts). Only the Gold.bd Wallet payout is wired to anything in
+ * this repo; the two cash-out routes are gateway integrations with no backend
+ * (see CLAUDE.md), so they're marked "Soon" rather than faked.
+ */
 export function SellGoldPanel() {
   const router = useRouter();
-  const { data: rate } = useGoldRate();
-  const { data: wallet } = useWallet();
-  const sell = useSellGold();
+  const { data: walletData } = useWallet();
 
   const form = useForm<{ value: number }>({ defaultValues: { value: 0.5 } });
-  const [metal, setMetal] = useState(METALS[0].key);
-  const [payoutMethod, setPayoutMethod] = useState(PAYOUT_METHODS[0].key);
+  const [metal, setMetal] = useState<Metal>("gold");
+  const [payoutKey, setPayoutKey] = useState(PAYOUT_METHODS[0].key);
 
-  const pricePerGram = rate ? Number(rate.pricePerGramBDT) : null;
-  const available = wallet ? Number(wallet.goldBalanceGrams) : 0;
+  const { data: rateData } = useMetalRate(metal);
+  const sell = useSellMetal(metal);
+
+  const wallet = walletData ?? MOCK_WALLET;
+  const pricePerGram = Number((rateData ?? getLatestRate(metal)).pricePerGramBDT);
+  const available = Number(metal === "gold" ? wallet.goldBalanceGrams : wallet.silverBalanceGrams);
   const sliderMax = available > 0 ? available : 1;
+
   const grams = form.watch("value") || 0;
-  const payout = pricePerGram ? computeSellPayout(grams, pricePerGram) : null;
-
+  const payout = computeSellPayout(grams, pricePerGram);
   const exceedsBalance = grams > available;
-  const activePayout = PAYOUT_METHODS.find((m) => m.key === payoutMethod);
-
-  function selectMetal(key: string, enabled: boolean) {
-    if (!enabled) {
-      toast.info("Coming soon — only Gold can be sold right now.");
-      return;
-    }
-    setMetal(key);
-  }
+  const activePayout = PAYOUT_METHODS.find((m) => m.key === payoutKey);
 
   function selectPayoutMethod(key: string, enabled: boolean) {
     if (!enabled) {
       toast.info("Coming soon — payouts go to your Gold.bd Wallet for now.");
       return;
     }
-    setPayoutMethod(key);
+    setPayoutKey(key);
   }
 
   async function onSubmit(values: { value: number }) {
-    const parsed = sellGoldSchema.shape.goldGrams.safeParse(values.value);
+    const parsed = tradeGramsSchema(metal, "sell").safeParse(values.value);
     if (!parsed.success) {
       form.setError("value", { message: parsed.error.issues[0]?.message ?? "Enter a valid weight" });
       return;
     }
     if (values.value > available) {
-      form.setError("value", { message: `You only hold ${available} g` });
+      form.setError("value", { message: `You only hold ${available.toFixed(3)} g` });
       return;
     }
 
@@ -103,20 +93,14 @@ export function SellGoldPanel() {
             <div className="flex gap-2">
               {METALS.map((m) => (
                 <Button
-                  key={m.key}
+                  key={m}
                   type="button"
                   variant="outline"
-                  aria-pressed={metal === m.key}
-                  aria-disabled={!m.enabled}
-                  onClick={() => selectMetal(m.key, m.enabled)}
-                  className={cn(metal === m.key && SELECTED_GOLD, !m.enabled && "opacity-60")}
+                  aria-pressed={metal === m}
+                  onClick={() => setMetal(m)}
+                  className={cn(metal === m && SELECTED_GOLD)}
                 >
-                  {m.label}
-                  {!m.enabled && (
-                    <Badge variant="secondary" className="text-[9px]">
-                      Soon
-                    </Badge>
-                  )}
+                  {METAL_LABEL[m]}
                 </Button>
               ))}
             </div>
@@ -138,7 +122,7 @@ export function SellGoldPanel() {
                 <p className="text-sm text-destructive">{form.formState.errors.value.message}</p>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  of {available.toFixed(3)}g available · {metal === "gold" ? "Gold" : "Silver"}
+                  of {available.toFixed(3)}g available · {METAL_LABEL[metal]}
                 </p>
               )}
 
@@ -146,7 +130,7 @@ export function SellGoldPanel() {
                 value={Math.min(grams, sliderMax)}
                 min={0}
                 max={sliderMax}
-                step={0.01}
+                step={sliderMax / 100}
                 disabled={available <= 0}
                 onValueChange={(v) => form.setValue("value", Number(v.toFixed(3)), { shouldValidate: true })}
               />
@@ -157,11 +141,11 @@ export function SellGoldPanel() {
               <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Receive payout via</Label>
               <div className="grid grid-cols-2 gap-2">
                 {PAYOUT_METHODS.slice(0, 2).map((m) => (
-                  <PayoutButton key={m.key} method={m} selected={payoutMethod === m.key} onSelect={selectPayoutMethod} />
+                  <PayoutButton key={m.key} method={m} selected={payoutKey === m.key} onSelect={selectPayoutMethod} />
                 ))}
                 <PayoutButton
                   method={PAYOUT_METHODS[2]}
-                  selected={payoutMethod === PAYOUT_METHODS[2].key}
+                  selected={payoutKey === PAYOUT_METHODS[2].key}
                   onSelect={selectPayoutMethod}
                   className="col-span-2"
                 />
@@ -177,10 +161,10 @@ export function SellGoldPanel() {
                 type="submit"
                 variant="gold-solid"
                 className="w-full"
-                disabled={form.formState.isSubmitting || !pricePerGram || grams <= 0 || exceedsBalance}
+                disabled={form.formState.isSubmitting || grams <= 0 || exceedsBalance}
               >
                 <ArrowDownRight />
-                {form.formState.isSubmitting ? "Processing…" : payout ? `Sell gold · ${formatBDT(payout.netPayoutBDT)}` : "Sell gold"}
+                {form.formState.isSubmitting ? "Processing…" : `Sell ${METAL_LABEL[metal]} · ${formatBDT(payout.netPayoutBDT)}`}
               </Button>
               {activePayout && <p className="text-xs text-muted-foreground">{activePayout.note}</p>}
             </div>
@@ -194,13 +178,13 @@ export function SellGoldPanel() {
           <CardTitle>Payout summary</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <SummaryRow label="Sell price (Gold)" value={pricePerGram ? `${formatBDT(pricePerGram)}/g` : "—"} />
+          <SummaryRow label={`Sell price (${METAL_LABEL[metal]})`} value={`${formatBDT(pricePerGram)}/g`} />
           <SummaryRow label="Weight" value={`${grams.toFixed(3)} g`} />
-          <SummaryRow label="Spread (2%)" value={payout ? `-${formatBDT(payout.spreadBDT)}` : "—"} />
+          <SummaryRow label={`Spread (${(SELL_SPREAD_RATE * 100).toFixed(0)}%)`} value={`-${formatBDT(payout.spreadBDT)}`} />
           <Separator />
           <div className="flex items-center justify-between text-base font-semibold">
             <span>You get</span>
-            <span className="tabular-nums">{payout ? formatBDT(payout.netPayoutBDT) : "—"}</span>
+            <span className="tabular-nums">{formatBDT(payout.netPayoutBDT)}</span>
           </div>
         </CardContent>
       </Card>
@@ -228,7 +212,7 @@ function PayoutButton({
       aria-disabled={!method.enabled}
       onClick={() => onSelect(method.key, method.enabled)}
       className={cn(
-        "h-auto justify-center gap-2 rounded-lg py-2.5 font-medium whitespace-normal",
+        "h-auto justify-center gap-2 rounded-md py-2.5 font-medium whitespace-normal",
         selected && SELECTED_GOLD,
         !method.enabled && "opacity-60",
         className
@@ -247,7 +231,7 @@ function PayoutButton({
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between text-sm">
+    <div className="flex items-center justify-between gap-2 text-sm">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-medium tabular-nums">{value}</span>
     </div>

@@ -9,6 +9,7 @@ import { depositSchema, withdrawSchema, type DepositInput } from "@/lib/validati
 import { ApiError } from "@/lib/api-client";
 import { useDeposit, useWithdraw, useWallet } from "@/hooks/use-wallet";
 import { formatBDT } from "@/lib/format";
+import { MOCK_WALLET } from "@/lib/mock-wallet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -121,31 +122,39 @@ function MoneyMoveForm({ direction }: { direction: Direction }) {
   );
 }
 
-export function AddMoneyPanel() {
-  const { data: wallet } = useWallet();
+/** Add-money / withdraw tabs without a card around them — the wallet page
+ * drops these straight into its "Manage balance" dialog, while AddMoneyPanel
+ * below wraps the same thing in a Card for use inline on a page. */
+export function MoneyMoveTabs({ defaultDirection = "deposit" }: { defaultDirection?: Direction }) {
+  const { data } = useWallet();
+  const wallet = data ?? MOCK_WALLET;
 
+  return (
+    <Tabs defaultValue={defaultDirection}>
+      <TabsList className="w-full">
+        <TabsTrigger value="deposit" className="flex-1">
+          Add money
+        </TabsTrigger>
+        <TabsTrigger value="withdraw" className="flex-1">
+          Withdraw
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="deposit" className="pt-5">
+        <MoneyMoveForm direction="deposit" />
+      </TabsContent>
+      <TabsContent value="withdraw" className="pt-5">
+        <p className="mb-3 text-center text-xs text-muted-foreground">Available: {formatBDT(wallet.cashBalanceBDT)}</p>
+        <MoneyMoveForm direction="withdraw" />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+export function AddMoneyPanel({ defaultDirection = "deposit" }: { defaultDirection?: Direction }) {
   return (
     <Card>
       <CardContent>
-        <Tabs defaultValue="deposit">
-          <TabsList className="w-full">
-            <TabsTrigger value="deposit" className="flex-1">
-              Add money
-            </TabsTrigger>
-            <TabsTrigger value="withdraw" className="flex-1">
-              Withdraw
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="deposit" className="pt-5">
-            <MoneyMoveForm direction="deposit" />
-          </TabsContent>
-          <TabsContent value="withdraw" className="pt-5">
-            {wallet && (
-              <p className="mb-3 text-center text-xs text-muted-foreground">Available: {formatBDT(wallet.cashBalanceBDT)}</p>
-            )}
-            <MoneyMoveForm direction="withdraw" />
-          </TabsContent>
-        </Tabs>
+        <MoneyMoveTabs defaultDirection={defaultDirection} />
       </CardContent>
     </Card>
   );

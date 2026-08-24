@@ -4,15 +4,19 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { Lock, Phone } from "lucide-react";
+import { Phone, UserPlus } from "lucide-react";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
-import { api, ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { IconInput } from "@/components/shared/icon-input";
+import { PasswordInput } from "@/components/shared/password-input";
 
+// UI-only flow for now: there is no auth backend, so a valid form just moves the
+// user on to the OTP step (login -> /verify-otp -> /wallet). "Remember me" and
+// "Forgot password?" are likewise presentational until that backend exists —
+// the reset flow would run through the same OTP screen.
 export default function LoginPage() {
   const router = useRouter();
   const form = useForm<LoginInput>({
@@ -20,63 +24,93 @@ export default function LoginPage() {
     defaultValues: { phone: "", password: "" },
   });
 
-  async function onSubmit(values: LoginInput) {
-    try {
-      const { phone } = await api.post<{ phone: string }>("/api/auth/login", values);
-      toast.success("Enter the code we sent you");
-      router.push(`/verify-otp?phone=${encodeURIComponent(phone)}&purpose=LOGIN`);
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Login failed");
-    }
+  function onSubmit(values: LoginInput) {
+    router.push(`/verify-otp?phone=${encodeURIComponent(values.phone)}&purpose=LOGIN`);
   }
 
   return (
-    <Card className="shadow-lg shadow-black/5">
-      <CardHeader>
-        <CardTitle className="text-xl">Log in</CardTitle>
-        <CardDescription>Welcome back — enter your phone number and password.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mobile number</FormLabel>
-                  <FormControl>
-                    <IconInput icon={Phone} placeholder="01XXXXXXXXX" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <IconInput icon={Lock} type="password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Logging in…" : "Log in"}
-            </Button>
-          </form>
-        </Form>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <Link href="/register" className="font-medium text-primary hover:underline">
-            Create one
+    <div>
+      <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
+      <p className="mt-1.5 text-sm text-muted-foreground">Sign in to continue to your gold account.</p>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4">
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mobile number</FormLabel>
+                <FormControl>
+                  <IconInput
+                    icon={Phone}
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="01XXXXXXXXX"
+                    className="h-11"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <PasswordInput
+                    autoComplete="current-password"
+                    placeholder="Enter your password"
+                    className="h-11"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Checkbox id="remember-me" />
+              <Label htmlFor="remember-me" className="text-sm font-normal text-muted-foreground">
+                Remember me
+              </Label>
+            </div>
+            <Link href="/verify-otp?purpose=LOGIN" className="text-sm font-medium text-gold hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+
+          <Button type="submit" variant="gold-solid" className="h-11 w-full rounded-md text-sm">
+            Sign in
+          </Button>
+        </form>
+      </Form>
+
+      <div className="my-5 flex items-center gap-3">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-xs text-muted-foreground">or</span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      <Button
+        variant="outline"
+        className="h-11 w-full rounded-md text-sm font-semibold"
+        nativeButton={false}
+        render={
+          <Link href="/register">
+            <UserPlus className="size-4" strokeWidth={1.75} />
+            Create an account
           </Link>
-        </p>
-      </CardContent>
-    </Card>
+        }
+      />
+
+      <p className="mt-6 text-center text-xs text-muted-foreground">Secure. Trusted. 100% yours.</p>
+    </div>
   );
 }

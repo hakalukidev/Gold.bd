@@ -43,7 +43,7 @@ function TickerRow({ items }: { items: TickerItem[] }) {
     <div className="flex shrink-0 items-center">
       {items.map((item, i) => (
         <div key={i} className="flex items-center gap-2 whitespace-nowrap px-5 py-1.5 text-xs">
-          <span className="text-neutral-100">{item.label}</span>
+          <span className="text-amber-50/90">{item.label}</span>
           <span className="font-semibold text-white">{item.value}</span>
           {item.meta && (
             <span
@@ -52,13 +52,13 @@ function TickerRow({ items }: { items: TickerItem[] }) {
                 item.metaTone === "down" && "text-red-400",
                 item.metaTone === "up" && "text-emerald-400",
                 (!item.metaTone || item.metaTone === "neutral") &&
-                  (item.meta === "BAJUS" || item.meta?.includes("%") ? "text-black" : "text-gold/80")
+                  (item.meta === "BAJUS" || item.meta?.includes("%") ? "text-ink/70" : "text-amber-100/80")
               )}
             >
               {item.meta}
             </span>
           )}
-          <span className="text-neutral-700" aria-hidden="true">
+          <span className="text-ink/40" aria-hidden="true">
             •
           </span>
         </div>
@@ -72,9 +72,9 @@ export function GoldPriceTicker() {
   const items = TICKER_DATA[locale];
 
   return (
-    <div className="relative w-full overflow-hidden border-b border-[#e4e6ea]/30 bg-linear-to-r from-[#5a5f66] via-[#9aa0a8] to-[#c7ccd1]">
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-linear-to-r from-[#5a5f66] to-transparent sm:w-16" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-linear-to-l from-[#5a5f66] to-transparent sm:w-16" />
+    <div className="relative w-full overflow-hidden border-b border-gold-light/40 bg-linear-to-r from-[#4a3308] via-[#b8891a] to-[#e8c66a]">
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-linear-to-r from-[#4a3308] to-transparent sm:w-16" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-linear-to-l from-[#4a3308] to-transparent sm:w-16" />
       <div className="flex w-max animate-[ticker-scroll_35s_linear_infinite] hover:[animation-play-state:paused]">
         <TickerRow items={items} />
         <TickerRow items={items} />

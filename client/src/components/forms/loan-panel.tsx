@@ -53,7 +53,7 @@ export function LoanPanel() {
     <div className="grid gap-4 lg:grid-cols-[1fr_340px] lg:items-start">
       <Card>
         <CardContent className="space-y-5">
-          <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3 text-sm">
+          <div className="flex items-center justify-between rounded-md bg-muted px-4 py-3 text-sm">
             <div>
               <p className="text-muted-foreground">Your collateral</p>
               <p className="font-semibold">{collateralGrams !== null ? `${collateralGrams.toFixed(2)} g gold vaulted` : "…"}</p>

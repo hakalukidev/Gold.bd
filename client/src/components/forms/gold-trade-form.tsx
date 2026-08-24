@@ -46,7 +46,7 @@ export function GoldTradeForm({ side }: { side: "BUY" | "SELL" }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between rounded-lg border border-gold/20 bg-gold/5 px-3 py-2 text-sm">
+      <div className="flex items-center justify-between rounded-md border border-gold/20 bg-gold/5 px-3 py-2 text-sm">
         <span className="flex items-center gap-1.5 font-medium text-gold">
           <TrendingUp className="size-4" strokeWidth={1.75} />
           Live rate
@@ -68,7 +68,7 @@ export function GoldTradeForm({ side }: { side: "BUY" | "SELL" }) {
                   aria-pressed={isSelected}
                   onClick={() => form.setValue("goldGrams", weight.grams, { shouldValidate: true })}
                   className={cn(
-                    "flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-center transition-colors",
+                    "flex flex-col items-center gap-1 rounded-md border px-2 py-2.5 text-center transition-colors",
                     isSelected ? "border-gold bg-gold/10" : "border-border hover:border-gold/40"
                   )}
                 >
@@ -109,7 +109,7 @@ export function GoldTradeForm({ side }: { side: "BUY" | "SELL" }) {
             )}
           />
 
-          <div className="flex items-center justify-between rounded-lg bg-muted px-3 py-2.5 text-sm">
+          <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2.5 text-sm">
             <span className="text-muted-foreground">Estimated {side === "BUY" ? "cost" : "proceeds"}</span>
             <span className="font-semibold">{formatBDT(estimate || 0)}</span>
           </div>

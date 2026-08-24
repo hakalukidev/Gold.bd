@@ -28,7 +28,7 @@ export default function BuyingGuidePage() {
             {g.steps.map((step, i) => (
               <li
                 key={step.title}
-                className="flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6"
+                className="flex gap-4 rounded-md border border-white/10 bg-white/5 p-5 sm:p-6"
               >
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-sm font-bold text-gold">
                   {i + 1}
@@ -44,7 +44,7 @@ export default function BuyingGuidePage() {
 
         {/* ---------- Tips ---------- */}
         <div className="mx-auto mt-10 max-w-3xl px-4 sm:px-6">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+          <div className="rounded-md border border-white/10 bg-white/5 p-5 sm:p-6">
             <p className="font-semibold text-white">{g.tipsHeading}</p>
             <ul className="mt-3 flex flex-col gap-2">
               {g.tips.map((tip) => (

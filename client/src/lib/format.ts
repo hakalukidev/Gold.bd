@@ -41,3 +41,38 @@ export function normalizeBdPhone(input: string): string | null {
   if (/^01[3-9]\d{8}$/.test(local)) return local;
   return null;
 }
+
+/** "4,250 BDT" — compact, symbol-free amount for tight chrome like the dashboard top bar. */
+export function formatBDTCompact(amount: number | string): string {
+  const n = typeof amount === "string" ? Number(amount) : amount;
+  return `${new Intl.NumberFormat("en-BD", { maximumFractionDigits: 0 }).format(n)} BDT`;
+}
+
+/** "$34.86" — the USD view of a balance (see USD_BDT_RATE in mock-rates.ts). */
+export function formatUSDCompact(amount: number | string): string {
+  const n = typeof amount === "string" ? Number(amount) : amount;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
+/** "€1,204.55" — a BDT balance converted into another currency (see BDT_PER_FOREIGN_UNIT in mock-rates.ts). */
+export function formatForeign(amount: number, currency: string): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+/** "৳56.2k" / "৳1.2L" — short taka for tight spots like chart axis labels. */
+export function formatBDTShort(amount: number | string): string {
+  const n = typeof amount === "string" ? Number(amount) : amount;
+  const abs = Math.abs(n);
+  if (abs >= 100000) return `৳${(n / 100000).toFixed(abs >= 1000000 ? 0 : 1)}L`; // lakh, the local unit
+  if (abs >= 1000) return `৳${(n / 1000).toFixed(abs >= 10000 ? 0 : 1)}k`;
+  return `৳${Math.round(n)}`;
+}

@@ -89,7 +89,7 @@ function PendingKycReview() {
       </CardHeader>
       <CardContent className="space-y-3">
         {pending.map((p) => (
-          <div key={p.id} className="flex items-center justify-between rounded-lg border p-3">
+          <div key={p.id} className="flex items-center justify-between rounded-md border p-3">
             <div>
               <p className="font-medium">{p.user.fullName} · {p.user.phone}</p>
               <p className="text-sm text-muted-foreground">NID: {p.nidNumber}</p>

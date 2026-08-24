@@ -62,7 +62,7 @@ export function PaymentMethodButton({
       aria-disabled={!method.enabled}
       onClick={() => onSelect(method.key, method.enabled)}
       className={cn(
-        "h-auto justify-between gap-2 rounded-lg py-2.5 font-medium whitespace-normal",
+        "h-auto justify-between gap-2 rounded-md py-2.5 font-medium whitespace-normal",
         selected && SELECTED_GOLD,
         !method.enabled && "opacity-60",
         className

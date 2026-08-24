@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/shared/page-header";
 import { WalletBadge } from "@/components/shared/wallet-badge";
 import { useMe, useLogout } from "@/hooks/use-auth";
+import { referralCode, referralLink } from "@/lib/referral";
 import type { KycStatus } from "@/types";
 
 const KYC_VARIANT: Record<KycStatus, "default" | "secondary" | "destructive" | "outline"> = {
@@ -52,7 +53,7 @@ export default function ProfilePage() {
   const [nomineeSaved, setNomineeSaved] = useState(false);
   const [twoFactor, setTwoFactor] = useState(true);
 
-  const referralCode = user ? `GOLDBD-${user.id.slice(0, 4).toUpperCase()}` : "…";
+  const code = user ? referralCode(user.id) : "…";
 
   async function handleLogout() {
     await logout.mutateAsync();
@@ -70,7 +71,7 @@ export default function ProfilePage() {
   }
 
   function copyInviteLink() {
-    navigator.clipboard?.writeText(`https://gold.bd/r/${referralCode}`).then(
+    navigator.clipboard?.writeText(user ? referralLink(user.id) : "").then(
       () => toast.success("Invite link copied"),
       () => toast.error("Couldn't copy — try again")
     );
@@ -160,7 +161,7 @@ export default function ProfilePage() {
         <CardContent className="flex items-center justify-between gap-4">
           <div>
             <p className="font-semibold">Referral rewards</p>
-            <p className="text-sm text-muted-foreground">0.08g earned from 4 friends · code {referralCode}</p>
+            <p className="text-sm text-muted-foreground">0.08g earned from 4 friends · code {code}</p>
           </div>
           <Button variant="gold-solid" onClick={copyInviteLink}>
             <Copy className="size-3.5" />

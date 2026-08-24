@@ -17,13 +17,10 @@ export const checkoutSchema = z
   .object({
     deliveryMethod: z.enum(DELIVERY_METHODS),
     paymentMethod: z.enum(PAYMENT_METHODS),
-    customerName: z.string().trim().min(2, "Name is too short").max(100),
-    customerEmail: z.string().trim().email("Enter a valid email"),
-    customerPhone: bdPhone,
-    sameAsCustomer: z.boolean(),
     recipientName: z.string().trim().min(2, "Name is too short").max(100),
     recipientEmail: z.string().trim().email("Enter a valid email"),
     recipientPhone: bdPhone,
+    address: z.string().trim().max(200).optional().or(z.literal("")),
     division: z.string().trim().optional().or(z.literal("")),
     district: z.string().trim().optional().or(z.literal("")),
     note: z.string().trim().max(500).optional().or(z.literal("")),
@@ -32,6 +29,7 @@ export const checkoutSchema = z
   // point the shopper visits in person, so don't force an address on them.
   .superRefine((data, ctx) => {
     if (data.deliveryMethod !== "home") return;
+    if (!data.address) ctx.addIssue({ code: "custom", message: "Enter an address", path: ["address"] });
     if (!data.division) ctx.addIssue({ code: "custom", message: "Select a division", path: ["division"] });
     if (!data.district) ctx.addIssue({ code: "custom", message: "Select a district", path: ["district"] });
   });

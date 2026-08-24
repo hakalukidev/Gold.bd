@@ -94,7 +94,7 @@ export function GiftGoldPanel() {
 
           <Textarea placeholder="Add a personal message…" rows={3} {...form.register("message")} />
 
-          <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+          <div className="flex items-center justify-between gap-4 rounded-md border p-3">
             <div>
               <p className="text-sm font-medium">Custom photo print on coin</p>
               <p className="text-xs text-muted-foreground">Engrave a portrait or photo onto a physical gold coin</p>

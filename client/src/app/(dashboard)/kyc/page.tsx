@@ -49,7 +49,7 @@ function UploadUrlTile({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border p-6 text-center">
+    <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border p-6 text-center">
       <span className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
         <ImagePlus className="size-4" strokeWidth={1.75} />
       </span>

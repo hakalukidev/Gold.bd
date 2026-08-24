@@ -21,15 +21,12 @@ import { GoldPriceTicker } from "@/components/landing/gold-price-ticker";
 import { LandingFooter } from "@/components/landing/landing-footer";
 
 const inputClass =
-  "h-10 w-full rounded-lg border border-white/15 bg-ink px-3 text-sm text-white outline-none focus:border-gold/60 disabled:cursor-not-allowed disabled:opacity-50";
+  "h-10 w-full rounded-md border border-white/15 bg-ink px-3 text-sm text-white outline-none focus:border-gold/60 disabled:cursor-not-allowed disabled:opacity-50";
 
-function Section({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-bold text-white">{title}</h2>
-        {action}
-      </div>
+    <section className="rounded-md border border-white/10 bg-white/5 p-5 sm:p-6">
+      <h2 className="text-base font-bold text-white">{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -67,7 +64,7 @@ function OptionCard({
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        "flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-colors",
+        "flex flex-col items-start gap-2 rounded-md border p-4 text-left transition-colors",
         selected ? "border-gold bg-gold/5" : "border-white/10 hover:border-white/25"
       )}
     >
@@ -121,13 +118,10 @@ export default function CheckoutPage() {
     defaultValues: {
       deliveryMethod: "home",
       paymentMethod: "bkash",
-      customerName: "",
-      customerEmail: "",
-      customerPhone: "",
-      sameAsCustomer: false,
       recipientName: "",
       recipientEmail: "",
       recipientPhone: "",
+      address: "",
       division: "",
       district: "",
       note: "",
@@ -136,22 +130,7 @@ export default function CheckoutPage() {
 
   const deliveryMethod = form.watch("deliveryMethod");
   const paymentMethod = form.watch("paymentMethod");
-  const sameAsCustomer = form.watch("sameAsCustomer");
   const division = form.watch("division");
-  const customerName = form.watch("customerName");
-  const customerEmail = form.watch("customerEmail");
-  const customerPhone = form.watch("customerPhone");
-
-  // Mirror the customer's own details into the recipient fields while "same
-  // as my information" is checked — a one-way sync, not a shared field, so
-  // unchecking it leaves whatever was last copied in place for editing.
-  useEffect(() => {
-    if (!sameAsCustomer) return;
-    form.setValue("recipientName", customerName, { shouldValidate: true });
-    form.setValue("recipientEmail", customerEmail, { shouldValidate: true });
-    form.setValue("recipientPhone", customerPhone, { shouldValidate: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sameAsCustomer, customerName, customerEmail, customerPhone]);
 
   // Changing division invalidates whatever district was picked under the old one.
   useEffect(() => {
@@ -186,7 +165,7 @@ export default function CheckoutPage() {
         <GoldPriceTicker />
         <LandingHeader />
         <div className="flex flex-1 items-center justify-center bg-ink px-4 py-24">
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 text-center">
+          <div className="w-full max-w-md rounded-md border border-white/10 bg-white/5 p-8 text-center">
             <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-gold/15 text-gold">
               <Check className="size-7" />
             </span>
@@ -223,14 +202,14 @@ export default function CheckoutPage() {
           </div>
 
           {items.length === 0 ? (
-            <div className="mx-auto mt-10 max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 text-center">
+            <div className="mx-auto mt-10 max-w-md rounded-md border border-white/10 bg-white/5 p-8 text-center">
               <h2 className="text-lg font-bold text-white">{c.emptyTitle}</h2>
               <p className="mt-2 text-sm text-neutral-400">{c.emptyDescription}</p>
               <Button variant="gold-solid" className="mt-6 w-full" nativeButton={false} render={<Link href="/products/gold">{c.emptyCta}</Link>} />
             </div>
           ) : (
             <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 grid gap-6 lg:grid-cols-[1fr_380px] lg:items-start">
-              {/* ---------- Left: delivery, contact & recipient details ---------- */}
+              {/* ---------- Left: delivery & recipient details ---------- */}
               <div className="flex flex-col gap-6">
                 <Section title={c.deliveryHeading}>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -247,102 +226,60 @@ export default function CheckoutPage() {
                   </div>
                 </Section>
 
-                <Section title={c.yourInfoHeading}>
-                  <div className="grid gap-4">
-                    <div>
-                      <FieldLabel htmlFor="customerName">{c.nameLabel}</FieldLabel>
-                      <input id="customerName" placeholder={c.namePlaceholder} className={inputClass} {...form.register("customerName")} />
-                      <FieldError message={form.formState.errors.customerName?.message} />
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <FieldLabel htmlFor="customerEmail">{c.emailLabel}</FieldLabel>
-                        <input id="customerEmail" type="email" placeholder={c.emailPlaceholder} className={inputClass} {...form.register("customerEmail")} />
-                        <FieldError message={form.formState.errors.customerEmail?.message} />
-                      </div>
-                      <div>
-                        <FieldLabel htmlFor="customerPhone">{c.phoneLabel}</FieldLabel>
-                        <input id="customerPhone" placeholder="01XXXXXXXXX" className={inputClass} {...form.register("customerPhone")} />
-                        <FieldError message={form.formState.errors.customerPhone?.message} />
-                      </div>
-                    </div>
-                  </div>
-                </Section>
-
-                <Section
-                  title={c.recipientHeading}
-                  action={
-                    <label className="flex items-center gap-2 text-xs text-neutral-300">
-                      <input type="checkbox" className="size-3.5 accent-gold" {...form.register("sameAsCustomer")} />
-                      {c.sameAsMine}
-                    </label>
-                  }
-                >
+                <Section title={c.recipientHeading}>
                   <div className="grid gap-4">
                     <div>
                       <FieldLabel htmlFor="recipientName">{c.recipientNameLabel}</FieldLabel>
-                      <input
-                        id="recipientName"
-                        placeholder={c.namePlaceholder}
-                        disabled={sameAsCustomer}
-                        className={inputClass}
-                        {...form.register("recipientName")}
-                      />
+                      <input id="recipientName" placeholder={c.namePlaceholder} className={inputClass} {...form.register("recipientName")} />
                       <FieldError message={form.formState.errors.recipientName?.message} />
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div>
                         <FieldLabel htmlFor="recipientEmail">{c.recipientEmailLabel}</FieldLabel>
-                        <input
-                          id="recipientEmail"
-                          type="email"
-                          placeholder={c.emailPlaceholder}
-                          disabled={sameAsCustomer}
-                          className={inputClass}
-                          {...form.register("recipientEmail")}
-                        />
+                        <input id="recipientEmail" type="email" placeholder={c.emailPlaceholder} className={inputClass} {...form.register("recipientEmail")} />
                         <FieldError message={form.formState.errors.recipientEmail?.message} />
                       </div>
                       <div>
                         <FieldLabel htmlFor="recipientPhone">{c.recipientPhoneLabel}</FieldLabel>
-                        <input
-                          id="recipientPhone"
-                          placeholder="01XXXXXXXXX"
-                          disabled={sameAsCustomer}
-                          className={inputClass}
-                          {...form.register("recipientPhone")}
-                        />
+                        <input id="recipientPhone" placeholder="01XXXXXXXXX" className={inputClass} {...form.register("recipientPhone")} />
                         <FieldError message={form.formState.errors.recipientPhone?.message} />
                       </div>
                     </div>
 
                     {deliveryMethod === "home" && (
-                      <div className="grid gap-4 sm:grid-cols-2">
+                      <>
                         <div>
-                          <FieldLabel htmlFor="division">{c.divisionLabel}</FieldLabel>
-                          <select id="division" className={inputClass} {...form.register("division")}>
-                            <option value="">{c.selectDivision}</option>
-                            {BD_DIVISIONS.map((d) => (
-                              <option key={d.name} value={d.name}>
-                                {d.name}
-                              </option>
-                            ))}
-                          </select>
-                          <FieldError message={form.formState.errors.division?.message} />
+                          <FieldLabel htmlFor="address">{c.addressLabel}</FieldLabel>
+                          <input id="address" placeholder={c.addressPlaceholder} className={inputClass} {...form.register("address")} />
+                          <FieldError message={form.formState.errors.address?.message} />
                         </div>
-                        <div>
-                          <FieldLabel htmlFor="district">{c.districtLabel}</FieldLabel>
-                          <select id="district" disabled={!division} className={inputClass} {...form.register("district")}>
-                            <option value="">{c.selectDistrict}</option>
-                            {districtsOf(division ?? "").map((name) => (
-                              <option key={name} value={name}>
-                                {name}
-                              </option>
-                            ))}
-                          </select>
-                          <FieldError message={form.formState.errors.district?.message} />
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div>
+                            <FieldLabel htmlFor="division">{c.divisionLabel}</FieldLabel>
+                            <select id="division" className={inputClass} {...form.register("division")}>
+                              <option value="">{c.selectDivision}</option>
+                              {BD_DIVISIONS.map((d) => (
+                                <option key={d.name} value={d.name}>
+                                  {d.name}
+                                </option>
+                              ))}
+                            </select>
+                            <FieldError message={form.formState.errors.division?.message} />
+                          </div>
+                          <div>
+                            <FieldLabel htmlFor="district">{c.districtLabel}</FieldLabel>
+                            <select id="district" disabled={!division} className={inputClass} {...form.register("district")}>
+                              <option value="">{c.selectDistrict}</option>
+                              {districtsOf(division ?? "").map((name) => (
+                                <option key={name} value={name}>
+                                  {name}
+                                </option>
+                              ))}
+                            </select>
+                            <FieldError message={form.formState.errors.district?.message} />
+                          </div>
                         </div>
-                      </div>
+                      </>
                     )}
 
                     <div>
@@ -351,7 +288,7 @@ export default function CheckoutPage() {
                         id="note"
                         rows={3}
                         placeholder={c.notePlaceholder}
-                        className="w-full rounded-lg border border-white/15 bg-ink px-3 py-2 text-sm text-white outline-none focus:border-gold/60"
+                        className="w-full rounded-md border border-white/15 bg-ink px-3 py-2 text-sm text-white outline-none focus:border-gold/60"
                         {...form.register("note")}
                       />
                     </div>
@@ -360,7 +297,7 @@ export default function CheckoutPage() {
               </div>
 
               {/* ---------- Right: order summary + payment ---------- */}
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-5 lg:sticky lg:top-24">
+              <div className="rounded-md border border-white/10 bg-white/5 p-5 lg:sticky lg:top-24">
                 <div className="flex items-center justify-between">
                   <h2 className="text-base font-bold text-white">{c.orderHeading}</h2>
                   <Link href="/products/gold" className="flex items-center gap-1 text-xs font-semibold text-gold hover:text-gold-light">
@@ -372,7 +309,7 @@ export default function CheckoutPage() {
                 <div className="mt-4 flex flex-col gap-3">
                   {items.map((item) => (
                     <div key={item.id} className="flex items-center gap-3">
-                      <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black">
+                      <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-black">
                         <Image src={item.image} alt={item.name} width={56} height={56} className="size-full object-contain p-1.5" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -417,12 +354,12 @@ export default function CheckoutPage() {
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value)}
                     placeholder={c.promoPlaceholder}
-                    className="h-8 flex-1 rounded-lg border border-white/15 bg-ink px-2.5 text-xs text-white outline-none focus:border-gold/60"
+                    className="h-8 flex-1 rounded-md border border-white/15 bg-ink px-2.5 text-xs text-white outline-none focus:border-gold/60"
                   />
                   <button
                     type="button"
                     onClick={applyPromo}
-                    className="h-8 shrink-0 rounded-lg border border-gold/40 px-2.5 text-xs font-semibold text-gold hover:bg-gold/10"
+                    className="h-8 shrink-0 rounded-md border border-gold/40 px-2.5 text-xs font-semibold text-gold hover:bg-gold/10"
                   >
                     {c.promoApply}
                   </button>
@@ -458,7 +395,7 @@ export default function CheckoutPage() {
                           onClick={() => form.setValue("paymentMethod", method, { shouldValidate: true })}
                           aria-pressed={selected}
                           className={cn(
-                            "flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors",
+                            "flex items-center justify-between gap-2 rounded-md border px-3 py-2.5 text-left transition-colors",
                             selected ? "border-gold bg-gold/5" : "border-white/10 hover:border-white/25"
                           )}
                         >

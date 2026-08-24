@@ -136,7 +136,7 @@ export function RateChart({ data }: { data: { pricePerGramBDT: string; effective
 
         {hovered && (
           <div
-            className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-lg border border-white/10 bg-ink-light px-3 py-2 text-xs shadow-xl"
+            className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-md border border-white/10 bg-ink-light px-3 py-2 text-xs shadow-xl"
             style={{ left: `${(x(hoverIndex!) / WIDTH) * 100}%` }}
           >
             <p className="font-semibold text-white">{formatBDT(hovered.pricePerGramBDT)}</p>
@@ -154,7 +154,7 @@ export function RateChart({ data }: { data: { pricePerGramBDT: string; effective
       </button>
 
       {showTable && (
-        <div className="mt-3 overflow-x-auto rounded-lg border border-white/10">
+        <div className="mt-3 overflow-x-auto rounded-md border border-white/10">
           <table className="w-full text-left text-xs">
             <thead className="bg-white/5 text-neutral-400">
               <tr>

@@ -8,13 +8,16 @@ import type { SiteSettings } from "@/types";
  * not across restarts or separate server instances.
  *
  * Every field starts blank on purpose — none of these are placeholder
- * values standing in for a real registered address/BIN/phone number or
- * social profile.
+ * values standing in for a real registered address, registration
+ * number, contact detail, or social profile.
  */
 let settings: SiteSettings = {
   address: "",
   bin: "",
   phone: "",
+  email: "",
+  tradeLicense: "",
+  dbid: "",
   facebookUrl: "",
   instagramUrl: "",
   linkedinUrl: "",

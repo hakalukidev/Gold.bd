@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Gem, ChevronDown } from "lucide-react";
+import { Menu, X, Gem, ChevronDown, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -177,11 +177,23 @@ export function LandingHeader() {
             <CartButton />
             <LanguageToggle />
             <Button
+              variant="gold-outline"
+              size="default"
+              nativeButton={false}
+              className="h-10 gap-2 px-4 text-xs font-bold tracking-[0.08em]"
+              render={
+                <Link href="/login">
+                  <Wallet className="size-4" />
+                  {t.nav.goldWallet}
+                </Link>
+              }
+            />
+            <Button
               variant="gold-solid"
               size="default"
               nativeButton={false}
               className="h-10 px-5 text-xs font-bold tracking-[0.08em] shadow-[0_0_18px_rgba(212,166,42,0.25)]"
-              render={<Link href="/buy-gold">{t.rateHistory.buyGold}</Link>}
+              render={<Link href="/products/gold">{t.rateHistory.buyGold}</Link>}
             />
           </div>
 
@@ -211,7 +223,7 @@ export function LandingHeader() {
                   href={href}
                   onClick={closeMobileMenu}
                   className={cn(
-                    "rounded-xl px-3 py-2 text-sm font-bold transition-colors",
+                    "rounded-md px-3 py-2 text-sm font-bold transition-colors",
                     active ? "text-gold" : "text-neutral-200 hover:bg-white/10 hover:text-white"
                   )}
                 >
@@ -230,7 +242,7 @@ export function LandingHeader() {
                     onClick={() => setOpenMobileGroup(expanded ? null : group.label)}
                     aria-expanded={expanded}
                     className={cn(
-                      "flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-bold transition-colors",
+                      "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-bold transition-colors",
                       active ? "text-gold" : "text-neutral-200 hover:bg-white/10 hover:text-white"
                     )}
                   >
@@ -244,7 +256,7 @@ export function LandingHeader() {
                           key={item.href}
                           href={item.href}
                           onClick={closeMobileMenu}
-                          className="rounded-lg px-3 py-2 text-sm font-semibold text-neutral-300 hover:bg-white/10 hover:text-white"
+                          className="rounded-md px-3 py-2 text-sm font-semibold text-neutral-300 hover:bg-white/10 hover:text-white"
                         >
                           {item.label}
                         </Link>
@@ -257,13 +269,25 @@ export function LandingHeader() {
           </nav>
           <div className="mt-3 flex flex-col gap-3 border-t border-white/10 pt-3">
             <Button
+              variant="gold-outline"
+              size="lg"
+              nativeButton={false}
+              className="w-full gap-2"
+              render={
+                <Link href="/login" onClick={closeMobileMenu}>
+                  <Wallet className="size-4" />
+                  {t.nav.goldWallet}
+                </Link>
+              }
+            />
+            <Button
               variant="gold"
               size="lg"
               nativeButton={false}
               className="w-full shadow-none"
               style={{ boxShadow: "none" }}
               render={
-                <Link href="/buy-gold" onClick={closeMobileMenu}>
+                <Link href="/products/gold" onClick={closeMobileMenu}>
                   {t.rateHistory.buyGold}
                 </Link>
               }

@@ -60,9 +60,9 @@ function CalcCard({
 }) {
   const a = CARD_ACCENT_CLASSES[accent];
   return (
-    <section id={id} className={`rounded-3xl border border-white/10 bg-white/5 p-4 transition-colors sm:p-5 ${a.hoverBorder}`}>
+    <section id={id} className={`rounded-md border border-white/10 bg-white/5 p-4 transition-colors sm:p-5 ${a.hoverBorder}`}>
       <div className="flex items-start gap-3">
-        <span className={`flex size-8 shrink-0 items-center justify-center rounded-xl ${a.badge}`}>
+        <span className={`flex size-8 shrink-0 items-center justify-center rounded-md ${a.badge}`}>
           <Icon className="size-4" />
         </span>
         <div className="min-w-0">
@@ -98,14 +98,14 @@ function NumberInput({ id, value, onChange }: { id?: string; value: string; onCh
       inputMode="decimal"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-10 w-full rounded-lg border border-white/15 bg-ink px-3 text-sm text-white outline-none focus:border-gold/60"
+      className="h-10 w-full rounded-md border border-white/15 bg-ink px-3 text-sm text-white outline-none focus:border-gold/60"
     />
   );
 }
 
 function ReadonlyField({ value }: { value: string }) {
   return (
-    <div className="flex h-10 w-full items-center rounded-lg border border-white/10 bg-ink px-3 text-sm text-white">
+    <div className="flex h-10 w-full items-center rounded-md border border-white/10 bg-ink px-3 text-sm text-white">
       {value}
     </div>
   );
@@ -476,7 +476,7 @@ function MoneyAmountField({
           inputMode="decimal"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`h-10 w-full rounded-lg border border-white/15 bg-ink pr-3 pl-8 text-sm text-white outline-none ${FIELD_ACCENT_CLASSES[accent]}`}
+          className={`h-10 w-full rounded-md border border-white/15 bg-ink pr-3 pl-8 text-sm text-white outline-none ${FIELD_ACCENT_CLASSES[accent]}`}
         />
       </div>
     </Field>
@@ -549,7 +549,7 @@ function SilverCalculator() {
           inputMode="decimal"
           value={rate}
           onChange={(e) => setRate(e.target.value)}
-          className="mt-1 h-9 w-full rounded-lg border border-white/15 bg-ink px-3 text-center text-sm font-semibold text-neutral-200 outline-none focus:border-neutral-300/60"
+          className="mt-1 h-9 w-full rounded-md border border-white/15 bg-ink px-3 text-center text-sm font-semibold text-neutral-200 outline-none focus:border-neutral-300/60"
         />
       </div>
 
@@ -615,7 +615,7 @@ function MakingChargeCalculator() {
           <ReadonlyField value={formatBDT(chargeAmount)} />
         </Field>
         <Field label={c.totalLabel}>
-          <div className="flex h-10 w-full items-center rounded-lg border border-gold/40 bg-gold/10 px-3 text-sm font-semibold text-gold">
+          <div className="flex h-10 w-full items-center rounded-md border border-gold/40 bg-gold/10 px-3 text-sm font-semibold text-gold">
             {formatBDT(total)}
           </div>
         </Field>
@@ -695,7 +695,7 @@ function ZakatCalculator() {
             id="zakat-purity"
             value={purity}
             onChange={(e) => setPurity(Number(e.target.value) as (typeof PURITY_OPTIONS)[number])}
-            className="h-10 w-full rounded-lg border border-white/15 bg-ink px-3 text-sm text-white outline-none focus:border-gold/60"
+            className="h-10 w-full rounded-md border border-white/15 bg-ink px-3 text-sm text-white outline-none focus:border-gold/60"
           >
             {PURITY_OPTIONS.map((k) => (
               <option key={k} value={k}>
@@ -714,7 +714,7 @@ function ZakatCalculator() {
           <ReadonlyField value={formatBDT(marketValue)} />
         </Field>
         <Field label={c.zakatDueLabel}>
-          <div className="flex h-10 w-full items-center rounded-lg border border-gold/40 bg-gold/10 px-3 text-sm font-semibold text-gold">
+          <div className="flex h-10 w-full items-center rounded-md border border-gold/40 bg-gold/10 px-3 text-sm font-semibold text-gold">
             {formatBDT(zakatDue)}
           </div>
         </Field>
@@ -776,7 +776,7 @@ export default function CalculatorPage() {
         <div className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-4 sm:px-6">
           <div className="text-center">
             <div className="flex items-center justify-center gap-2">
-              <span className="flex size-6 items-center justify-center rounded-lg bg-gold/15 text-gold">
+              <span className="flex size-6 items-center justify-center rounded-md bg-gold/15 text-gold">
                 <TrendingUp className="size-3.5" />
               </span>
               <LiveBadge label={t.todayPrice.live} />
@@ -812,13 +812,13 @@ export default function CalculatorPage() {
               </TabsContent>
             </div>
 
-            <TabsList className="h-fit w-full shrink-0 flex-col gap-1 rounded-3xl border border-white/10 bg-white/5 p-3 sm:w-56">
+            <TabsList className="h-fit w-full shrink-0 flex-col gap-1 rounded-md border border-white/10 bg-white/5 p-3 sm:w-56">
               {SECTIONS.map(({ id, icon: Icon }) => (
                 <TabsTrigger
                   key={id}
                   value={id}
                   className={cn(
-                    "w-full justify-start gap-2.5 rounded-lg border-l-2 !border-transparent bg-transparent px-3 py-2 text-sm font-medium text-neutral-300 shadow-none transition-colors",
+                    "w-full justify-start gap-2.5 rounded-md border-l-2 !border-transparent bg-transparent px-3 py-2 text-sm font-medium text-neutral-300 shadow-none transition-colors",
                     "hover:bg-white/5 hover:text-white",
                     "data-active:!border-gold data-active:!bg-gold/10 data-active:!text-gold data-active:!shadow-none"
                   )}

@@ -14,7 +14,7 @@ function ReadonlyField({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <label className="block text-xs text-neutral-400">{label}</label>
-      <div className="mt-1 flex h-10 w-full items-center rounded-lg border border-white/10 bg-ink px-3 text-sm text-white">
+      <div className="mt-1 flex h-10 w-full items-center rounded-md border border-white/10 bg-ink px-3 text-sm text-white">
         {value}
       </div>
     </div>
@@ -41,7 +41,7 @@ export function RateHistorySection() {
           <p className="mt-3 text-neutral-300">{t.rateHistory.trackerSubtitle}</p>
         </div>
 
-        <div className="mt-10 rounded-3xl border border-white/10 bg-white/5 p-6 sm:p-8">
+        <div className="mt-10 rounded-md border border-white/10 bg-white/5 p-6 sm:p-8">
           {/* ---------- Calculator row ---------- */}
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
@@ -55,7 +55,7 @@ export function RateHistorySection() {
                 inputMode="decimal"
                 value={amountBDT}
                 onChange={(e) => setAmountBDT(e.target.value)}
-                className="mt-1 h-10 w-full rounded-lg border border-white/15 bg-ink px-3 text-sm text-white outline-none focus:border-gold/60"
+                className="mt-1 h-10 w-full rounded-md border border-white/15 bg-ink px-3 text-sm text-white outline-none focus:border-gold/60"
               />
             </div>
             <ReadonlyField label={t.rateHistory.youWillGet} value={`${grams.toFixed(3)} g`} />
@@ -63,7 +63,7 @@ export function RateHistorySection() {
           </div>
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <Button variant="gold" nativeButton={false} className="sm:w-auto" render={<Link href="/register">{t.rateHistory.buyGold}</Link>} />
+            <Button variant="gold" nativeButton={false} className="sm:w-auto" render={<Link href="/products/gold">{t.rateHistory.buyGold}</Link>} />
             <Button
               variant="gold-outline"
               nativeButton={false}

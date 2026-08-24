@@ -15,6 +15,7 @@ export interface PublicUser {
 export interface WalletSummary {
   cashBalanceBDT: string; // decimal serialized as string to avoid float precision loss over the wire
   goldBalanceGrams: string;
+  silverBalanceGrams: string; // the vault holds both metals; same string-decimal contract as gold
 }
 
 export type TransactionType = "BUY" | "SELL" | "DEPOSIT" | "WITHDRAW";
@@ -45,6 +46,9 @@ export interface SiteSettings {
   address: string;
   bin: string;
   phone: string;
+  email: string;
+  tradeLicense: string;
+  dbid: string;
   facebookUrl: string;
   instagramUrl: string;
   linkedinUrl: string;

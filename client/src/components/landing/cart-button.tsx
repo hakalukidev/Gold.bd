@@ -47,7 +47,7 @@ export function CartButton({ className }: { className?: string }) {
           <>
             <div className="flex max-h-72 flex-col gap-1 overflow-y-auto">
               {items.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 rounded-lg p-1.5 hover:bg-white/5">
+                <div key={item.id} className="flex items-center gap-3 rounded-md p-1.5 hover:bg-white/5">
                   <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-black">
                     <Image src={item.image} alt={item.name} width={44} height={44} className="size-full object-contain p-1" />
                   </div>

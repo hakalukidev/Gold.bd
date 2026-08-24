@@ -38,6 +38,8 @@ function ProductCard({
   const title = `${weightLabel} ${formLabel}`;
   const kicker = `${t.featured[form === "bar" ? "kickerBar" : "kickerCoin"]} · ${t.featured.karatBadge}`;
 
+  const isSilver = metal === "silver";
+
   const effectivePerGram = effectivePricePerGram(pricePerGram22k, weight);
   const unitPrice = effectivePerGram !== null ? effectivePerGram * weight.grams : null;
   const totalPrice = unitPrice !== null ? unitPrice * qty : null;
@@ -60,7 +62,7 @@ function ProductCard({
   }
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition-all duration-300 hover:-translate-y-1 hover:border-gold/40 hover:bg-white/[0.05] hover:shadow-[0_20px_45px_-20px_rgba(212,166,42,0.35)]">
+    <div className="group relative flex flex-col overflow-hidden rounded-md border border-white/10 bg-white/[0.03] transition-all duration-300 hover:-translate-y-1 hover:border-gold/40 hover:bg-white/[0.05] hover:shadow-[0_20px_45px_-20px_rgba(212,166,42,0.35)]">
       {/* ---------- Image ---------- */}
       <div className="relative aspect-4/3 shrink-0 overflow-hidden bg-black">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(212,166,42,0.25),transparent_65%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
@@ -114,7 +116,7 @@ function ProductCard({
           </div>
 
           <Button
-            variant="gold-outline"
+            variant={isSilver ? "silver-outline" : "gold-outline"}
             className="h-8 flex-1 px-2 text-[11px]"
             onClick={handleAddToCart}
             disabled={unitPrice === null}
@@ -123,7 +125,12 @@ function ProductCard({
           </Button>
         </div>
 
-        <Button variant="gold-solid" className="h-8 w-full text-xs" onClick={handleBuyNow} disabled={unitPrice === null}>
+        <Button
+          variant={isSilver ? "silver-solid" : "gold-solid"}
+          className="h-8 w-full text-xs"
+          onClick={handleBuyNow}
+          disabled={unitPrice === null}
+        >
           {t.featured.buyNow}
         </Button>
       </div>
@@ -131,14 +138,33 @@ function ProductCard({
   );
 }
 
-export function ProductsSection() {
+function MetalRow({ metal, form }: { metal: Metal; form: Form }) {
   const t = useT();
-  const [metal, setMetal] = useState<Metal>("gold");
-  const [form, setForm] = useState<Form>("bar");
   const { data: rate } = useMetalRate(metal);
 
   const fine = rate ? Number(rate.pricePerGramBDT) : null;
   const price22k = fine !== null ? fine * PURITY_22K : null;
+
+  return (
+    <div>
+      <div className="flex items-center gap-3">
+        <h3 className="text-sm font-bold tracking-wide text-gold uppercase">
+          {t.featured[metal === "gold" ? "metalGold" : "metalSilver"]}
+        </h3>
+        <span className="h-px flex-1 bg-white/10" />
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
+        {PRODUCT_WEIGHTS.map((weight) => (
+          <ProductCard key={weight.grams} metal={metal} form={form} weight={weight} pricePerGram22k={price22k} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function ProductsSection() {
+  const t = useT();
+  const [form, setForm] = useState<Form>("bar");
 
   return (
     <section id="products" className="scroll-mt-24 bg-black py-20">
@@ -159,23 +185,8 @@ export function ProductsSection() {
           </Link>
         </div>
 
-        {/* ---------- Metal / form toggles ---------- */}
+        {/* ---------- Form toggle (gold and silver are shown as separate rows) ---------- */}
         <div className="mt-8 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1 rounded-full border border-white/15 bg-white/5 p-1">
-            {(["gold", "silver"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMetal(m)}
-                className={cn(
-                  "rounded-full px-4 py-1.5 text-xs font-bold tracking-wide uppercase transition-colors",
-                  metal === m ? "bg-gold text-ink" : "text-neutral-300 hover:text-white"
-                )}
-              >
-                {t.featured[m === "gold" ? "metalGold" : "metalSilver"]}
-              </button>
-            ))}
-          </div>
           <div className="flex items-center gap-1 rounded-full border border-white/15 bg-white/5 p-1">
             {(["bar", "coin"] as const).map((f) => (
               <button
@@ -197,11 +208,10 @@ export function ProductsSection() {
           </span>
         </div>
 
-        {/* ---------- Grid ---------- */}
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
-          {PRODUCT_WEIGHTS.map((weight) => (
-            <ProductCard key={weight.grams} metal={metal} form={form} weight={weight} pricePerGram22k={price22k} />
-          ))}
+        {/* ---------- Rows ---------- */}
+        <div className="mt-8 space-y-10">
+          <MetalRow metal="gold" form={form} />
+          <MetalRow metal="silver" form={form} />
         </div>
       </div>
     </section>

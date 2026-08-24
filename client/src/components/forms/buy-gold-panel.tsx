@@ -1,17 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowUpRight, Gem, ShieldCheck, TrendingUp } from "lucide-react";
-import { buyGoldSchema, buyGoldAmountSchema } from "@/lib/validations/gold";
+import { ArrowUpRight, Gem, ShieldCheck, TrendingUp, Wallet as WalletIcon } from "lucide-react";
+import { tradeAmountSchema, tradeGramsSchema } from "@/lib/validations/gold";
 import { ApiError } from "@/lib/api-client";
-import { useBuyGold } from "@/hooks/use-gold-trade";
-import { useGoldRate } from "@/hooks/use-gold-rate";
+import { useBuyMetal } from "@/hooks/use-gold-trade";
+import { useMetalRate } from "@/hooks/use-metal-rate";
 import { useWallet } from "@/hooks/use-wallet";
 import { computeBuyOrderBreakdown } from "@/lib/gold-fees";
 import { formatBDT } from "@/lib/format";
+import { getLatestRate } from "@/lib/mock-rates";
+import { MOCK_WALLET } from "@/lib/mock-wallet";
+import { AMOUNT_PRESETS, METAL_LABEL, TRADE_PRODUCTS, productPricePerGram, type TradeProduct } from "@/lib/trade-products";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,54 +23,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PaymentMethodButton, SELECTED_GOLD } from "@/components/shared/payment-method-button";
+import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { cn } from "@/lib/utils";
 
 type EntryMode = "amount" | "weight";
 
-// Only "Gold Bar (22K)" is wired to a real rate + the /api/gold/buy mutation
-// — the rest mirror the reference design but there's no coin/24K/silver
-// buy-side pricing or endpoint in this repo yet (see CLAUDE.md), so they're
-// shown for parity and marked "Soon" instead of silently doing the wrong thing.
-const PRODUCT_OPTIONS: { key: string; label: string; enabled: boolean }[] = [
-  { key: "gold-bar-22k", label: "Gold Bar (22K)", enabled: true },
-  { key: "gold-coin-22k", label: "Gold Coin (22K)", enabled: false },
-  { key: "gold-coin-24k", label: "Gold Coin (24K)", enabled: false },
-  { key: "silver-bar-999", label: "Silver Bar (999)", enabled: false },
-  { key: "silver-coin-999", label: "Silver Coin (999)", enabled: false },
-];
-
-const AMOUNT_PRESETS = [500, 1000, 2500, 5000, 10000];
-
-// Only "Wallet balance" actually debits anything today — the rest are
-// payment-gateway integrations this repo has no backend for.
-const PAYMENT_METHODS: { key: string; label: string; enabled: boolean }[] = [
-  { key: "wallet", label: "Wallet balance", enabled: true },
-  { key: "bkash", label: "bKash", enabled: false },
-  { key: "nagad", label: "Nagad", enabled: false },
-  { key: "rocket", label: "Rocket", enabled: false },
-  { key: "bank", label: "Bank transfer", enabled: false },
-  { key: "card", label: "Card", enabled: false },
-];
-
+/**
+ * Buying is funded from the cash wallet and nothing else — bKash/Nagad/card
+ * top the wallet up (the wallet page's Add money flow) rather than settling a
+ * trade — so this panel shows the one funding source it can actually debit and
+ * routes to Add money when there isn't enough in it. Every SKU in
+ * trade-products.ts is buyable: gold and silver both have a live rate and a
+ * `/api/{metal}/buy` mutation (see use-gold-trade.ts).
+ */
 export function BuyGoldPanel() {
   const router = useRouter();
-  const { data: rate } = useGoldRate();
-  const { data: wallet } = useWallet();
-  const buy = useBuyGold();
+  const { data: walletData } = useWallet();
 
-  const form = useForm<{ value: number }>({ defaultValues: { value: 1000 } });
+  const form = useForm<{ value: number }>({ defaultValues: { value: AMOUNT_PRESETS[1] } });
   const [mode, setMode] = useState<EntryMode>("amount");
-  const [product, setProduct] = useState(PRODUCT_OPTIONS[0].key);
-  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0].key);
+  const [productKey, setProductKey] = useState(TRADE_PRODUCTS[0].key);
 
-  const pricePerGram = rate ? Number(rate.pricePerGramBDT) : null;
+  const product = TRADE_PRODUCTS.find((p) => p.key === productKey)!;
+  const { data: rateData } = useMetalRate(product.metal);
+  const buy = useBuyMetal(product.metal);
+
+  const wallet = walletData ?? MOCK_WALLET;
+  const fineRate = Number((rateData ?? getLatestRate(product.metal)).pricePerGramBDT);
+  const pricePerGram = productPricePerGram(fineRate, product);
+
   const rawValue = form.watch("value") || 0;
   const amountBDT = mode === "amount" ? rawValue : pricePerGram ? rawValue * pricePerGram : 0;
-  const breakdown = pricePerGram ? computeBuyOrderBreakdown(amountBDT, pricePerGram) : null;
+  const breakdown = pricePerGram ? computeBuyOrderBreakdown(amountBDT, pricePerGram, product.metal) : null;
 
-  const insufficientBalance =
-    paymentMethod === "wallet" && !!wallet && !!breakdown && breakdown.totalPayableBDT > Number(wallet.cashBalanceBDT);
+  const cashBDT = Number(wallet.cashBalanceBDT);
+  const insufficientBalance = !!breakdown && breakdown.totalPayableBDT > cashBDT;
 
   function handleModeChange(next: EntryMode) {
     if (next === mode || !pricePerGram) {
@@ -78,35 +69,24 @@ export function BuyGoldPanel() {
     setMode(next);
   }
 
-  function selectProduct(key: string, enabled: boolean) {
-    if (!enabled) {
-      toast.info("Coming soon — only Gold Bar (22K) is available to buy right now.");
-      return;
-    }
-    setProduct(key);
-  }
-
-  function selectPaymentMethod(key: string, enabled: boolean) {
-    if (!enabled) {
-      toast.info("Coming soon — pay with wallet balance for now.");
-      return;
-    }
-    setPaymentMethod(key);
-  }
-
   async function onSubmit(values: { value: number }) {
-    const schema = mode === "amount" ? buyGoldAmountSchema.shape.amountBDT : buyGoldSchema.shape.goldGrams;
+    const schema = mode === "amount" ? tradeAmountSchema : tradeGramsSchema(product.metal, "buy");
     const parsed = schema.safeParse(values.value);
     if (!parsed.success) {
       form.setError("value", { message: parsed.error.issues[0]?.message ?? "Enter a valid amount" });
       return;
     }
     if (!breakdown) return;
+    if (insufficientBalance) {
+      form.setError("value", { message: `Your cash wallet holds ${formatBDT(cashBDT)}` });
+      return;
+    }
 
     try {
-      await buy.mutateAsync(Number(breakdown.goldGrams.toFixed(4)));
+      await buy.mutateAsync(Number(breakdown.grams.toFixed(4)));
       toast.success("Purchase completed");
-      form.reset({ value: mode === "amount" ? AMOUNT_PRESETS[1] : 1 });
+      form.reset({ value: AMOUNT_PRESETS[1] });
+      setMode("amount");
       router.refresh();
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Purchase failed");
@@ -122,26 +102,26 @@ export function BuyGoldPanel() {
             {/* Product / purity selector */}
             <div className="space-y-2">
               <div className="grid grid-cols-3 gap-2">
-                {PRODUCT_OPTIONS.slice(0, 3).map((opt) => (
-                  <ProductButton key={opt.key} option={opt} selected={product === opt.key} onSelect={selectProduct} />
+                {TRADE_PRODUCTS.slice(0, 3).map((opt) => (
+                  <ProductButton key={opt.key} option={opt} selected={product.key === opt.key} onSelect={setProductKey} />
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {PRODUCT_OPTIONS.slice(3).map((opt) => (
-                  <ProductButton key={opt.key} option={opt} selected={product === opt.key} onSelect={selectProduct} />
+                {TRADE_PRODUCTS.slice(3).map((opt) => (
+                  <ProductButton key={opt.key} option={opt} selected={product.key === opt.key} onSelect={setProductKey} />
                 ))}
               </div>
             </div>
 
             {/* Certification + live price */}
-            <div className="flex items-center justify-between rounded-lg border border-gold/20 bg-gold/5 px-3 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-gold/20 bg-gold/5 px-3 py-2">
               <Badge variant="outline" className="border-gold/30 bg-gold/15 text-gold">
                 <ShieldCheck className="size-3" strokeWidth={1.75} />
-                22K Hallmarked &amp; Certified
+                {product.purityNote}
               </Badge>
               <span className="flex items-center gap-1.5 text-sm font-semibold tabular-nums">
                 <TrendingUp className="size-3.5 text-gold" strokeWidth={1.75} />
-                {pricePerGram ? `${formatBDT(pricePerGram)}/g` : "Loading…"}
+                {pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "Loading…"}
               </span>
             </div>
 
@@ -180,7 +160,7 @@ export function BuyGoldPanel() {
               ) : (
                 <p className="text-sm text-muted-foreground">
                   {mode === "amount"
-                    ? `≈ ${breakdown ? breakdown.goldGrams.toFixed(4) : "0.0000"} g of 22K gold bar`
+                    ? `≈ ${breakdown ? breakdown.grams.toFixed(4) : "0.0000"} g of ${product.unitNoun}`
                     : pricePerGram
                       ? `≈ ${formatBDT(rawValue * pricePerGram)}`
                       : ""}
@@ -205,32 +185,47 @@ export function BuyGoldPanel() {
               </div>
             )}
 
-            {/* Payment method */}
+            {/* Funding source — cash only */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Pay with</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {PAYMENT_METHODS.map((method) => (
-                  <PaymentMethodButton
-                    key={method.key}
-                    method={method}
-                    selected={paymentMethod === method.key}
-                    subtext={method.key === "wallet" && wallet ? formatBDT(wallet.cashBalanceBDT) : undefined}
-                    onSelect={selectPaymentMethod}
-                  />
-                ))}
+              <div
+                className={cn(
+                  "flex items-center justify-between gap-2 rounded-md border px-3 py-2.5",
+                  insufficientBalance ? "border-destructive/40 bg-destructive/5" : "border-gold/30 bg-gold/10"
+                )}
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <WalletIcon className="size-4 text-gold" strokeWidth={1.75} />
+                  Cash wallet
+                </span>
+                <span className="font-semibold tabular-nums">{formatBDT(cashBDT)}</span>
               </div>
+              {insufficientBalance ? (
+                <p className="text-sm text-destructive">
+                  Not enough cash for this order.{" "}
+                  <Link href="/wallet" className="font-medium underline underline-offset-2">
+                    Add money
+                  </Link>
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Gold and silver are bought with wallet cash — top the wallet up with bKash, Nagad, bank transfer or card first.
+                </p>
+              )}
             </div>
-
-            {insufficientBalance && <p className="text-sm text-destructive">Insufficient wallet balance for this order.</p>}
 
             <Button
               type="submit"
               variant="gold-solid"
               className="w-full"
-              disabled={form.formState.isSubmitting || !pricePerGram || amountBDT <= 0 || insufficientBalance}
+              disabled={form.formState.isSubmitting || pricePerGram === null || amountBDT <= 0 || insufficientBalance}
             >
               <ArrowUpRight />
-              {form.formState.isSubmitting ? "Processing…" : amountBDT > 0 ? `Buy gold · ${formatBDT(amountBDT)}` : "Buy gold"}
+              {form.formState.isSubmitting
+                ? "Processing…"
+                : amountBDT > 0
+                  ? `Buy ${METAL_LABEL[product.metal]} · ${formatBDT(amountBDT)}`
+                  : `Buy ${METAL_LABEL[product.metal]}`}
             </Button>
           </form>
         </CardContent>
@@ -242,9 +237,11 @@ export function BuyGoldPanel() {
           <CardTitle>Order summary</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <SummaryRow label="Gold Bar price (22K)" value={pricePerGram ? `${formatBDT(pricePerGram)}/g` : "—"} />
-          <SummaryRow label="You receive" value={breakdown ? `${breakdown.goldGrams.toFixed(4)} g of 22K gold bar` : "—"} />
-          <SummaryRow label="Govt. gold tax (2,500/bhori)" value={breakdown ? formatBDT(breakdown.govtTaxBDT) : "—"} />
+          <SummaryRow label={`${product.label} price`} value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "—"} />
+          <SummaryRow label="You receive" value={breakdown ? `${breakdown.grams.toFixed(4)} g of ${product.unitNoun}` : "—"} />
+          {product.metal === "gold" && (
+            <SummaryRow label="Govt. gold tax (2,500/bhori)" value={breakdown ? formatBDT(breakdown.govtTaxBDT) : "—"} />
+          )}
           <SummaryRow label="Transaction charge (1.5%)" value={breakdown ? formatBDT(breakdown.transactionChargeBDT) : "—"} />
           <Separator />
           <div className="flex items-center justify-between text-base font-semibold">
@@ -252,7 +249,7 @@ export function BuyGoldPanel() {
             <span className="tabular-nums">{breakdown ? formatBDT(breakdown.totalPayableBDT) : "—"}</span>
           </div>
           <p className="pt-1 text-xs text-muted-foreground">
-            Gold is stored instantly in your insured vault. Collect physical gold anytime from 0.5g.
+            {METAL_LABEL[product.metal]} is stored instantly in your insured vault. Collect physical metal anytime from 0.5g.
           </p>
         </CardContent>
       </Card>
@@ -265,37 +262,27 @@ function ProductButton({
   selected,
   onSelect,
 }: {
-  option: { key: string; label: string; enabled: boolean };
+  option: TradeProduct;
   selected: boolean;
-  onSelect: (key: string, enabled: boolean) => void;
+  onSelect: (key: string) => void;
 }) {
   return (
     <Button
       type="button"
       variant="outline"
       aria-pressed={selected}
-      aria-disabled={!option.enabled}
-      onClick={() => onSelect(option.key, option.enabled)}
-      className={cn(
-        "relative h-auto justify-center gap-1.5 rounded-lg py-2.5 text-center whitespace-normal",
-        selected && SELECTED_GOLD,
-        !option.enabled && "opacity-60"
-      )}
+      onClick={() => onSelect(option.key)}
+      className={cn("h-auto justify-center gap-1.5 rounded-md py-2.5 text-center whitespace-normal", selected && SELECTED_GOLD)}
     >
       <Gem className="size-3.5 shrink-0" strokeWidth={1.75} />
       {option.label}
-      {!option.enabled && (
-        <Badge variant="secondary" className="absolute -top-2 -right-2 text-[9px]">
-          Soon
-        </Badge>
-      )}
     </Button>
   );
 }
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between text-sm">
+    <div className="flex items-center justify-between gap-2 text-sm">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-medium tabular-nums">{value}</span>
     </div>

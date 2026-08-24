@@ -23,7 +23,7 @@ export function GoldRateCard() {
   const price22k = price24k !== null ? price24k * PURITY_22K : null;
 
   return (
-    <div className="rounded-2xl border border-gold/25 bg-white/3 px-5 py-4 backdrop-blur-sm">
+    <div className="rounded-md border border-gold/25 bg-white/3 px-5 py-4 backdrop-blur-sm">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <p className="text-[10px] tracking-wide text-muted-white uppercase">{t.hero.rateCard.label22k}</p>

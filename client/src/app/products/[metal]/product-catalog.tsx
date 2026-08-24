@@ -154,11 +154,11 @@ export function ProductCatalog({ metal }: { metal: Metal }) {
                   onClick={() => selectSku(sku.id)}
                   aria-pressed={isSelected}
                   className={cn(
-                    "flex flex-col items-start rounded-2xl border bg-white/[0.03] p-4 text-left transition-colors",
+                    "flex flex-col items-start rounded-md border bg-white/[0.03] p-4 text-left transition-colors",
                     isSelected ? "border-gold" : "border-white/10 hover:border-white/25"
                   )}
                 >
-                  <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-black">
+                  <div className="relative aspect-square w-full overflow-hidden rounded-md bg-black">
                     <Image
                       src={PRODUCT_IMAGES[sku.metal][sku.form]}
                       alt={skuTitle(sku)}
@@ -177,8 +177,8 @@ export function ProductCatalog({ metal }: { metal: Metal }) {
           </div>
 
           {/* ---------- Selected product detail panel ---------- */}
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 lg:sticky lg:top-24">
-            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-black">
+          <div className="rounded-md border border-white/10 bg-white/5 p-4 lg:sticky lg:top-24">
+            <div className="relative aspect-square w-full overflow-hidden rounded-md bg-black">
               <Image src={selectedImage} alt={selectedTitle} fill sizes="280px" className="object-contain p-5" />
             </div>
 

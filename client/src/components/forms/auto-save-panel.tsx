@@ -78,7 +78,7 @@ export function AutoSavePanel() {
             </div>
           </div>
 
-          <div className="rounded-lg bg-muted px-4 py-3">
+          <div className="rounded-md bg-muted px-4 py-3">
             <p className="text-sm text-muted-foreground">Projected gold in 1 year</p>
             <p className="mt-1 text-2xl font-semibold text-gold">{projectedGrams !== null ? `${projectedGrams.toFixed(3)} g` : "…"}</p>
           </div>
@@ -99,7 +99,7 @@ export function AutoSavePanel() {
           ) : (
             <div className="space-y-3">
               {plans.map((plan) => (
-                <div key={plan.id} className="rounded-lg border p-3">
+                <div key={plan.id} className="rounded-md border p-3">
                   <div className="flex items-center justify-between">
                     <p className="font-medium">{plan.frequency} Auto-Save</p>
                     <Badge className="bg-emerald-500/15 text-emerald-500">Active</Badge>

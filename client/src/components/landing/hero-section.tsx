@@ -91,7 +91,7 @@ export function HeroSection() {
                 nativeButton={false}
                 className="h-12 w-full gap-2 px-6 text-sm sm:w-auto"
                 render={
-                  <Link href="/register">
+                  <Link href="/products/gold">
                     <ShoppingBag className="size-4" />
                     {t.hero.ctaPrimary}
                   </Link>

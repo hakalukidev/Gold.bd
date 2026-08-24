@@ -12,7 +12,7 @@ export function TrustSection() {
         <p className="mx-auto mt-3 max-w-xl text-neutral-400">{t.trust.subheading}</p>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {t.trust.badges.map((b) => (
-            <div key={b.title} className="rounded-2xl border border-white/10 bg-white/5 p-5 text-left">
+            <div key={b.title} className="rounded-md border border-white/10 bg-white/5 p-5 text-left">
               <p className="font-medium text-gold">{b.title}</p>
               <p className="mt-2 text-sm text-neutral-400">{b.description}</p>
             </div>

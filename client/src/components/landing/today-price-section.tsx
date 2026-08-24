@@ -100,6 +100,9 @@ export function TodayPriceSection() {
   const { data: rate, isLoading } = useMetalRate(metalKey);
   const { data: history } = useMetalRateHistory(metalKey);
   const [unitKey, setUnitKey] = useState<(typeof UNITS)[number]["key"]>("bhori");
+  // Collapsed by default — the mini chart above already carries the headline
+  // rate, so the full karat table is opt-in.
+  const [pricesOpen, setPricesOpen] = useState(false);
   const unit = UNITS.find((u) => u.key === unitKey)!;
   const metal = METALS.find((m) => m.key === metalKey)!;
 
@@ -123,7 +126,7 @@ export function TodayPriceSection() {
   }, [miniChartData]);
 
   return (
-    <section className="relative overflow-hidden bg-black py-16 sm:py-20">
+    <section className="relative overflow-hidden bg-black py-12 sm:py-14">
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
         {/* ---------- Stat strip: 22K/gram mini chart + marketing tagline ---------- */}
         <div className="grid gap-8 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] sm:items-center">
@@ -155,7 +158,7 @@ export function TodayPriceSection() {
         </div>
 
         {/* ---------- Divider ---------- */}
-        <div className="my-8 h-px bg-linear-to-r from-transparent via-gold/50 to-transparent" />
+        <div className="my-6 h-px bg-linear-to-r from-transparent via-gold/50 to-transparent" />
 
         {/* ---------- Price header ---------- */}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -204,58 +207,75 @@ export function TodayPriceSection() {
           </div>
         </div>
 
-        {/* ---------- Karat price grid ---------- */}
-        <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4 sm:gap-x-0 sm:divide-x sm:divide-white/10">
-          {KARATS.map(({ key, purity }) => {
-            const price = price24k !== null ? price24k * purity * unit.grams : null;
-            const changeAbs = changeAbsPerGram * purity * unit.grams;
-            return (
-              <div key={key} className="min-w-0 sm:px-5 sm:first:pl-0 sm:last:pr-0">
-                <div className="flex items-baseline justify-between gap-2">
-                  <p className="text-[11px] font-medium tracking-wide text-muted-white uppercase">{t.todayPrice[key]}</p>
-                  <span className="text-[10px] text-muted-white">{(purity * 100).toFixed(1)}%</span>
-                </div>
-                <p className="mt-1 truncate text-lg font-bold text-white sm:text-xl">
-                  {isLoading || price === null ? "—" : formatBDT(price)}
-                </p>
-                <p className="text-[10px] text-muted-white">{t.todayPrice[unit.perLabel]}</p>
-                {prevPrice24k !== null && (
-                  <p
-                    className={cn(
-                      "mt-1.5 flex items-center gap-1 text-[11px] font-semibold",
-                      changeAbs > 0 ? "text-emerald-400" : changeAbs < 0 ? "text-red-400" : "text-muted-white"
-                    )}
-                  >
-                    {changeAbs > 0 ? (
-                      <TrendingUp className="size-3" />
-                    ) : changeAbs < 0 ? (
-                      <TrendingDown className="size-3" />
-                    ) : null}
-                    {changeAbs === 0
-                      ? t.todayPrice.unchanged
-                      : `${changeAbs > 0 ? "+" : ""}${formatBDT(changeAbs)} (${changePct > 0 ? "+" : ""}${changePct.toFixed(2)}%)`}
-                  </p>
-                )}
-              </div>
-            );
-          })}
+        {/* ---------- Show / hide toggle ---------- */}
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setPricesOpen((open) => !open)}
+            aria-expanded={pricesOpen}
+            aria-controls="today-price-details"
+            className="flex items-center gap-2 rounded-full border border-neutral-400/40 bg-white/10 px-6 py-2.5 text-sm font-semibold text-neutral-200 outline-none transition-colors hover:border-neutral-300/70 hover:bg-white/15 hover:text-white sm:text-base"
+          >
+            {pricesOpen ? t.todayPrice.hidePrices : t.todayPrice.showPrices}
+            <ChevronDown className={cn("size-4 transition-transform duration-200", pricesOpen && "rotate-180")} />
+          </button>
         </div>
 
-        {/* ---------- Unit switcher ---------- */}
-        <div className="mt-6 flex flex-wrap gap-1 border-t border-white/10 pt-4">
-          {UNITS.map((u) => (
-            <button
-              key={u.key}
-              type="button"
-              onClick={() => setUnitKey(u.key)}
-              className={cn(
-                "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
-                unitKey === u.key ? "bg-gold text-ink" : "text-muted-white hover:bg-white/5 hover:text-neutral-200"
-              )}
-            >
-              {t.todayPrice[u.label]}
-            </button>
-          ))}
+        {/* Karat prices + unit switcher collapse behind the toggle above. */}
+        <div id="today-price-details" hidden={!pricesOpen}>
+          {/* ---------- Karat price grid ---------- */}
+          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4 sm:gap-x-0 sm:divide-x sm:divide-white/10">
+            {KARATS.map(({ key, purity }) => {
+              const price = price24k !== null ? price24k * purity * unit.grams : null;
+              const changeAbs = changeAbsPerGram * purity * unit.grams;
+              return (
+                <div key={key} className="min-w-0 sm:px-5 sm:first:pl-0 sm:last:pr-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-[11px] font-medium tracking-wide text-muted-white uppercase">{t.todayPrice[key]}</p>
+                    <span className="text-[10px] text-muted-white">{(purity * 100).toFixed(1)}%</span>
+                  </div>
+                  <p className="mt-1 truncate text-lg font-bold text-white sm:text-xl">
+                    {isLoading || price === null ? "—" : formatBDT(price)}
+                  </p>
+                  <p className="text-[10px] text-muted-white">{t.todayPrice[unit.perLabel]}</p>
+                  {prevPrice24k !== null && (
+                    <p
+                      className={cn(
+                        "mt-1.5 flex items-center gap-1 text-[11px] font-semibold",
+                        changeAbs > 0 ? "text-emerald-400" : changeAbs < 0 ? "text-red-400" : "text-muted-white"
+                      )}
+                    >
+                      {changeAbs > 0 ? (
+                        <TrendingUp className="size-3" />
+                      ) : changeAbs < 0 ? (
+                        <TrendingDown className="size-3" />
+                      ) : null}
+                      {changeAbs === 0
+                        ? t.todayPrice.unchanged
+                        : `${changeAbs > 0 ? "+" : ""}${formatBDT(changeAbs)} (${changePct > 0 ? "+" : ""}${changePct.toFixed(2)}%)`}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ---------- Unit switcher ---------- */}
+          <div className="mt-6 flex flex-wrap gap-1 border-t border-white/10 pt-4">
+            {UNITS.map((u) => (
+              <button
+                key={u.key}
+                type="button"
+                onClick={() => setUnitKey(u.key)}
+                className={cn(
+                  "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                  unitKey === u.key ? "bg-gold text-ink" : "text-muted-white hover:bg-white/5 hover:text-neutral-200"
+                )}
+              >
+                {t.todayPrice[u.label]}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </section>

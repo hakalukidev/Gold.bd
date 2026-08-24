@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Hash, MapPin, Phone } from "lucide-react";
+import { FileText, Hash, Mail, MapPin, Phone, ScrollText } from "lucide-react";
 import { siteSettingsSchema, type SiteSettingsInput } from "@/lib/validations/settings";
 import { useSiteSettings, useUpdateSiteSettings } from "@/hooks/use-site-settings";
 import { ApiError } from "@/lib/api-client";
@@ -20,7 +20,7 @@ export default function AdminSettingsPage() {
 
   const form = useForm<SiteSettingsInput>({
     resolver: zodResolver(siteSettingsSchema),
-    defaultValues: { address: "", bin: "", phone: "", facebookUrl: "", instagramUrl: "", linkedinUrl: "", youtubeUrl: "" },
+    defaultValues: { address: "", bin: "", phone: "", email: "", tradeLicense: "", dbid: "", facebookUrl: "", instagramUrl: "", linkedinUrl: "", youtubeUrl: "" },
   });
 
   // Seed the form once the current settings load — a one-shot sync, not a
@@ -45,7 +45,7 @@ export default function AdminSettingsPage() {
       <Card className="max-w-md">
         <CardHeader>
           <CardTitle>Business details</CardTitle>
-          <CardDescription>Registered address, BIN, and a contact number for the footer.</CardDescription>
+          <CardDescription>Registered address, registration numbers, and contact details for the footer.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -84,6 +84,45 @@ export default function AdminSettingsPage() {
                     <FormLabel>Contact phone</FormLabel>
                     <FormControl>
                       <IconInput icon={Phone} placeholder="e.g. 09610XXXXXX" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact email</FormLabel>
+                    <FormControl>
+                      <IconInput icon={Mail} type="email" placeholder="e.g. info@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="tradeLicense"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Trade licence no.</FormLabel>
+                    <FormControl>
+                      <IconInput icon={ScrollText} placeholder="Trade Licence Number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="dbid"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>DBID no.</FormLabel>
+                    <FormControl>
+                      <IconInput icon={FileText} placeholder="Digital Business Identification" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

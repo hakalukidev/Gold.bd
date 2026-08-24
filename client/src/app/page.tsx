@@ -48,7 +48,7 @@ export default function LandingPage() {
             {t.features.items.map((feature) => (
               <Card key={feature.title}>
                 <CardContent className="space-y-2 pt-2">
-                  <div className="flex size-9 items-center justify-center rounded-lg bg-gold/15 text-gold">
+                  <div className="flex size-9 items-center justify-center rounded-md bg-gold/15 text-gold">
                     <span className="text-lg">●</span>
                   </div>
                   <p className="font-medium">{feature.title}</p>

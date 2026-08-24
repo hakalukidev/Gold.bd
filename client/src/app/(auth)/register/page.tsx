@@ -4,15 +4,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { Lock, Mail, Phone, User } from "lucide-react";
+import { LogIn, Mail, Phone, User } from "lucide-react";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
-import { api, ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { IconInput } from "@/components/shared/icon-input";
+import { PasswordInput } from "@/components/shared/password-input";
 
+// UI-only flow for now: there is no auth backend, so a valid form just moves the
+// user on to the OTP step (register -> /verify-otp -> /wallet).
 export default function RegisterPage() {
   const router = useRouter();
   const form = useForm<RegisterInput>({
@@ -20,89 +20,124 @@ export default function RegisterPage() {
     defaultValues: { fullName: "", phone: "", email: "", password: "" },
   });
 
-  async function onSubmit(values: RegisterInput) {
-    try {
-      const { phone } = await api.post<{ phone: string }>("/api/auth/register", values);
-      toast.success("Account created — enter the code we sent you");
-      router.push(`/verify-otp?phone=${encodeURIComponent(phone)}&purpose=REGISTER`);
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Registration failed");
-    }
+  function onSubmit(values: RegisterInput) {
+    router.push(`/verify-otp?phone=${encodeURIComponent(values.phone)}&purpose=REGISTER`);
   }
 
   return (
-    <Card className="shadow-lg shadow-black/5">
-      <CardHeader>
-        <CardTitle className="text-xl">Create your account</CardTitle>
-        <CardDescription>Start buying and selling gold in a few minutes.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="fullName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full name</FormLabel>
-                  <FormControl>
-                    <IconInput icon={User} placeholder="Rahim Uddin" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mobile number</FormLabel>
-                  <FormControl>
-                    <IconInput icon={Phone} placeholder="01XXXXXXXXX" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email (optional)</FormLabel>
-                  <FormControl>
-                    <IconInput icon={Mail} type="email" placeholder="you@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <IconInput icon={Lock} type="password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Creating account…" : "Create account"}
-            </Button>
-          </form>
-        </Form>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/login" className="font-medium text-primary hover:underline">
-            Log in
+    <div>
+      <h1 className="text-3xl font-bold tracking-tight">Create account</h1>
+      <p className="mt-2 text-sm text-muted-foreground">Start buying and selling gold in a few minutes.</p>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 space-y-5">
+          <FormField
+            control={form.control}
+            name="fullName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Full name</FormLabel>
+                <FormControl>
+                  <IconInput
+                    icon={User}
+                    autoComplete="name"
+                    placeholder="Rahim Uddin"
+                    className="h-11"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mobile number</FormLabel>
+                <FormControl>
+                  <IconInput
+                    icon={Phone}
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="01XXXXXXXXX"
+                    className="h-11"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Email <span className="font-normal text-muted-foreground">(optional)</span>
+                </FormLabel>
+                <FormControl>
+                  <IconInput
+                    icon={Mail}
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                    className="h-11"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <PasswordInput
+                    autoComplete="new-password"
+                    placeholder="At least 8 characters"
+                    className="h-11"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button type="submit" variant="gold-solid" className="h-11 w-full rounded-md text-sm">
+            Create account
+          </Button>
+        </form>
+      </Form>
+
+      <div className="my-6 flex items-center gap-3">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-xs text-muted-foreground">or</span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      <Button
+        variant="outline"
+        className="h-11 w-full rounded-md text-sm font-semibold"
+        nativeButton={false}
+        render={
+          <Link href="/login">
+            <LogIn className="size-4" strokeWidth={1.75} />
+            Sign in instead
           </Link>
-        </p>
-      </CardContent>
-    </Card>
+        }
+      />
+
+      <p className="mt-8 text-center text-xs text-muted-foreground">
+        By creating an account you agree to our terms and privacy policy.
+      </p>
+    </div>
   );
 }
