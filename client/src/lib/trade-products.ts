@@ -1,5 +1,5 @@
 import { Building2, Smartphone, Wallet as WalletIcon, type LucideIcon } from "lucide-react";
-import { PURITY_22K } from "@/lib/products";
+import { PURITY_22K, type ProductForm } from "@/lib/products";
 import type { Metal } from "@/lib/mock-rates";
 
 /**
@@ -18,6 +18,8 @@ export interface TradeProduct {
   key: string;
   label: string;
   metal: Metal;
+  /** Bar or coin — indexes into products.ts's PRODUCT_IMAGES for the SKU's photo. */
+  form: ProductForm;
   /** Fraction of fine metal: 22/24 for 22K, 0.999 for "999" silver. */
   purity: number;
   /** Certification line shown beside the live price. */
@@ -41,6 +43,7 @@ export const TRADE_PRODUCTS: TradeProduct[] = [
     shortLabel: "Bar 22K",
     label: "Gold Bar (22K)",
     metal: "gold",
+    form: "bar",
     purity: PURITY_22K,
     purityNote: "22K Hallmarked & Certified",
     premium: 0,
@@ -51,6 +54,7 @@ export const TRADE_PRODUCTS: TradeProduct[] = [
     shortLabel: "Coin 22K",
     label: "Gold Coin (22K)",
     metal: "gold",
+    form: "coin",
     purity: PURITY_22K,
     purityNote: "22K Hallmarked & Certified",
     premium: COIN_PREMIUM,
@@ -61,6 +65,7 @@ export const TRADE_PRODUCTS: TradeProduct[] = [
     shortLabel: "Coin 24K",
     label: "Gold Coin (24K)",
     metal: "gold",
+    form: "coin",
     purity: 1,
     purityNote: "24K Fine Gold, Hallmarked",
     premium: COIN_PREMIUM,
@@ -71,6 +76,7 @@ export const TRADE_PRODUCTS: TradeProduct[] = [
     shortLabel: "Bar 999",
     label: "Silver Bar (999)",
     metal: "silver",
+    form: "bar",
     purity: PURITY_999,
     purityNote: "999 Fine Silver, Hallmarked",
     premium: 0,
@@ -81,6 +87,7 @@ export const TRADE_PRODUCTS: TradeProduct[] = [
     shortLabel: "Coin 999",
     label: "Silver Coin (999)",
     metal: "silver",
+    form: "coin",
     purity: PURITY_999,
     purityNote: "999 Fine Silver, Hallmarked",
     premium: COIN_PREMIUM,

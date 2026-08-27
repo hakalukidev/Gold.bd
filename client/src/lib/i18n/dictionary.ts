@@ -294,6 +294,7 @@ const dictionary = {
       googlePlayEyebrow: "এখনই পান",
       googlePlayName: "Google Play",
       copyright: "© {year} গোল্ড বিডি টেকনোলজিস লিমিটেড। সর্বস্বত্ব সংরক্ষিত।",
+      developedBy: "ডেভেলপ করেছে",
     },
     ctaBand: {
       heading: "আজই আপনার গোল্ড ওয়ালেট খুলুন",
@@ -710,6 +711,7 @@ const dictionary = {
       googlePlayEyebrow: "Get it on",
       googlePlayName: "Google Play",
       copyright: "© {year} Gold BD Technologies Limited. All rights reserved.",
+      developedBy: "Developed by",
     },
     ctaBand: {
       heading: "Open your gold wallet today",

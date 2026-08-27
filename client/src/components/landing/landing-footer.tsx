@@ -114,8 +114,21 @@ export function LandingFooter() {
             </div>
           )}
         </div>
-        <div className="mt-10 border-t border-white/10 pt-6 text-xs text-neutral-500">
-          © {new Date().getFullYear()} Gold BD. {t.footer.copyright}
+        <div className="mt-10 flex flex-col items-center gap-2 border-t border-white/10 pt-6 text-xs text-neutral-500 sm:flex-row sm:justify-between">
+          <span>
+            © {new Date().getFullYear()} Gold BD. {t.footer.copyright}
+          </span>
+          <span>
+            {t.footer.developedBy}{" "}
+            <a
+              href="https://hakaluki.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-neutral-400 transition-colors hover:text-gold"
+            >
+              hakaluki.dev
+            </a>
+          </span>
         </div>
       </div>
     </footer>

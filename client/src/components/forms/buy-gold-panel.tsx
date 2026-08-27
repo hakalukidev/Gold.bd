@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowUpRight, Gem, ShieldCheck, TrendingUp, Wallet as WalletIcon } from "lucide-react";
+import { ArrowUpRight, ShieldCheck, TrendingUp, Wallet as WalletIcon } from "lucide-react";
 import { tradeAmountSchema, tradeGramsSchema } from "@/lib/validations/gold";
 import { ApiError } from "@/lib/api-client";
 import { useBuyMetal } from "@/hooks/use-gold-trade";
@@ -15,6 +16,7 @@ import { computeBuyOrderBreakdown } from "@/lib/gold-fees";
 import { formatBDT } from "@/lib/format";
 import { getLatestRate } from "@/lib/mock-rates";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
+import { PRODUCT_IMAGES } from "@/lib/products";
 import { AMOUNT_PRESETS, METAL_LABEL, TRADE_PRODUCTS, productPricePerGram, type TradeProduct } from "@/lib/trade-products";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/shared/page-header";
+import { WalletBadge } from "@/components/shared/wallet-badge";
 import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { cn } from "@/lib/utils";
 
@@ -97,24 +101,29 @@ export function BuyGoldPanel() {
     <div className="grid gap-4 lg:grid-cols-[1fr_340px] lg:items-start">
       {/* ---------- Order form ---------- */}
       <Card>
+        {/* Heading lives on the card itself (not the two-column grid above
+            it), so it's centered against this card's own width rather than
+            the wider form+summary layout. */}
+        <CardHeader className="flex-col items-center border-b text-center">
+          <PageHeader
+            centered
+            title="Buy gold & silver"
+            description="Bars and coins from as low as ৳500, paid from your cash wallet"
+            action={<WalletBadge />}
+          />
+        </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-            {/* Product / purity selector */}
-            <div className="space-y-2">
-              <div className="grid grid-cols-3 gap-2">
-                {TRADE_PRODUCTS.slice(0, 3).map((opt) => (
-                  <ProductButton key={opt.key} option={opt} selected={product.key === opt.key} onSelect={setProductKey} />
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {TRADE_PRODUCTS.slice(3).map((opt) => (
-                  <ProductButton key={opt.key} option={opt} selected={product.key === opt.key} onSelect={setProductKey} />
-                ))}
-              </div>
+            {/* Product / purity selector — one evenly-spread row of boxed,
+                image-led cards, like the landing page's why-us cards. */}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {TRADE_PRODUCTS.map((opt) => (
+                <ProductButton key={opt.key} option={opt} selected={product.key === opt.key} onSelect={setProductKey} />
+              ))}
             </div>
 
             {/* Certification + live price */}
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-gold/20 bg-gold/5 px-3 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-gold/20 bg-gold/5 px-2.5 py-1.5">
               <Badge variant="outline" className="border-gold/30 bg-gold/15 text-gold">
                 <ShieldCheck className="size-3" strokeWidth={1.75} />
                 {product.purityNote}
@@ -272,10 +281,10 @@ function ProductButton({
       variant="outline"
       aria-pressed={selected}
       onClick={() => onSelect(option.key)}
-      className={cn("h-auto justify-center gap-1.5 rounded-md py-2.5 text-center whitespace-normal", selected && SELECTED_GOLD)}
+      className={cn("h-auto flex-col gap-2 rounded-md p-3 text-center text-xs whitespace-normal", selected && SELECTED_GOLD)}
     >
-      <Gem className="size-3.5 shrink-0" strokeWidth={1.75} />
-      {option.label}
+      <Image src={PRODUCT_IMAGES[option.metal][option.form]} alt="" width={48} height={48} className="size-12 object-contain" />
+      <span className="font-semibold">{option.label}</span>
     </Button>
   );
 }
