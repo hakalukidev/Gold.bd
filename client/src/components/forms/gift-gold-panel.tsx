@@ -13,13 +13,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
+import { AnniversaryIcon, BirthdayIcon, EidIcon, WeddingIcon } from "@/components/forms/occasion-icons";
 import { cn } from "@/lib/utils";
 
 const OCCASIONS = [
-  { key: "eid", label: "Eid Mubarak", quote: "A gift of gold, made to last." },
-  { key: "wedding", label: "Wedding", quote: "Wishing you a golden beginning." },
-  { key: "birthday", label: "Birthday", quote: "Another year, a little more golden." },
-  { key: "anniversary", label: "Anniversary", quote: "Cherishing gold, and each other." },
+  { key: "eid", label: "Eid Mubarak", quote: "A gift of gold, made to last.", icon: EidIcon },
+  { key: "wedding", label: "Wedding", quote: "Wishing you a golden beginning.", icon: WeddingIcon },
+  { key: "birthday", label: "Birthday", quote: "Another year, a little more golden.", icon: BirthdayIcon },
+  { key: "anniversary", label: "Anniversary", quote: "Cherishing gold, and each other.", icon: AnniversaryIcon },
 ] as const;
 
 const AMOUNT_PRESETS = [1000, 2000, 5000, 10000];
@@ -56,18 +57,26 @@ export function GiftGoldPanel() {
         <CardContent className="space-y-5">
           <div className="space-y-2">
             <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Occasion</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {OCCASIONS.map((o) => (
-                <Button
-                  key={o.key}
-                  type="button"
-                  variant="outline"
-                  className={cn("h-auto py-2.5 whitespace-normal", occasionKey === o.key && SELECTED_GOLD)}
-                  onClick={() => setOccasionKey(o.key)}
-                >
-                  {o.label}
-                </Button>
-              ))}
+            <div className="grid grid-cols-4 gap-2">
+              {OCCASIONS.map((o) => {
+                const Icon = o.icon;
+                return (
+                  <Button
+                    key={o.key}
+                    type="button"
+                    variant="outline"
+                    aria-pressed={occasionKey === o.key}
+                    className={cn(
+                      "h-auto aspect-square flex-col items-center justify-center gap-1 rounded-md bg-gold/5 p-1.5",
+                      occasionKey === o.key && "border-gold ring-2 ring-gold bg-gold/10"
+                    )}
+                    onClick={() => setOccasionKey(o.key)}
+                  >
+                    <Icon className="size-14 sm:size-20 lg:size-24" />
+                    <span className="text-center text-[10px] leading-tight font-semibold sm:text-xs">{o.label}</span>
+                  </Button>
+                );
+              })}
             </div>
           </div>
 

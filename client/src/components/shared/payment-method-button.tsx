@@ -11,6 +11,11 @@ import { cn } from "@/lib/utils";
 // cascade over a plain (non-dark-scoped) override.
 export const SELECTED_GOLD = "!border-gold !bg-gold !text-ink hover:!bg-gold-light";
 
+// Same shape, silver palette — for selection rows on a silver-context flow
+// (e.g. sell-gold-panel.tsx once the Silver tab is active), so the highlight
+// matches the metal actually being traded instead of always reading gold.
+export const SELECTED_SILVER = "!border-silver !bg-silver !text-ink hover:!bg-silver-light";
+
 /** Real brand marks where one's already checked into public/payment-logos
  * (bKash, Nagad, Rocket, Visa/Mastercard for "Card") — bank transfer doesn't
  * have an asset there, so that one falls back to a plain icon rather than a

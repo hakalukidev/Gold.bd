@@ -8,13 +8,14 @@ import { ArrowDownRight, Wallet as WalletIcon } from "lucide-react";
 import { tradeGramsSchema } from "@/lib/validations/gold";
 import { ApiError } from "@/lib/api-client";
 import { useSellMetal } from "@/hooks/use-gold-trade";
-import { useMetalRate } from "@/hooks/use-metal-rate";
+import { useMetalRate, useMetalRateHistory } from "@/hooks/use-metal-rate";
 import { useWallet } from "@/hooks/use-wallet";
 import { computeSellPayout, SELL_SPREAD_RATE } from "@/lib/gold-fees";
 import { formatBDT } from "@/lib/format";
-import { getLatestRate, type Metal } from "@/lib/mock-rates";
+import { getLatestRate, getRateHistory, type Metal } from "@/lib/mock-rates";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
 import { METAL_LABEL, METALS, PAYOUT_METHODS } from "@/lib/trade-products";
+import { MarketPriceChart, METAL_CHART_COLOR, toPricePoints } from "@/components/market/market-price-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
+import { SELECTED_GOLD, SELECTED_SILVER } from "@/components/shared/payment-method-button";
 import { cn } from "@/lib/utils";
 
 /**
@@ -42,17 +43,32 @@ export function SellGoldPanel() {
   const [payoutKey, setPayoutKey] = useState(PAYOUT_METHODS[0].key);
 
   const { data: rateData } = useMetalRate(metal);
+  const { data: rateHistory } = useMetalRateHistory(metal);
   const sell = useSellMetal(metal);
 
   const wallet = walletData ?? MOCK_WALLET;
   const pricePerGram = Number((rateData ?? getLatestRate(metal)).pricePerGramBDT);
-  const available = Number(metal === "gold" ? wallet.goldBalanceGrams : wallet.silverBalanceGrams);
+  // Both balances come straight off the wallet — no per-metal rate query
+  // needed just to show stock, unlike the price calc above which does.
+  const goldAvailable = Number(wallet.goldBalanceGrams);
+  const silverAvailable = Number(wallet.silverBalanceGrams);
+  const available = metal === "gold" ? goldAvailable : silverAvailable;
   const sliderMax = available > 0 ? available : 1;
+
+  // Same chart the Market page draws — daily series, holding-value axis
+  // driven by what's actually in the vault for whichever metal is selected.
+  const pricePoints = toPricePoints(rateHistory ?? getRateHistory(metal), "daily");
 
   const grams = form.watch("value") || 0;
   const payout = computeSellPayout(grams, pricePerGram);
   const exceedsBalance = grams > available;
   const activePayout = PAYOUT_METHODS.find((m) => m.key === payoutKey);
+
+  // Every "selected" highlight on this page follows whichever metal is
+  // active, not a fixed gold accent — so switching to Silver re-colors the
+  // payout chip, the sell button, etc. to match.
+  const isSilver = metal === "silver";
+  const selectedAccent = isSilver ? SELECTED_SILVER : SELECTED_GOLD;
 
   function selectPayoutMethod(key: string, enabled: boolean) {
     if (!enabled) {
@@ -89,21 +105,48 @@ export function SellGoldPanel() {
       <Card>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Metal selector */}
-            <div className="flex gap-2">
+            {/* Metal selector — leads with each metal's held stock, so it's
+                the first thing shown rather than something you find out only
+                after picking a metal and looking below the weight field. */}
+            <div className="grid grid-cols-2 gap-2">
               {METALS.map((m) => (
-                <Button
+                <MetalStockButton
                   key={m}
-                  type="button"
-                  variant="outline"
-                  aria-pressed={metal === m}
-                  onClick={() => setMetal(m)}
-                  className={cn(metal === m && SELECTED_GOLD)}
-                >
-                  {METAL_LABEL[m]}
-                </Button>
+                  metal={m}
+                  label={METAL_LABEL[m]}
+                  available={m === "gold" ? goldAvailable : silverAvailable}
+                  selected={metal === m}
+                  onSelect={setMetal}
+                />
               ))}
             </div>
+
+            {/* Price chart for whichever metal is selected above — the same
+                dual-axis chart the Market page uses, so switching tabs swaps
+                both the data and the right-hand "what your stock is worth"
+                axis (only drawn when you actually hold any). */}
+            {pricePoints.length >= 2 && (
+              <div className="rounded-md border border-gold/20 bg-gold/5 p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">{METAL_LABEL[metal]} price</p>
+                  <span className="text-sm font-semibold text-gold tabular-nums">{formatBDT(pricePerGram)}/g</span>
+                </div>
+                <div className="mt-2">
+                  <MarketPriceChart
+                    data={pricePoints}
+                    holdingGrams={available}
+                    color={METAL_CHART_COLOR[metal]}
+                    metalLabel={METAL_LABEL[metal]}
+                  />
+                </div>
+                {available > 0 && (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Left axis is the market price per gram; the right axis values your own {available.toFixed(3)} g of{" "}
+                    {METAL_LABEL[metal].toLowerCase()} at the same price.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Big weight entry */}
             <div className="space-y-3 text-center">
@@ -141,12 +184,19 @@ export function SellGoldPanel() {
               <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Receive payout via</Label>
               <div className="grid grid-cols-2 gap-2">
                 {PAYOUT_METHODS.slice(0, 2).map((m) => (
-                  <PayoutButton key={m.key} method={m} selected={payoutKey === m.key} onSelect={selectPayoutMethod} />
+                  <PayoutButton
+                    key={m.key}
+                    method={m}
+                    selected={payoutKey === m.key}
+                    onSelect={selectPayoutMethod}
+                    accent={selectedAccent}
+                  />
                 ))}
                 <PayoutButton
                   method={PAYOUT_METHODS[2]}
                   selected={payoutKey === PAYOUT_METHODS[2].key}
                   onSelect={selectPayoutMethod}
+                  accent={selectedAccent}
                   className="col-span-2"
                 />
               </div>
@@ -159,7 +209,7 @@ export function SellGoldPanel() {
             <div className="space-y-2 text-center">
               <Button
                 type="submit"
-                variant="gold-solid"
+                variant={isSilver ? "silver-solid" : "gold-solid"}
                 className="w-full"
                 disabled={form.formState.isSubmitting || grams <= 0 || exceedsBalance}
               >
@@ -192,15 +242,54 @@ export function SellGoldPanel() {
   );
 }
 
+function MetalStockButton({
+  metal,
+  label,
+  available,
+  selected,
+  onSelect,
+}: {
+  metal: Metal;
+  label: string;
+  available: number;
+  selected: boolean;
+  onSelect: (metal: Metal) => void;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      aria-pressed={selected}
+      onClick={() => onSelect(metal)}
+      className={cn(
+        "h-auto flex-col gap-0.5 rounded-md py-2.5",
+        // Each button colors itself as its own metal when active — the Gold
+        // tile turns gold, the Silver tile turns silver — rather than both
+        // always reading gold regardless of which one is selected.
+        selected && (metal === "gold" ? SELECTED_GOLD : SELECTED_SILVER)
+      )}
+    >
+      <span className="font-semibold">{label}</span>
+      <span className={cn("text-xs font-normal", selected ? "text-ink/70" : "text-muted-foreground")}>
+        {available.toFixed(3)} g in stock
+      </span>
+    </Button>
+  );
+}
+
 function PayoutButton({
   method,
   selected,
   onSelect,
+  accent = SELECTED_GOLD,
   className,
 }: {
   method: { key: string; label: string; icon: typeof WalletIcon; enabled: boolean };
   selected: boolean;
   onSelect: (key: string, enabled: boolean) => void;
+  /** Selected-state color — follows the active metal (gold/silver) on the
+   * page this is used from. */
+  accent?: string;
   className?: string;
 }) {
   const Icon = method.icon;
@@ -213,7 +302,7 @@ function PayoutButton({
       onClick={() => onSelect(method.key, method.enabled)}
       className={cn(
         "h-auto justify-center gap-2 rounded-md py-2.5 font-medium whitespace-normal",
-        selected && SELECTED_GOLD,
+        selected && accent,
         !method.enabled && "opacity-60",
         className
       )}

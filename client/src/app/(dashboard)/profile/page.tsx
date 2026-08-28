@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Copy } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Camera, Copy } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +15,14 @@ import { PageHeader } from "@/components/shared/page-header";
 import { WalletBadge } from "@/components/shared/wallet-badge";
 import { useMe, useLogout } from "@/hooks/use-auth";
 import { referralCode, referralLink } from "@/lib/referral";
+import { MOCK_USER } from "@/lib/mock-user";
 import type { KycStatus } from "@/types";
+
+// Purely a local preview — there's no `/api/auth/me` upload endpoint in this
+// repo (see CLAUDE.md) to actually persist a photo to. Kept in localStorage
+// so it survives a refresh, same "no backend" pattern as wherever else this
+// app fakes writes.
+const AVATAR_STORAGE_KEY = "goldbd-profile-avatar";
 
 const KYC_VARIANT: Record<KycStatus, "default" | "secondary" | "destructive" | "outline"> = {
   NOT_SUBMITTED: "outline",
@@ -43,7 +51,8 @@ function maskPhone(phone: string) {
 // (see CLAUDE.md), so it lives here as local component state.
 export default function ProfilePage() {
   const router = useRouter();
-  const { data: user } = useMe();
+  const { data } = useMe();
+  const user = data ?? MOCK_USER;
   const logout = useLogout();
 
   const [nomineeName, setNomineeName] = useState("");
@@ -52,8 +61,41 @@ export default function ProfilePage() {
   const [nomineeNid, setNomineeNid] = useState("");
   const [nomineeSaved, setNomineeSaved] = useState(false);
   const [twoFactor, setTwoFactor] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  const code = user ? referralCode(user.id) : "…";
+  const code = referralCode(user.id);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(AVATAR_STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot read on mount, not a derived value
+      if (saved) setAvatarUrl(saved);
+    } catch {
+      // localStorage unavailable (private browsing etc.) — just show the fallback initials
+    }
+  }, []);
+
+  function handleAvatarChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // so picking the same file again still fires onChange
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose an image file");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setAvatarUrl(dataUrl);
+      try {
+        localStorage.setItem(AVATAR_STORAGE_KEY, dataUrl);
+      } catch {
+        // storage quota/unavailable — the preview still applies for this session
+      }
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function handleLogout() {
     await logout.mutateAsync();
@@ -71,7 +113,7 @@ export default function ProfilePage() {
   }
 
   function copyInviteLink() {
-    navigator.clipboard?.writeText(user ? referralLink(user.id) : "").then(
+    navigator.clipboard?.writeText(referralLink(user.id)).then(
       () => toast.success("Invite link copied"),
       () => toast.error("Couldn't copy — try again")
     );
@@ -83,20 +125,35 @@ export default function ProfilePage() {
 
       <Card>
         <CardContent className="flex items-center gap-4">
-          <Avatar size="lg">
-            <AvatarFallback className="bg-gold/10 text-lg font-semibold text-gold">{user ? initials(user.fullName) : "…"}</AvatarFallback>
-          </Avatar>
+          <div className="relative shrink-0">
+            <Avatar size="lg">
+              {avatarUrl && <AvatarImage src={avatarUrl} alt={user.fullName} />}
+              <AvatarFallback className="bg-gold/10 text-lg font-semibold text-gold">{initials(user.fullName)}</AvatarFallback>
+            </Avatar>
+            <label
+              htmlFor="profile-avatar-upload"
+              className="absolute -right-1 -bottom-1 flex size-5 cursor-pointer items-center justify-center rounded-full border-2 border-card bg-gold text-ink transition-colors hover:bg-gold-light"
+            >
+              <Camera className="size-3" strokeWidth={2} />
+              <span className="sr-only">Upload profile photo</span>
+            </label>
+            <input
+              id="profile-avatar-upload"
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={handleAvatarChange}
+            />
+          </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-semibold">{user?.fullName ?? "…"}</p>
+            <p className="truncate text-lg font-semibold">{user.fullName}</p>
             <p className="text-sm text-muted-foreground">
-              {user ? maskPhone(user.phone) : "…"}
-              {user?.email ? ` · ${user.email}` : ""}
+              {maskPhone(user.phone)}
+              {user.email ? ` · ${user.email}` : ""}
             </p>
-            {user && (
-              <Badge variant={KYC_VARIANT[user.kycStatus]} className="mt-1.5">
-                {KYC_LABEL[user.kycStatus]}
-              </Badge>
-            )}
+            <Badge variant={KYC_VARIANT[user.kycStatus]} className="mt-1.5">
+              {KYC_LABEL[user.kycStatus]}
+            </Badge>
           </div>
         </CardContent>
       </Card>

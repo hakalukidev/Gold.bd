@@ -1,11 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { MapPin, Truck } from "lucide-react";
 import { collectSchema, COLLECT_WEIGHTS_G, type CollectForm, type CollectInput, type CollectMethod } from "@/lib/validations/collect";
 import { useWallet } from "@/hooks/use-wallet";
 import { formatBDT } from "@/lib/format";
+import { PRODUCT_IMAGES } from "@/lib/products";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
@@ -87,9 +90,10 @@ export function CollectPanel() {
                     key={f}
                     type="button"
                     variant="outline"
-                    className={cn("capitalize", selectedForm === f && SELECTED_GOLD)}
+                    className={cn("h-auto gap-1.5 py-1.5 capitalize", selectedForm === f && SELECTED_GOLD)}
                     onClick={() => form.setValue("form", f)}
                   >
+                    <Image src={PRODUCT_IMAGES.gold[f]} alt="" width={20} height={20} className="size-5 object-contain" />
                     {f}
                   </Button>
                 ))}
@@ -102,17 +106,19 @@ export function CollectPanel() {
                 <Button
                   type="button"
                   variant="outline"
-                  className={cn("h-auto py-2.5 whitespace-normal", method === "home" && SELECTED_GOLD)}
+                  className={cn("h-auto gap-1.5 py-2.5 whitespace-normal", method === "home" && SELECTED_GOLD)}
                   onClick={() => form.setValue("method", "home")}
                 >
+                  <Truck className="size-4" strokeWidth={1.75} />
                   Home Delivery
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  className={cn("h-auto py-2.5 whitespace-normal", method === "pickup" && SELECTED_GOLD)}
+                  className={cn("h-auto gap-1.5 py-2.5 whitespace-normal", method === "pickup" && SELECTED_GOLD)}
                   onClick={() => form.setValue("method", "pickup")}
                 >
+                  <MapPin className="size-4" strokeWidth={1.75} />
                   Steadfast Pickup Point
                 </Button>
               </div>
