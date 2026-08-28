@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { normalizeBdPhone } from "@/lib/format";
@@ -15,11 +16,14 @@ import { Switch } from "@/components/ui/switch";
 import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { cn } from "@/lib/utils";
 
+// `image` files aren't in this repo yet — drop the four occasion images into
+// `client/public/gifts/` under these exact names and they'll show up here
+// with no other change needed.
 const OCCASIONS = [
-  { key: "eid", label: "Eid Mubarak", quote: "A gift of gold, made to last." },
-  { key: "wedding", label: "Wedding", quote: "Wishing you a golden beginning." },
-  { key: "birthday", label: "Birthday", quote: "Another year, a little more golden." },
-  { key: "anniversary", label: "Anniversary", quote: "Cherishing gold, and each other." },
+  { key: "eid", label: "Eid Mubarak", quote: "A gift of gold, made to last.", image: "/gifts/eid.jpg" },
+  { key: "wedding", label: "Wedding", quote: "Wishing you a golden beginning.", image: "/gifts/wedding.jpg" },
+  { key: "birthday", label: "Birthday", quote: "Another year, a little more golden.", image: "/gifts/birthday.jpg" },
+  { key: "anniversary", label: "Anniversary", quote: "Cherishing gold, and each other.", image: "/gifts/anniversary.jpg" },
 ] as const;
 
 const AMOUNT_PRESETS = [1000, 2000, 5000, 10000];
@@ -56,16 +60,25 @@ export function GiftGoldPanel() {
         <CardContent className="space-y-5">
           <div className="space-y-2">
             <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Occasion</Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {OCCASIONS.map((o) => (
                 <Button
                   key={o.key}
                   type="button"
                   variant="outline"
-                  className={cn("h-auto py-2.5 whitespace-normal", occasionKey === o.key && SELECTED_GOLD)}
+                  aria-pressed={occasionKey === o.key}
+                  className={cn(
+                    "relative aspect-square h-auto overflow-hidden rounded-md p-0",
+                    // A ring instead of the usual solid gold fill — a full
+                    // fill would just paint over the image underneath.
+                    occasionKey === o.key && "border-gold ring-2 ring-gold"
+                  )}
                   onClick={() => setOccasionKey(o.key)}
                 >
-                  {o.label}
+                  <Image src={o.image} alt="" fill sizes="(min-width: 1024px) 10vw, 22vw" className="object-cover" />
+                  <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/40 to-transparent px-1.5 pt-6 pb-1.5 text-center text-[11px] leading-tight font-semibold text-white sm:text-xs">
+                    {o.label}
+                  </span>
                 </Button>
               ))}
             </div>
