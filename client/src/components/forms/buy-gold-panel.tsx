@@ -56,6 +56,7 @@ export function BuyGoldPanel() {
   const form = useForm<{ amount: number }>({ defaultValues: { amount: AMOUNT_PRESETS[1] } });
   const [productKey, setProductKey] = useState(TRADE_PRODUCTS[0].key);
   const [orderLines, setOrderLines] = useState<OrderLine[]>([]);
+  const [editingLineKey, setEditingLineKey] = useState<string | null>(null);
 
   const product = TRADE_PRODUCTS.find((p) => p.key === productKey)!;
   const { data: goldRateData } = useMetalRate("gold");
@@ -136,6 +137,18 @@ export function BuyGoldPanel() {
 
   function handleRemoveLine(key: string) {
     setOrderLines((prev) => prev.filter((l) => l.productKey !== key));
+    if (editingLineKey === key) setEditingLineKey(null);
+  }
+
+  function handleEditLineGrams(key: string, raw: string) {
+    const grams = Math.max(0, Number(raw) || 0);
+    setOrderLines((prev) => prev.map((l) => (l.productKey === key ? { ...l, grams } : l)));
+  }
+
+  /** Editing down to 0g drops the line instead of leaving a dead ৳0.00 row. */
+  function finishEditingLine(key: string) {
+    setEditingLineKey(null);
+    setOrderLines((prev) => prev.filter((l) => l.productKey !== key || l.grams > 0));
   }
 
   async function handleConfirmOrder() {
@@ -319,7 +332,32 @@ export function BuyGoldPanel() {
                     <p className="truncate font-medium">{line.product.label}</p>
                     <p className="text-xs text-muted-foreground">{line.product.purityNote}</p>
                     <div className="mt-2 flex items-center justify-between gap-2 text-sm">
-                      <span className="text-muted-foreground">{line.grams.toFixed(4)} g</span>
+                      {editingLineKey === line.product.key ? (
+                        <Input
+                          autoFocus
+                          type="number"
+                          min="0"
+                          step="0.001"
+                          value={line.grams}
+                          onChange={(e) => handleEditLineGrams(line.product.key, e.target.value)}
+                          onBlur={() => finishEditingLine(line.product.key)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              finishEditingLine(line.product.key);
+                            }
+                          }}
+                          className="h-7 w-24 px-2 text-sm tabular-nums"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditingLineKey(line.product.key)}
+                          className="rounded text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground"
+                        >
+                          {line.grams.toFixed(4)} g
+                        </button>
+                      )}
                       <span className="font-semibold tabular-nums">{formatBDT(line.amountBDT)}</span>
                     </div>
                   </div>
