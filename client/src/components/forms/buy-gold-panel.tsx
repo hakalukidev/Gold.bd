@@ -6,31 +6,36 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowUpRight, ShieldCheck, TrendingUp, Wallet as WalletIcon } from "lucide-react";
-import { tradeAmountSchema, tradeGramsSchema } from "@/lib/validations/gold";
+import { ArrowUpRight, Plus, ShieldCheck, TrendingUp, Wallet as WalletIcon, X } from "lucide-react";
+import { tradeAmountSchema } from "@/lib/validations/gold";
 import { ApiError } from "@/lib/api-client";
 import { useBuyMetal } from "@/hooks/use-gold-trade";
-import { useMetalRate } from "@/hooks/use-metal-rate";
+import { useMetalRate, type Metal } from "@/hooks/use-metal-rate";
 import { useWallet } from "@/hooks/use-wallet";
 import { computeBuyOrderBreakdown } from "@/lib/gold-fees";
 import { formatBDT } from "@/lib/format";
 import { getLatestRate } from "@/lib/mock-rates";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
 import { PRODUCT_IMAGES } from "@/lib/products";
-import { AMOUNT_PRESETS, METAL_LABEL, TRADE_PRODUCTS, productPricePerGram, type TradeProduct } from "@/lib/trade-products";
+import { AMOUNT_PRESETS, TRADE_PRODUCTS, productPricePerGram, type TradeProduct } from "@/lib/trade-products";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Spinner } from "@/components/ui/spinner";
 import { PageHeader } from "@/components/shared/page-header";
 import { WalletBadge } from "@/components/shared/wallet-badge";
 import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { cn } from "@/lib/utils";
 
-type EntryMode = "amount" | "weight";
+/** One SKU + weight sitting in the order — the form's `amount`/`weight`
+ * fields configure the *next* line to add, they don't own the order itself. */
+interface OrderLine {
+  productKey: string;
+  grams: number;
+}
 
 /**
  * Buying is funded from the cash wallet and nothing else — bKash/Nagad/card
@@ -39,67 +44,116 @@ type EntryMode = "amount" | "weight";
  * routes to Add money when there isn't enough in it. Every SKU in
  * trade-products.ts is buyable: gold and silver both have a live rate and a
  * `/api/{metal}/buy` mutation (see use-gold-trade.ts).
+ *
+ * The order can mix both metals, but each mutation only buys one metal at a
+ * time — so "Confirm order" fires at most one gold call and one silver call,
+ * each summing every line of that metal rather than one call per line.
  */
 export function BuyGoldPanel() {
   const router = useRouter();
   const { data: walletData } = useWallet();
 
-  const form = useForm<{ value: number }>({ defaultValues: { value: AMOUNT_PRESETS[1] } });
-  const [mode, setMode] = useState<EntryMode>("amount");
+  const form = useForm<{ amount: number }>({ defaultValues: { amount: AMOUNT_PRESETS[1] } });
   const [productKey, setProductKey] = useState(TRADE_PRODUCTS[0].key);
+  const [orderLines, setOrderLines] = useState<OrderLine[]>([]);
 
   const product = TRADE_PRODUCTS.find((p) => p.key === productKey)!;
-  const { data: rateData } = useMetalRate(product.metal);
-  const buy = useBuyMetal(product.metal);
+  const { data: goldRateData } = useMetalRate("gold");
+  const { data: silverRateData } = useMetalRate("silver");
+  const buyGold = useBuyMetal("gold");
+  const buySilver = useBuyMetal("silver");
 
   const wallet = walletData ?? MOCK_WALLET;
-  const fineRate = Number((rateData ?? getLatestRate(product.metal)).pricePerGramBDT);
-  const pricePerGram = productPricePerGram(fineRate, product);
-
-  const rawValue = form.watch("value") || 0;
-  const amountBDT = mode === "amount" ? rawValue : pricePerGram ? rawValue * pricePerGram : 0;
-  const breakdown = pricePerGram ? computeBuyOrderBreakdown(amountBDT, pricePerGram, product.metal) : null;
-
   const cashBDT = Number(wallet.cashBalanceBDT);
-  const insufficientBalance = !!breakdown && breakdown.totalPayableBDT > cashBDT;
 
-  function handleModeChange(next: EntryMode) {
-    if (next === mode || !pricePerGram) {
-      setMode(next);
-      return;
-    }
-    const converted = next === "weight" ? rawValue / pricePerGram : rawValue * pricePerGram;
-    form.setValue("value", Number(converted.toFixed(next === "weight" ? 4 : 0)));
-    setMode(next);
+  const fineRateByMetal: Record<Metal, number> = {
+    gold: Number((goldRateData ?? getLatestRate("gold")).pricePerGramBDT),
+    silver: Number((silverRateData ?? getLatestRate("silver")).pricePerGramBDT),
+  };
+  const pricePerGram = productPricePerGram(fineRateByMetal[product.metal], product);
+
+  // Amount (BDT) is the one value actually stored — weight is always derived
+  // from it, and editing the weight field just writes a converted amount
+  // back, so the two fields stay in sync without a separate source of truth.
+  const amountBDT = form.watch("amount") || 0;
+  const breakdown = pricePerGram ? computeBuyOrderBreakdown(amountBDT, pricePerGram, product.metal) : null;
+  const weightGrams = breakdown?.grams ?? 0;
+
+  function handleWeightChange(raw: string) {
+    if (!pricePerGram) return;
+    const grams = Number(raw) || 0;
+    form.setValue("amount", Number((grams * pricePerGram).toFixed(0)), { shouldValidate: true });
   }
 
-  async function onSubmit(values: { value: number }) {
-    const schema = mode === "amount" ? tradeAmountSchema : tradeGramsSchema(product.metal, "buy");
-    const parsed = schema.safeParse(values.value);
+  // Each line re-prices off the live rate for its own metal (not the rate
+  // that was in effect when it was added), so the summary always matches
+  // what "Confirm order" will actually pay.
+  const orderLineDetails = orderLines.map((line) => {
+    const lineProduct = TRADE_PRODUCTS.find((p) => p.key === line.productKey)!;
+    const lineRate = productPricePerGram(fineRateByMetal[lineProduct.metal], lineProduct);
+    const lineAmountBDT = lineRate !== null ? line.grams * lineRate : 0;
+    const lineBreakdown = lineRate !== null ? computeBuyOrderBreakdown(lineAmountBDT, lineRate, lineProduct.metal) : null;
+    return { product: lineProduct, grams: line.grams, amountBDT: lineAmountBDT, breakdown: lineBreakdown };
+  });
+
+  const orderTotals = orderLineDetails.reduce(
+    (acc, l) => ({
+      subtotalBDT: acc.subtotalBDT + l.amountBDT,
+      govtTaxBDT: acc.govtTaxBDT + (l.breakdown?.govtTaxBDT ?? 0),
+      transactionChargeBDT: acc.transactionChargeBDT + (l.breakdown?.transactionChargeBDT ?? 0),
+      totalPayableBDT: acc.totalPayableBDT + (l.breakdown?.totalPayableBDT ?? 0),
+    }),
+    { subtotalBDT: 0, govtTaxBDT: 0, transactionChargeBDT: 0, totalPayableBDT: 0 }
+  );
+
+  const gramsByMetal = orderLineDetails.reduce<Record<Metal, number>>(
+    (acc, l) => ({ ...acc, [l.product.metal]: acc[l.product.metal] + l.grams }),
+    { gold: 0, silver: 0 }
+  );
+
+  const hasGoldLine = orderLineDetails.some((l) => l.product.metal === "gold");
+  const orderInsufficientBalance = orderLines.length > 0 && orderTotals.totalPayableBDT > cashBDT;
+  const isConfirming = buyGold.isPending || buySilver.isPending;
+
+  function onAddToOrder(values: { amount: number }) {
+    const parsed = tradeAmountSchema.safeParse(values.amount);
     if (!parsed.success) {
-      form.setError("value", { message: parsed.error.issues[0]?.message ?? "Enter a valid amount" });
+      form.setError("amount", { message: parsed.error.issues[0]?.message ?? "Enter a valid amount" });
       return;
     }
     if (!breakdown) return;
-    if (insufficientBalance) {
-      form.setError("value", { message: `Your cash wallet holds ${formatBDT(cashBDT)}` });
-      return;
-    }
 
+    setOrderLines((prev) => {
+      const existing = prev.find((l) => l.productKey === product.key);
+      if (existing) {
+        return prev.map((l) => (l.productKey === product.key ? { ...l, grams: l.grams + breakdown.grams } : l));
+      }
+      return [...prev, { productKey: product.key, grams: breakdown.grams }];
+    });
+    toast.success(`Added ${product.label} to order`);
+    form.setValue("amount", AMOUNT_PRESETS[1]);
+  }
+
+  function handleRemoveLine(key: string) {
+    setOrderLines((prev) => prev.filter((l) => l.productKey !== key));
+  }
+
+  async function handleConfirmOrder() {
+    if (orderLines.length === 0 || orderInsufficientBalance || isConfirming) return;
     try {
-      await buy.mutateAsync(Number(breakdown.grams.toFixed(4)));
-      toast.success("Purchase completed");
-      form.reset({ value: AMOUNT_PRESETS[1] });
-      setMode("amount");
+      if (gramsByMetal.gold > 0) await buyGold.mutateAsync(Number(gramsByMetal.gold.toFixed(4)));
+      if (gramsByMetal.silver > 0) await buySilver.mutateAsync(Number(gramsByMetal.silver.toFixed(4)));
+      toast.success("Order confirmed");
+      setOrderLines([]);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Purchase failed");
+      toast.error(error instanceof ApiError ? error.message : "Order failed");
     }
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_340px] lg:items-start">
-      {/* ---------- Order form ---------- */}
+      {/* ---------- Order form — configures one line at a time ---------- */}
       <Card>
         {/* Heading lives on the card itself (not the two-column grid above
             it), so it's centered against this card's own width rather than
@@ -113,7 +167,7 @@ export function BuyGoldPanel() {
           />
         </CardHeader>
         <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={form.handleSubmit(onAddToOrder)} className="space-y-5">
             {/* Product / purity selector — one evenly-spread row of boxed,
                 image-led cards, like the landing page's why-us cards. */}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -134,134 +188,213 @@ export function BuyGoldPanel() {
               </span>
             </div>
 
-            {/* Amount vs weight entry mode */}
-            <Tabs value={mode} onValueChange={(v) => handleModeChange(v as EntryMode)}>
-              <TabsList className="w-full">
-                <TabsTrigger
-                  value="amount"
-                  className="flex-1 data-active:border-gold data-active:bg-gold data-active:font-semibold data-active:text-ink"
-                >
-                  Amount (BDT)
-                </TabsTrigger>
-                <TabsTrigger
-                  value="weight"
-                  className="flex-1 data-active:border-gold data-active:bg-gold data-active:font-semibold data-active:text-ink"
-                >
-                  Weight (grams)
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            {/* Product spotlight — photo(s) + specs for the selected SKU */}
+            <ProductSpotlight product={product} />
 
-            {/* Big value entry */}
-            <div className="space-y-1 text-center">
-              <div className="flex items-center justify-center gap-1.5">
-                <Input
-                  type="number"
-                  min="0"
-                  step={mode === "amount" ? "1" : "0.001"}
-                  {...form.register("value", { valueAsNumber: true })}
-                  className="h-auto w-48 border-none bg-transparent text-center text-4xl font-semibold shadow-none focus-visible:ring-0"
-                />
-                <span className="text-xl font-medium text-muted-foreground">{mode === "amount" ? "BDT" : "g"}</span>
+            {/* Amount and weight side by side, always both editable — typing
+                in either updates the other via the shared `amount` value. */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="buy-amount" className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Amount (BDT)
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="buy-amount"
+                    type="number"
+                    min="0"
+                    step="1"
+                    {...form.register("amount", { valueAsNumber: true })}
+                    className="pr-11 text-lg font-semibold tabular-nums"
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-medium text-muted-foreground">
+                    BDT
+                  </span>
+                </div>
               </div>
-              {form.formState.errors.value ? (
-                <p className="text-sm text-destructive">{form.formState.errors.value.message}</p>
+              <div className="space-y-1.5">
+                <Label htmlFor="buy-weight" className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Weight (grams)
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="buy-weight"
+                    type="number"
+                    min="0"
+                    step="0.001"
+                    value={weightGrams ? Number(weightGrams.toFixed(4)) : 0}
+                    onChange={(e) => handleWeightChange(e.target.value)}
+                    className="pr-7 text-lg font-semibold tabular-nums"
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-medium text-muted-foreground">
+                    g
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p className="-mt-2 text-center text-sm text-muted-foreground">
+              {form.formState.errors.amount ? (
+                <span className="text-destructive">{form.formState.errors.amount.message}</span>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  {mode === "amount"
-                    ? `≈ ${breakdown ? breakdown.grams.toFixed(4) : "0.0000"} g of ${product.unitNoun}`
-                    : pricePerGram
-                      ? `≈ ${formatBDT(rawValue * pricePerGram)}`
-                      : ""}
-                </p>
+                `${weightGrams.toFixed(4)} g of ${product.unitNoun}`
               )}
+            </p>
+
+            <div className="flex flex-wrap justify-center gap-2">
+              {AMOUNT_PRESETS.map((preset) => (
+                <Button
+                  key={preset}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className={cn(amountBDT === preset && SELECTED_GOLD)}
+                  onClick={() => form.setValue("amount", preset, { shouldValidate: true })}
+                >
+                  {preset.toLocaleString("en-BD")}
+                </Button>
+              ))}
             </div>
 
-            {mode === "amount" && (
-              <div className="flex flex-wrap justify-center gap-2">
-                {AMOUNT_PRESETS.map((preset) => (
-                  <Button
-                    key={preset}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={cn(rawValue === preset && SELECTED_GOLD)}
-                    onClick={() => form.setValue("value", preset, { shouldValidate: true })}
-                  >
-                    {preset.toLocaleString("en-BD")}
-                  </Button>
-                ))}
-              </div>
-            )}
-
-            {/* Funding source — cash only */}
+            {/* Funding source — cash only, shown for context; affordability
+                is actually checked against the whole order, in the summary. */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Pay with</Label>
-              <div
-                className={cn(
-                  "flex items-center justify-between gap-2 rounded-md border px-3 py-2.5",
-                  insufficientBalance ? "border-destructive/40 bg-destructive/5" : "border-gold/30 bg-gold/10"
-                )}
-              >
+              <div className="flex items-center justify-between gap-2 rounded-md border border-gold/30 bg-gold/10 px-3 py-2.5">
                 <span className="flex items-center gap-2 font-medium">
                   <WalletIcon className="size-4 text-gold" strokeWidth={1.75} />
                   Cash wallet
                 </span>
                 <span className="font-semibold tabular-nums">{formatBDT(cashBDT)}</span>
               </div>
-              {insufficientBalance ? (
-                <p className="text-sm text-destructive">
-                  Not enough cash for this order.{" "}
-                  <Link href="/wallet" className="font-medium underline underline-offset-2">
-                    Add money
-                  </Link>
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Gold and silver are bought with wallet cash — top the wallet up with bKash, Nagad, bank transfer or card first.
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                Gold and silver are bought with wallet cash — top the wallet up with bKash, Nagad, bank transfer or card first.
+              </p>
             </div>
 
-            <Button
-              type="submit"
-              variant="gold-solid"
-              className="w-full"
-              disabled={form.formState.isSubmitting || pricePerGram === null || amountBDT <= 0 || insufficientBalance}
-            >
-              <ArrowUpRight />
-              {form.formState.isSubmitting
-                ? "Processing…"
-                : amountBDT > 0
-                  ? `Buy ${METAL_LABEL[product.metal]} · ${formatBDT(amountBDT)}`
-                  : `Buy ${METAL_LABEL[product.metal]}`}
+            {/* Adds this line to the order on the right — doesn't buy
+                anything yet, that's what "Confirm order" over there does. */}
+            <Button type="submit" variant="gold-outline" className="w-full" disabled={pricePerGram === null || amountBDT <= 0}>
+              <Plus />
+              Add to order
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      {/* ---------- Order summary ---------- */}
+      {/* ---------- Order summary — every line added, confirmed together ---------- */}
       <Card className="lg:sticky lg:top-6">
-        <CardHeader>
+        <CardHeader className="flex items-center justify-between gap-2">
           <CardTitle>Order summary</CardTitle>
+          <Badge variant="secondary" className="shrink-0">
+            {orderLines.length} item{orderLines.length === 1 ? "" : "s"}
+          </Badge>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <SummaryRow label={`${product.label} price`} value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "—"} />
-          <SummaryRow label="You receive" value={breakdown ? `${breakdown.grams.toFixed(4)} g of ${product.unitNoun}` : "—"} />
-          {product.metal === "gold" && (
-            <SummaryRow label="Govt. gold tax (2,500/bhori)" value={breakdown ? formatBDT(breakdown.govtTaxBDT) : "—"} />
+        <CardContent className="space-y-4">
+          {orderLineDetails.length === 0 ? (
+            <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+              Your order is empty. Pick a product on the left and press “Add to order”.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {orderLineDetails.map((line) => (
+                <div key={line.product.key} className="relative flex gap-3 rounded-md border p-3">
+                  <button
+                    type="button"
+                    aria-label={`Remove ${line.product.label}`}
+                    onClick={() => handleRemoveLine(line.product.key)}
+                    className="absolute -top-2 -right-2 flex size-5 items-center justify-center rounded-full border bg-background text-muted-foreground shadow-sm transition-colors hover:border-destructive hover:text-destructive"
+                  >
+                    <X className="size-3" />
+                  </button>
+                  <div className="flex size-16 shrink-0 items-center justify-center rounded-md border bg-muted/40 p-2">
+                    <Image
+                      src={PRODUCT_IMAGES[line.product.metal][line.product.form]}
+                      alt=""
+                      width={48}
+                      height={48}
+                      className="size-full object-contain"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{line.product.label}</p>
+                    <p className="text-xs text-muted-foreground">{line.product.purityNote}</p>
+                    <div className="mt-2 flex items-center justify-between gap-2 text-sm">
+                      <span className="text-muted-foreground">{line.grams.toFixed(4)} g</span>
+                      <span className="font-semibold tabular-nums">{formatBDT(line.amountBDT)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
-          <SummaryRow label="Transaction charge (1.5%)" value={breakdown ? formatBDT(breakdown.transactionChargeBDT) : "—"} />
+
+          {/* Pricing breakdown */}
+          <div className="space-y-2 rounded-md bg-muted/40 p-3">
+            <SummaryRow label="Subtotal" value={orderLines.length ? formatBDT(orderTotals.subtotalBDT) : "—"} />
+            {hasGoldLine && <SummaryRow label="Govt. gold tax (2,500/bhori)" value={formatBDT(orderTotals.govtTaxBDT)} />}
+            <SummaryRow label="Transaction charge (1.5%)" value={orderLines.length ? formatBDT(orderTotals.transactionChargeBDT) : "—"} />
+          </div>
           <Separator />
           <div className="flex items-center justify-between text-base font-semibold">
-            <span>Total payable</span>
-            <span className="tabular-nums">{breakdown ? formatBDT(breakdown.totalPayableBDT) : "—"}</span>
+            <span>Total</span>
+            <span className="tabular-nums">{orderLines.length ? formatBDT(orderTotals.totalPayableBDT) : "—"}</span>
           </div>
-          <p className="pt-1 text-xs text-muted-foreground">
-            {METAL_LABEL[product.metal]} is stored instantly in your insured vault. Collect physical metal anytime from 0.5g.
+          {orderInsufficientBalance && (
+            <p className="text-sm text-destructive">
+              Not enough cash for this order.{" "}
+              <Link href="/wallet" className="font-medium underline underline-offset-2">
+                Add money
+              </Link>
+            </p>
+          )}
+
+          <Button
+            type="button"
+            variant="gold-solid"
+            className="w-full"
+            onClick={handleConfirmOrder}
+            disabled={orderLines.length === 0 || orderInsufficientBalance || isConfirming}
+          >
+            {isConfirming ? <Spinner /> : <ArrowUpRight />}
+            {isConfirming
+              ? "Confirming…"
+              : orderLines.length > 0
+                ? `Confirm order · ${formatBDT(orderTotals.totalPayableBDT)}`
+                : "Confirm order"}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Gold and silver are stored instantly in your insured vault. Collect physical metal anytime from 0.5g.
           </p>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+/** Photo + a short spec sheet for the currently selected SKU. */
+function ProductSpotlight({ product }: { product: TradeProduct }) {
+  const image = PRODUCT_IMAGES[product.metal][product.form];
+
+  return (
+    <div className="flex flex-col gap-4 rounded-md border border-gold/20 bg-gold/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <Image src={image} alt="" width={112} height={112} className="mx-auto size-24 shrink-0 object-contain sm:mx-0 sm:size-28" />
+      <div className="min-w-0 text-right">
+        <p className="font-semibold">{product.label}</p>
+        <dl className="mt-2 space-y-1.5 text-sm">
+          <div className="flex items-center justify-end gap-2">
+            <dt className="text-muted-foreground">Purity:</dt>
+            <dd className="font-medium">{product.purityNote}</dd>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <dt className="text-muted-foreground">Sourced from:</dt>
+            <dd className="font-medium">BAJUS-certified refiners</dd>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <dt className="text-muted-foreground">Quality:</dt>
+            <dd className="font-medium">Assay-certified, tamper-sealed</dd>
+          </div>
+        </dl>
+      </div>
     </div>
   );
 }
