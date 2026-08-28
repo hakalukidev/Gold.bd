@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { Building2, CalendarClock, Smartphone } from "lucide-react";
 import { useWallet } from "@/hooks/use-wallet";
 import { useGoldRate } from "@/hooks/use-gold-rate";
 import { formatBDT } from "@/lib/format";
@@ -17,6 +18,12 @@ const LTV_RATE = 0.8;
 const INTEREST_RATE_PER_YEAR = 0.13;
 const TENURES = [3, 6, 12] as const;
 const DISBURSE_METHODS = ["Mobile Wallet", "Bank Account"] as const;
+// Same labels/icons as sell-gold-panel's PAYOUT_METHODS, so "Mobile Wallet"
+// and "Bank Account" read consistently wherever a payout method shows up.
+const DISBURSE_ICON: Record<(typeof DISBURSE_METHODS)[number], typeof Smartphone> = {
+  "Mobile Wallet": Smartphone,
+  "Bank Account": Building2,
+};
 
 // Illustrative existing loan — there's no /api/loans endpoint in this repo
 // (see CLAUDE.md); a real "Apply" doesn't create one of these, it's shown
@@ -82,6 +89,7 @@ export function LoanPanel() {
             <div className="flex gap-2">
               {TENURES.map((t) => (
                 <Button key={t} type="button" variant="outline" className={cn(tenure === t && SELECTED_GOLD)} onClick={() => setTenure(t)}>
+                  <CalendarClock className="size-4" />
                   {t} Months
                 </Button>
               ))}
@@ -91,17 +99,21 @@ export function LoanPanel() {
           <div className="space-y-2">
             <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Disburse to</Label>
             <div className="grid grid-cols-2 gap-2">
-              {DISBURSE_METHODS.map((m) => (
-                <Button
-                  key={m}
-                  type="button"
-                  variant="outline"
-                  className={cn("h-auto py-2.5 whitespace-normal", disburseTo === m && SELECTED_GOLD)}
-                  onClick={() => setDisburseTo(m)}
-                >
-                  {m}
-                </Button>
-              ))}
+              {DISBURSE_METHODS.map((m) => {
+                const Icon = DISBURSE_ICON[m];
+                return (
+                  <Button
+                    key={m}
+                    type="button"
+                    variant="outline"
+                    className={cn("h-auto gap-1.5 py-2.5 whitespace-normal", disburseTo === m && SELECTED_GOLD)}
+                    onClick={() => setDisburseTo(m)}
+                  >
+                    <Icon className="size-4" />
+                    {m}
+                  </Button>
+                );
+              })}
             </div>
           </div>
 

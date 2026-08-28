@@ -1,11 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CalendarClock, CalendarDays, CalendarRange, Sparkles } from "lucide-react";
 import { useMetalRate } from "@/hooks/use-metal-rate";
 import { formatBDT, formatDateTime } from "@/lib/format";
 import type { Metal } from "@/lib/mock-rates";
+import { PRODUCT_IMAGES } from "@/lib/products";
 import { METAL_LABEL, METALS } from "@/lib/trade-products";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,19 +24,6 @@ type Frequency = "Daily" | "Weekly" | "Monthly";
 const FREQUENCIES: Frequency[] = ["Daily", "Weekly", "Monthly"];
 const PERIODS_PER_YEAR: Record<Frequency, number> = { Daily: 365, Weekly: 52, Monthly: 12 };
 const FREQUENCY_ICON: Record<Frequency, typeof CalendarDays> = { Daily: CalendarDays, Weekly: CalendarRange, Monthly: CalendarClock };
-
-// A small bullion-ingot glyph — lucide has coin/bank icons but nothing bar-
-// shaped, and this sits before "Gold"/"Silver" where a bar reads truer than a
-// stack of coins. Drawn in lucide's own stroke style (24x24, currentColor) so
-// it inherits the button's gold/silver tint like every other icon here.
-function BarIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <path d="M7 8h10l3 9H4l3-9Z" />
-      <path d="M9.5 12.5h5" />
-    </svg>
-  );
-}
 
 const MIN_AMOUNT = 5;
 const MAX_AMOUNT = 20000;
@@ -142,7 +131,7 @@ export function AutoSavePanel() {
                   className={cn(metal === m && (m === "gold" ? SELECTED_GOLD : SELECTED_SILVER))}
                   onClick={() => setMetal(m)}
                 >
-                  <BarIcon className="size-4" />
+                  <Image src={PRODUCT_IMAGES[m].coin} alt="" width={20} height={20} className="size-5 object-contain" />
                   {METAL_LABEL[m]}
                 </Button>
               ))}
