@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { WalletBadge } from "@/components/shared/wallet-badge";
 import { DeltaChip, SectionLabel } from "@/components/shared/flow-stat-tile";
-import { MarketPriceChart, METAL_CHART_COLOR, type PricePoint } from "@/components/market/market-price-chart";
+import { MarketPriceChart, METAL_CHART_COLOR, toPricePoints } from "@/components/market/market-price-chart";
 import { TradeCard } from "@/components/market/trade-card";
 import { useWallet } from "@/hooks/use-wallet";
 import { useMetalRate, useMetalRateHistory } from "@/hooks/use-metal-rate";
@@ -23,7 +23,6 @@ import { MOCK_WALLET } from "@/lib/mock-wallet";
 import { METAL_LABEL, METALS } from "@/lib/trade-products";
 import { CREDIT_TYPES, TYPE_ICON, TYPE_LABEL } from "@/lib/transaction-labels";
 import { cn } from "@/lib/utils";
-import type { MetalRateSummary } from "@/types";
 
 /**
  * Ranges the price graph can be drawn over. The rate feed publishes one close
@@ -40,20 +39,6 @@ const RANGES = [
 ] as const;
 
 type RangeKey = (typeof RANGES)[number]["key"];
-
-function toPricePoints(series: MetalRateSummary[], source: "daily" | "monthly"): PricePoint[] {
-  return series.map((entry) => {
-    const at = new Date(entry.effectiveAt);
-    return {
-      label:
-        source === "daily"
-          ? at.toLocaleDateString("en-BD", { day: "numeric", month: "short" })
-          : at.toLocaleDateString("en-BD", { month: "short", year: "2-digit" }),
-      caption: at.toLocaleDateString("en-BD", { day: "numeric", month: "short", year: "numeric" }),
-      pricePerGram: Number(entry.pricePerGramBDT),
-    };
-  });
-}
 
 /** Compact toggle used for both the metal and the range switch above the graph. */
 function PillToggle<T extends string>({

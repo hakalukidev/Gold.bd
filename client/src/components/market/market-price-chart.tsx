@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { formatBDT, formatBDTShort } from "@/lib/format";
 import type { Metal } from "@/lib/mock-rates";
+import type { MetalRateSummary } from "@/types";
 
 const WIDTH = 680;
 const HEIGHT = 260;
@@ -24,6 +25,24 @@ export interface PricePoint {
   /** Fuller date, for the hover tooltip. */
   caption: string;
   pricePerGram: number;
+}
+
+/** Turns a raw rate-history series into the chart's point format — shared by
+ * every call site so a daily/monthly series always labels itself the same
+ * way, whether that's the Market page's range toggle or a single fixed
+ * series elsewhere. */
+export function toPricePoints(series: MetalRateSummary[], source: "daily" | "monthly"): PricePoint[] {
+  return series.map((entry) => {
+    const at = new Date(entry.effectiveAt);
+    return {
+      label:
+        source === "daily"
+          ? at.toLocaleDateString("en-BD", { day: "numeric", month: "short" })
+          : at.toLocaleDateString("en-BD", { month: "short", year: "2-digit" }),
+      caption: at.toLocaleDateString("en-BD", { day: "numeric", month: "short", year: "numeric" }),
+      pricePerGram: Number(entry.pricePerGramBDT),
+    };
+  });
 }
 
 function niceStep(range: number) {
