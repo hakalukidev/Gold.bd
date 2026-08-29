@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120" role="img" aria-label="Nagad">
+  <circle cx="60" cy="60" r="50" fill="#ED1C24"/>
+  <path d="M60 12 A48 48 0 1 1 14 84" fill="none" stroke="#F7941E" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="60" cy="60" r="28" fill="#fff"/>
+  <text x="128" y="82" font-family="'Noto Serif Bengali', 'Manrope', sans-serif" font-weight="700" font-size="56" fill="#ED1C24">নগদ</text>
+</svg>
