@@ -5,19 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useTransactions } from "@/hooks/use-transactions";
 import { formatBDT, formatDateTime } from "@/lib/format";
-import { getMockTransactions } from "@/lib/mock-transactions";
 import { CREDIT_TYPES, TYPE_ICON, TYPE_LABEL } from "@/lib/transaction-labels";
 import { cn } from "@/lib/utils";
 import type { TransactionSummary } from "@/types";
 
 /** Recent wallet-affecting transactions — same ["transactions"] query the
  * dashboard's activity list, the History page, and the trade forms
- * invalidate, so a buy/sell/deposit/withdraw shows up here immediately, with
- * the demo feed standing in while there is no backend behind this app.
- * `limit` caps the rows; omit it to show the lot. */
+ * invalidate, so a buy/sell/deposit/withdraw shows up here immediately; there
+ * is no backend behind this app yet, so it settles to an empty ledger rather
+ * than demo rows. `limit` caps the rows; omit it to show the lot. */
 export function WalletActivity({ limit }: { limit?: number } = {}) {
   const { data } = useTransactions();
-  const transactions = data ?? getMockTransactions();
+  const transactions = data ?? [];
   const rows = limit ? transactions.slice(0, limit) : transactions;
 
   return (

@@ -45,6 +45,21 @@ export function toPricePoints(series: MetalRateSummary[], source: "daily" | "mon
   });
 }
 
+/**
+ * Downsamples an oldest-first daily series to one reading per calendar month
+ * (the last one seen that month), keeping only the most recent `months` of
+ * them. Lets the Market page's 6M/1Y/Max ranges draw off the same real
+ * per-karat history the 1W/1M ranges use instead of a separate feed.
+ */
+export function toMonthlyPoints(series: MetalRateSummary[], months: number): MetalRateSummary[] {
+  const lastOfMonth = new Map<string, MetalRateSummary>();
+  for (const entry of series) {
+    const at = new Date(entry.effectiveAt);
+    lastOfMonth.set(`${at.getFullYear()}-${at.getMonth()}`, entry);
+  }
+  return [...lastOfMonth.values()].slice(-months);
+}
+
 function niceStep(range: number) {
   const rough = range / 4;
   const magnitude = 10 ** Math.floor(Math.log10(rough || 1));

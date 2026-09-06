@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/shared/page-header";
 import { DeltaChip, FLOW_ACCENT, FlowStatTile, SectionLabel } from "@/components/shared/flow-stat-tile";
 import { FLOW_IN_COLOR, FLOW_OUT_COLOR, MoneyFlowChart } from "@/components/shared/money-flow-chart";
@@ -30,8 +31,7 @@ import { useGoldRate } from "@/hooks/use-gold-rate";
 import { useMetalRate, type Metal } from "@/hooks/use-metal-rate";
 import { useTransactions } from "@/hooks/use-transactions";
 import { formatBDT, formatForeign, formatGrams, formatUSDCompact, gramsToMg } from "@/lib/format";
-import { BDT_PER_FOREIGN_UNIT, getLatestRate, USD_BDT_RATE, type ForeignCurrency } from "@/lib/mock-rates";
-import { getMockTransactions } from "@/lib/mock-transactions";
+import { BDT_PER_FOREIGN_UNIT, USD_BDT_RATE, type ForeignCurrency } from "@/lib/mock-rates";
 import { MOCK_PURITY_MIX, MOCK_SILVER_PURITY_MIX, MOCK_WALLET } from "@/lib/mock-wallet";
 import { REFERRAL_REWARD_GRAMS, referralCode } from "@/lib/referral";
 import { MOCK_USER } from "@/lib/mock-user";
@@ -52,11 +52,15 @@ function TotalBalanceCard({
   netBDT,
   netPct,
   onManage,
+  loading,
 }: {
   totalBDT: number;
   netBDT: number;
   netPct: number | null;
   onManage: (direction: Direction) => void;
+  /** True while ["wallet"] is still in flight — shown as a skeleton instead of
+   * a ৳0.00 that could be read as a confirmed empty balance. */
+  loading: boolean;
 }) {
   const positive = netBDT >= 0;
 
@@ -69,11 +73,20 @@ function TotalBalanceCard({
               <SectionLabel>Total balance</SectionLabel>
               <DeltaChip pct={netPct} />
             </div>
-            <p className="mt-2 text-3xl font-bold tracking-tight tabular-nums">{formatBDT(totalBDT)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {"≈ "}
-              {formatUSDCompact(totalBDT / USD_BDT_RATE)} · cash + metals at today&apos;s rates
-            </p>
+            {loading ? (
+              <>
+                <Skeleton className="mt-2 h-8 w-40" />
+                <Skeleton className="mt-2 h-3 w-56" />
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-3xl font-bold tracking-tight tabular-nums">{formatBDT(totalBDT)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {"≈ "}
+                  {formatUSDCompact(totalBDT / USD_BDT_RATE)} · cash + metals at today&apos;s rates
+                </p>
+              </>
+            )}
           </div>
 
           {/* Wallet mark from public/wallet_assets — decorative. */}
@@ -108,16 +121,19 @@ const ACCOUNT_TONE = {
     face: "bg-linear-to-br from-[#26262c] via-[#1f1f26] to-[#3d2f14] text-white ring-1 ring-gold/25",
     sheen: "bg-gold/25",
     muted: "text-white/60",
+    skeleton: "bg-white/15",
   },
   gold: {
     face: "bg-linear-to-br from-gold-light via-gold to-[#a37f1c] text-ink",
     sheen: "bg-white/35",
     muted: "text-ink/70",
+    skeleton: "bg-ink/10",
   },
   silver: {
     face: "bg-linear-to-br from-[#eef1f5] via-[#c4cbd3] to-[#8d959f] text-ink",
     sheen: "bg-white/45",
     muted: "text-ink/65",
+    skeleton: "bg-ink/10",
   },
 } as const;
 
@@ -131,6 +147,7 @@ function AccountCard({
   value,
   footLeft,
   footRight,
+  loading,
 }: {
   tone: keyof typeof ACCOUNT_TONE;
   art: string;
@@ -138,8 +155,12 @@ function AccountCard({
   value: string;
   footLeft: string;
   footRight: string;
+  /** True while ["wallet"] is still in flight — see TotalBalanceCard. Shows
+   * skeleton bars sized to the real content instead of `value`/`footLeft`,
+   * tinted to stay visible against each card's own face. */
+  loading?: boolean;
 }) {
-  const { face, sheen, muted } = ACCOUNT_TONE[tone];
+  const { face, sheen, muted, skeleton } = ACCOUNT_TONE[tone];
 
   return (
     <div className={cn("relative overflow-hidden rounded-md p-4 shadow-sm", face)}>
@@ -151,10 +172,12 @@ function AccountCard({
         <Image src={art} alt="" width={44} height={44} aria-hidden className="size-11 drop-shadow-sm" />
       </div>
 
-      <p className="relative mt-4 text-2xl font-bold tracking-tight tabular-nums">{value}</p>
+      <p className="relative mt-4 text-2xl font-bold tracking-tight tabular-nums">
+        {loading ? <Skeleton className={cn("h-7 w-28", skeleton)} /> : value}
+      </p>
 
       <div className={cn("relative mt-5 flex items-end justify-between text-[11px]", muted)}>
-        <span className="tabular-nums">{footLeft}</span>
+        <span className="tabular-nums">{loading ? <Skeleton className={cn("h-3 w-20", skeleton)} /> : footLeft}</span>
         <span className="font-semibold">{footRight}</span>
       </div>
     </div>
@@ -167,12 +190,15 @@ function MyAccounts({
   goldValueBDT,
   silverGrams,
   silverValueBDT,
+  loading,
 }: {
   cashBDT: number;
   goldGrams: string;
   goldValueBDT: number;
   silverGrams: string;
   silverValueBDT: number;
+  /** True while ["wallet"] is still in flight — see TotalBalanceCard. */
+  loading: boolean;
 }) {
   return (
     <Card>
@@ -187,6 +213,7 @@ function MyAccounts({
           value={formatBDT(cashBDT)}
           footLeft="Spendable instantly"
           footRight="BDT"
+          loading={loading}
         />
         <AccountCard
           tone="gold"
@@ -195,6 +222,7 @@ function MyAccounts({
           value={formatGrams(gramsToMg(goldGrams))}
           footLeft={`≈ ${formatBDT(goldValueBDT)}`}
           footRight={MOCK_PURITY_MIX[0].label}
+          loading={loading}
         />
         <AccountCard
           tone="silver"
@@ -203,6 +231,7 @@ function MyAccounts({
           value={formatGrams(gramsToMg(silverGrams))}
           footLeft={`≈ ${formatBDT(silverValueBDT)}`}
           footRight={MOCK_SILVER_PURITY_MIX[0].label}
+          loading={loading}
         />
         <Button
           variant="outline"
@@ -447,18 +476,20 @@ function CurrencyCard({ totalBDT }: { totalBDT: number }) {
 
 export default function WalletPage() {
   // Neither `/api/wallet` nor `/api/transactions` exists in this repo (see
-  // CLAUDE.md), so each query falls back to its demo stand-in the way WalletPill
-  // and WalletActivity already do — every figure below is derived from whichever
-  // source is live, not hardcoded into the layout.
-  const { data: walletData } = useWallet();
+  // CLAUDE.md), so the wallet query falls back to MOCK_WALLET's zero balance
+  // once it settles — WalletBadge/WalletActivity do the same — while
+  // walletLoading drives a spinner for every figure below that's derived from
+  // it, so a still-loading balance never reads as a confirmed zero. The rate
+  // queries are real, so they just read 0 until their first tick arrives.
+  const { data: walletData, isLoading: walletLoading } = useWallet();
   const { data: rateData } = useGoldRate();
   const { data: silverRateData } = useMetalRate("silver");
   const { data: transactionsData } = useTransactions();
 
   const wallet = walletData ?? MOCK_WALLET;
-  const transactions = transactionsData ?? getMockTransactions();
-  const pricePerGram = Number((rateData ?? getLatestRate("gold")).pricePerGramBDT);
-  const silverPerGram = Number((silverRateData ?? getLatestRate("silver")).pricePerGramBDT);
+  const transactions = transactionsData ?? [];
+  const pricePerGram = Number(rateData?.pricePerGramBDT ?? 0);
+  const silverPerGram = Number(silverRateData?.pricePerGramBDT ?? 0);
 
   const [manage, setManage] = useState<Direction | null>(null);
   const [flowFilter, setFlowFilter] = useState<FlowFilter>({ kind: "preset", preset: "month" });
@@ -482,13 +513,20 @@ export default function WalletPage() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] lg:items-start">
         {/* ---------- Balance, accounts, currency ---------- */}
         <div className="space-y-4 lg:sticky lg:top-6">
-          <TotalBalanceCard totalBDT={totalBDT} netBDT={last30.netBDT} netPct={percentChange(last30.netBDT, prev30.netBDT)} onManage={setManage} />
+          <TotalBalanceCard
+            totalBDT={totalBDT}
+            netBDT={last30.netBDT}
+            netPct={percentChange(last30.netBDT, prev30.netBDT)}
+            onManage={setManage}
+            loading={walletLoading}
+          />
           <MyAccounts
             cashBDT={cashBDT}
             goldGrams={wallet.goldBalanceGrams}
             goldValueBDT={goldValueBDT}
             silverGrams={wallet.silverBalanceGrams}
             silverValueBDT={silverValueBDT}
+            loading={walletLoading}
           />
           <CurrencyCard totalBDT={totalBDT} />
         </div>

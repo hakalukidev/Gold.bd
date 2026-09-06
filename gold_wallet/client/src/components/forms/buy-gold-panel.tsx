@@ -14,7 +14,6 @@ import { useMetalRate, type Metal } from "@/hooks/use-metal-rate";
 import { useWallet } from "@/hooks/use-wallet";
 import { computeBuyOrderBreakdown } from "@/lib/gold-fees";
 import { formatBDT } from "@/lib/format";
-import { getLatestRate } from "@/lib/mock-rates";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
 import { PRODUCT_IMAGES } from "@/lib/products";
 import { AMOUNT_PRESETS, TRADE_PRODUCTS, productPricePerGram, type TradeProduct } from "@/lib/trade-products";
@@ -67,9 +66,9 @@ export function BuyGoldPanel() {
   const wallet = walletData ?? MOCK_WALLET;
   const cashBDT = Number(wallet.cashBalanceBDT);
 
-  const fineRateByMetal: Record<Metal, number> = {
-    gold: Number((goldRateData ?? getLatestRate("gold")).pricePerGramBDT),
-    silver: Number((silverRateData ?? getLatestRate("silver")).pricePerGramBDT),
+  const fineRateByMetal: Record<Metal, number | null> = {
+    gold: goldRateData ? Number(goldRateData.pricePerGramBDT) : null,
+    silver: silverRateData ? Number(silverRateData.pricePerGramBDT) : null,
   };
   const pricePerGram = productPricePerGram(fineRateByMetal[product.metal], product);
 

@@ -31,9 +31,21 @@ export interface TransactionSummary {
   createdAt: string;
 }
 
+/** BAJUS's four published grades — see wallet_server's metal_rates table. */
+export type Karat = "22k" | "21k" | "18k" | "sonaton";
+
 export interface GoldRateSummary {
   pricePerGramBDT: string;
   effectiveAt: string;
+  /** The real BAJUS-reported grade — always 22K (the platform's anchor) when
+   * the request didn't pass `?karat=`. */
+  karat?: Karat;
+  pricePerBhoriBDT?: string;
+  /** When wallet_server actually last pulled this reading from BAJUS — the
+   * cron job's last tick, or a "sync now" click, whichever ran most recently.
+   * Distinct from `effectiveAt`, which is the calendar day the reading is
+   * for, not when it was fetched. */
+  reportedAt?: string;
 }
 
 /** Gold and silver rates cross the wire in the same shape. */

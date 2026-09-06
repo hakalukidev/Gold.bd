@@ -1,5 +1,5 @@
 import { Building2, Smartphone, Wallet as WalletIcon, type LucideIcon } from "lucide-react";
-import { PURITY_22K, type ProductForm } from "@/lib/products";
+import type { ProductForm } from "@/lib/products";
 import type { Metal } from "@/lib/mock-rates";
 
 /**
@@ -7,11 +7,14 @@ import type { Metal } from "@/lib/mock-rates";
  * trade card and the dedicated buy-gold / sell-gold panels so all three price
  * the same SKU the same way.
  *
- * The platform tracks one admin-set *fine* rate per metal (24K gold / 999
- * silver — see mock-rates.ts), so a SKU's per-gram price is derived from it by
- * purity and then by the minting premium the form carries. Same model
- * products.ts uses for the physical catalog, just per gram rather than per
- * finished piece.
+ * The platform anchors on the real 22K rate per metal (see rate.controller.js
+ * on the server — BAJUS doesn't publish a 24K/"fine" figure to back-solve
+ * from), so a SKU's per-gram price is that anchor times a purity ratio, then
+ * the minting premium the form carries. A 24K gold coin's ratio over the
+ * anchor is real purity math (both are fractions of pure gold); silver has no
+ * karat system in reality, so its SKUs just price 1:1 off the anchor instead
+ * of inventing one. Same model products.ts uses for the physical catalog,
+ * just per gram rather than per finished piece.
  */
 
 export interface TradeProduct {
@@ -20,11 +23,12 @@ export interface TradeProduct {
   metal: Metal;
   /** Bar or coin — indexes into products.ts's PRODUCT_IMAGES for the SKU's photo. */
   form: ProductForm;
-  /** Fraction of fine metal: 22/24 for 22K, 0.999 for "999" silver. */
+  /** Fraction over the platform's 22K/anchor rate — 1 for a SKU minted at the
+   * anchor grade itself. */
   purity: number;
   /** Certification line shown beside the live price. */
   purityNote: string;
-  /** Minting/making charge over the fine rate — coins are struck, bars are cast. */
+  /** Minting/making charge over the anchor rate — coins are struck, bars are cast. */
   premium: number;
   /** Reads inside "≈ 0.2288 g of {unitNoun}". */
   unitNoun: string;
@@ -35,7 +39,9 @@ export interface TradeProduct {
 
 /** Coins carry a striking premium a cast bar doesn't. */
 const COIN_PREMIUM = 0.025;
-const PURITY_999 = 0.999;
+// 24K over the 22K anchor is a real purity ratio (both are fractions of pure
+// gold) — there's no silver equivalent, so every silver SKU below prices 1:1.
+const PURITY_24K_OVER_22K = 24 / 22;
 
 export const TRADE_PRODUCTS: TradeProduct[] = [
   {
@@ -44,7 +50,7 @@ export const TRADE_PRODUCTS: TradeProduct[] = [
     label: "Gold Bar (22K)",
     metal: "gold",
     form: "bar",
-    purity: PURITY_22K,
+    purity: 1,
     purityNote: "22K Hallmarked & Certified",
     premium: 0,
     unitNoun: "22K gold bar",
@@ -55,7 +61,7 @@ export const TRADE_PRODUCTS: TradeProduct[] = [
     label: "Gold Coin (22K)",
     metal: "gold",
     form: "coin",
-    purity: PURITY_22K,
+    purity: 1,
     purityNote: "22K Hallmarked & Certified",
     premium: COIN_PREMIUM,
     unitNoun: "22K gold coin",
@@ -66,7 +72,7 @@ export const TRADE_PRODUCTS: TradeProduct[] = [
     label: "Gold Coin (24K)",
     metal: "gold",
     form: "coin",
-    purity: 1,
+    purity: PURITY_24K_OVER_22K,
     purityNote: "24K Fine Gold, Hallmarked",
     premium: COIN_PREMIUM,
     unitNoun: "24K gold coin",
@@ -77,7 +83,7 @@ export const TRADE_PRODUCTS: TradeProduct[] = [
     label: "Silver Bar (999)",
     metal: "silver",
     form: "bar",
-    purity: PURITY_999,
+    purity: 1,
     purityNote: "999 Fine Silver, Hallmarked",
     premium: 0,
     unitNoun: "999 silver bar",
@@ -88,20 +94,20 @@ export const TRADE_PRODUCTS: TradeProduct[] = [
     label: "Silver Coin (999)",
     metal: "silver",
     form: "coin",
-    purity: PURITY_999,
+    purity: 1,
     purityNote: "999 Fine Silver, Hallmarked",
     premium: COIN_PREMIUM,
     unitNoun: "999 silver coin",
   },
 ];
 
-/** What a gram of this SKU actually sells at: fine rate → purity → + premium. */
-export function productPricePerGram(fineRatePerGram: number | null, product: TradeProduct): number | null {
-  return fineRatePerGram === null ? null : fineRatePerGram * product.purity * (1 + product.premium);
+/** What a gram of this SKU actually sells at: the 22K/anchor rate → purity → + premium. */
+export function productPricePerGram(pricePerGram22k: number | null, product: TradeProduct): number | null {
+  return pricePerGram22k === null ? null : pricePerGram22k * product.purity * (1 + product.premium);
 }
 
-/** Sell side quotes the fine metal in the vault, not a minted SKU — there's one
- * gold balance and one silver balance, so a sale is priced off the fine rate. */
+/** Sell side quotes the metal's real 22K anchor rate, not a minted SKU price —
+ * there's one gold balance and one silver balance, so a sale is priced off it. */
 export const METAL_LABEL: Record<Metal, string> = { gold: "Gold", silver: "Silver" };
 
 export const METALS: Metal[] = ["gold", "silver"];

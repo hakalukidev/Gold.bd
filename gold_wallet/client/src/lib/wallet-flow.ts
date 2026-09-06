@@ -1,4 +1,3 @@
-import { MOCK_MONTHLY_FLOW } from "@/lib/mock-wallet";
 import { CREDIT_TYPES } from "@/lib/transaction-labels";
 import type { TransactionSummary } from "@/types";
 
@@ -185,11 +184,9 @@ function buildDailyFlow(
 }
 
 /**
- * Month buckets across the range. Real aggregation belongs on the server;
- * until this repo has one, a feed that doesn't span at least two months can't
- * draw a trend, so those fall back to MOCK_MONTHLY_FLOW rather than rendering
- * a year of empty months. Day-bucketed ranges get no such fallback — a week or
- * a month is short enough that the real feed's gaps are the honest answer.
+ * Month buckets across the range. Real aggregation belongs on the server; a
+ * feed that doesn't span at least two months just draws a mostly-flat line —
+ * that's the honest picture (no fabricated placeholder months), not a bug.
  */
 function buildMonthlyFlow(
   transactions: TransactionSummary[],
@@ -212,25 +209,14 @@ function buildMonthlyFlow(
     };
   });
 
-  const monthsWithActivity = new Set<number>();
   for (const t of transactions) {
     if (!settled(t)) continue;
     const at = new Date(t.createdAt);
     if (!inRange(at, range)) continue;
-    const index = monthNumber(at) - firstMonth;
-    monthsWithActivity.add(index);
-    credit(points, index, t);
+    credit(points, monthNumber(at) - firstMonth, t);
   }
 
-  if (monthsWithActivity.size >= 2) return points;
-
-  // Align the demo series to the most recent months; if fewer months of demo
-  // data exist than the range covers, the earliest points just stay empty.
-  const demo = MOCK_MONTHLY_FLOW.slice(-months);
-  const offset = points.length - demo.length;
-  return points.map((p, i) =>
-    demo[i - offset] ? { ...p, ...demo[i - offset] } : p,
-  );
+  return points;
 }
 
 /**

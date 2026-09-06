@@ -10,6 +10,7 @@ const logger = require("./utils/logger");
 const { globalLimiter } = require("./middleware/rate-limit");
 const { notFoundHandler, errorHandler } = require("./middleware/error-handler");
 const authRoutes = require("./modules/auth/auth.routes");
+const rateRoutes = require("./modules/rates/rate.routes");
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use(globalLimiter);
 app.get("/health", (req, res) => res.status(200).json({ success: true, data: { status: "ok" } }));
 
 app.use("/api/auth", authRoutes);
+app.use("/api", rateRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

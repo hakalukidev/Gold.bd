@@ -12,7 +12,6 @@ import { WalletBadge } from "@/components/shared/wallet-badge";
 import { FLOW_ACCENT, FlowStatTile } from "@/components/shared/flow-stat-tile";
 import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { formatBDT, formatDateTime } from "@/lib/format";
-import { getMockTransactions } from "@/lib/mock-transactions";
 import { CREDIT_TYPES, TYPE_LABEL } from "@/lib/transaction-labels";
 import { downloadCsv, toTransactionCsv } from "@/lib/transaction-export";
 import { percentChange, windowTotals } from "@/lib/wallet-flow";
@@ -49,12 +48,13 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * Buys, sells and wallet movement in one ledger — the money-in/out totals that
  * used to live on a separate Statement page are folded in above the filters,
  * so Transaction History is the single place to review and export activity. Same
- * ["transactions"] query as the rest of the app, falling back to the demo feed
- * while this repo has no backend (see CLAUDE.md).
+ * ["transactions"] query as the rest of the app; the skeleton below covers the
+ * loading gap and this repo has no backend behind it yet (see CLAUDE.md), so
+ * it settles to an empty ledger rather than demo rows.
  */
 export default function TransactionsPage() {
   const { data, isLoading } = useTransactions();
-  const transactions = data ?? getMockTransactions();
+  const transactions = data ?? [];
 
   const [typeKey, setTypeKey] = useState(TYPE_FILTERS[0].key);
   const [rangeKey, setRangeKey] = useState<(typeof RANGES)[number]["key"]>("30d");

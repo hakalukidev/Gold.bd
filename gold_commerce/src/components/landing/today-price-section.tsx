@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useQueries } from "@tanstack/react-query";
 import { Calculator, ChevronDown, TrendingDown, TrendingUp } from "lucide-react";
 import {
   DropdownMenu,
@@ -10,10 +11,12 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
-import { useMetalRate, useMetalRateHistory, type Metal } from "@/hooks/use-metal-rate";
+import { api } from "@/lib/api-client";
+import type { Metal } from "@/hooks/use-metal-rate";
 import { useT } from "@/lib/i18n/use-t";
 import { formatBDT, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import type { Karat, MetalRateSummary } from "@/types";
 
 // Standard Bangladeshi/subcontinental gold-weight subdivisions, all derived
 // from the bhori (also used by rateHistory's bhori<->gram calculator):
@@ -28,23 +31,24 @@ const UNITS = [
   { key: "point", grams: GRAMS_PER_BHORI / 768, label: "unitPoint", perLabel: "perPoint" },
 ] as const;
 
-// The platform tracks one admin-set rate per metal (the fine/24K price per
-// gram) — every other karat and "সনাতন" (traditional) grade is derived from it
-// by purity ratio, same approach as gold-rate-card.tsx. BAJUS quotes silver in
-// these same karat grades, so one table serves both metals.
-const KARATS = [
-  { key: "karat22", purity: 22 / 24 },
-  { key: "karat21", purity: 21 / 24 },
-  { key: "karat18", purity: 18 / 24 },
-  { key: "sanatan", purity: 18 / 24 },
-] as const;
+// BAJUS publishes these four grades directly (22K, 21K, 18K, and "সনাতন" —
+// traditional/mixed gold, which has no fixed karat of its own) for both
+// metals, so each cell below is its own real wallet_server reading rather
+// than a ratio derived off the platform's 22K anchor rate. `purityLabel` is
+// just the badge text — 22K, 21K and 18K are exact fractions; সনাতন has none,
+// so it shows no badge.
+const KARATS: { key: Karat; labelKey: "karat22" | "karat21" | "karat18" | "sanatan"; purityLabel: string | null }[] = [
+  { key: "22k", labelKey: "karat22", purityLabel: "91.7%" },
+  { key: "21k", labelKey: "karat21", purityLabel: "87.5%" },
+  { key: "18k", labelKey: "karat18", purityLabel: "75.0%" },
+  { key: "sonaton", labelKey: "sanatan", purityLabel: null },
+];
 
 const METALS = [
   { key: "gold", label: "metalGold", heading: "headingGold" },
   { key: "silver", label: "metalSilver", heading: "headingSilver" },
 ] as const;
 
-const PURITY_22K = 22 / 24;
 const MINI_CHART_RECORDS = 40;
 const MINI_CHART_WIDTH = 480;
 const MINI_CHART_HEIGHT = 64;
@@ -62,7 +66,7 @@ export function LiveBadge({ label }: { label: string }) {
 }
 
 function MiniBarChart({ data }: { data: { pricePerGramBDT: string; effectiveAt: string }[] }) {
-  const values = data.map((d) => Number(d.pricePerGramBDT) * PURITY_22K);
+  const values = data.map((d) => Number(d.pricePerGramBDT));
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || max * 0.05;
@@ -97,28 +101,37 @@ function MiniBarChart({ data }: { data: { pricePerGramBDT: string; effectiveAt: 
 export function TodayPriceSection() {
   const t = useT();
   const [metalKey, setMetalKey] = useState<Metal>("gold");
-  const { data: rate, isLoading } = useMetalRate(metalKey);
-  const { data: history } = useMetalRateHistory(metalKey);
   const [unitKey, setUnitKey] = useState<(typeof UNITS)[number]["key"]>("bhori");
   const unit = UNITS.find((u) => u.key === unitKey)!;
   const metal = METALS.find((m) => m.key === metalKey)!;
 
-  const price24k = rate ? Number(rate.pricePerGramBDT) : null;
+  // One real BAJUS reading per grade, fetched independently — the karat grid
+  // below is four live feeds, not one anchor scaled four ways.
+  const rateQueries = useQueries({
+    queries: KARATS.map(({ key }) => ({
+      queryKey: [`${metalKey}-rate`, key],
+      queryFn: () => api.get<MetalRateSummary>(`/api/${metalKey}/rate?karat=${key}`),
+      refetchInterval: 30_000,
+    })),
+  });
+  const historyQueries = useQueries({
+    queries: KARATS.map(({ key }) => ({
+      queryKey: [`${metalKey}-rate-history`, key],
+      queryFn: () => api.get<MetalRateSummary[]>(`/api/${metalKey}/rate-history?karat=${key}`),
+      staleTime: 60_000,
+    })),
+  });
 
-  const prevPrice24k = useMemo(() => {
-    if (!history || history.length < 2) return null;
-    return Number(history[history.length - 2].pricePerGramBDT);
-  }, [history]);
-
-  const changePct =
-    price24k !== null && prevPrice24k ? ((price24k - prevPrice24k) / prevPrice24k) * 100 : 0;
-  const changeAbsPerGram = price24k !== null && prevPrice24k !== null ? price24k - prevPrice24k : 0;
+  // 22K (index 0) anchors the heading date and mini bar chart, the grade the
+  // storefront has always led with.
+  const rate = rateQueries[0].data;
+  const history = historyQueries[0].data;
 
   const miniChartData = useMemo(() => (history ? history.slice(-MINI_CHART_RECORDS) : []), [history]);
   const hasMiniChart = miniChartData.length >= 2;
   const miniChartBounds = useMemo(() => {
     if (miniChartData.length === 0) return null;
-    const values = miniChartData.map((d) => Number(d.pricePerGramBDT) * PURITY_22K);
+    const values = miniChartData.map((d) => Number(d.pricePerGramBDT));
     return { min: Math.min(...values), max: Math.max(...values) };
   }, [miniChartData]);
 
@@ -206,20 +219,29 @@ export function TodayPriceSection() {
 
         {/* ---------- Karat price grid ---------- */}
         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4 sm:gap-x-0 sm:divide-x sm:divide-white/10">
-          {KARATS.map(({ key, purity }) => {
-            const price = price24k !== null ? price24k * purity * unit.grams : null;
-            const changeAbs = changeAbsPerGram * purity * unit.grams;
+          {KARATS.map(({ key, labelKey, purityLabel }, i) => {
+            const gradeRate = rateQueries[i].data;
+            const gradeHistory = historyQueries[i].data;
+            const gradeLoading = rateQueries[i].isLoading;
+
+            const price = gradeRate ? Number(gradeRate.pricePerGramBDT) * unit.grams : null;
+            const prevPricePerGram =
+              gradeHistory && gradeHistory.length >= 2 ? Number(gradeHistory[gradeHistory.length - 2].pricePerGramBDT) : null;
+            const perGramDiff = gradeRate && prevPricePerGram !== null ? Number(gradeRate.pricePerGramBDT) - prevPricePerGram : null;
+            const changeAbs = perGramDiff !== null ? perGramDiff * unit.grams : null;
+            const changePct = perGramDiff !== null && prevPricePerGram ? (perGramDiff / prevPricePerGram) * 100 : null;
+
             return (
               <div key={key} className="min-w-0 sm:px-5 sm:first:pl-0 sm:last:pr-0">
                 <div className="flex items-baseline justify-between gap-2">
-                  <p className="text-[11px] font-medium tracking-wide text-muted-white uppercase">{t.todayPrice[key]}</p>
-                  <span className="text-[10px] text-muted-white">{(purity * 100).toFixed(1)}%</span>
+                  <p className="text-[11px] font-medium tracking-wide text-muted-white uppercase">{t.todayPrice[labelKey]}</p>
+                  {purityLabel && <span className="text-[10px] text-muted-white">{purityLabel}</span>}
                 </div>
                 <p className="mt-1 truncate text-lg font-bold text-white sm:text-xl">
-                  {isLoading || price === null ? "—" : formatBDT(price)}
+                  {gradeLoading || price === null ? "—" : formatBDT(price)}
                 </p>
                 <p className="text-[10px] text-muted-white">{t.todayPrice[unit.perLabel]}</p>
-                {prevPrice24k !== null && (
+                {changeAbs !== null && changePct !== null && (
                   <p
                     className={cn(
                       "mt-1.5 flex items-center gap-1 text-[11px] font-semibold",

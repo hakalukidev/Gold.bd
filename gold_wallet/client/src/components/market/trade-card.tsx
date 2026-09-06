@@ -13,7 +13,7 @@ import { useWallet } from "@/hooks/use-wallet";
 import { computeBuyOrderBreakdown, computeSellPayout, SELL_SPREAD_RATE } from "@/lib/gold-fees";
 import { tradeAmountSchema, tradeGramsSchema } from "@/lib/validations/gold";
 import { formatBDT } from "@/lib/format";
-import { getLatestRate, type Metal } from "@/lib/mock-rates";
+import type { Metal } from "@/lib/mock-rates";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
 import {
   AMOUNT_PRESETS,
@@ -81,7 +81,7 @@ function BuyForm({ metal, product, onProductChange }: { metal: Metal; product: T
   const [mode, setMode] = useState<EntryMode>("amount");
 
   const wallet = walletData ?? MOCK_WALLET;
-  const fineRate = Number((rateData ?? getLatestRate(metal)).pricePerGramBDT);
+  const fineRate = rateData ? Number(rateData.pricePerGramBDT) : null;
   const pricePerGram = productPricePerGram(fineRate, product);
 
   const rawValue = form.watch("value") || 0;
@@ -254,8 +254,9 @@ function BuyForm({ metal, product, onProductChange }: { metal: Metal; product: T
 /*  Sell                                                                       */
 /* -------------------------------------------------------------------------- */
 
-/** A sale is quoted on the fine metal rate, not a minted SKU price — the vault
- * carries one gold balance and one silver balance, not per-SKU lots. */
+/** A sale is quoted on the metal's real 22K anchor rate, not a minted SKU
+ * price — the vault carries one gold balance and one silver balance, not
+ * per-SKU lots. */
 function SellForm({ metal }: { metal: Metal }) {
   const router = useRouter();
   const { data: rateData } = useMetalRate(metal);
@@ -266,12 +267,12 @@ function SellForm({ metal }: { metal: Metal }) {
   const [payoutKey, setPayoutKey] = useState(PAYOUT_METHODS[0].key);
 
   const wallet = walletData ?? MOCK_WALLET;
-  const fineRate = Number((rateData ?? getLatestRate(metal)).pricePerGramBDT);
+  const fineRate = rateData ? Number(rateData.pricePerGramBDT) : null;
   const available = Number(metal === "gold" ? wallet.goldBalanceGrams : wallet.silverBalanceGrams);
   const sliderMax = available > 0 ? available : 1;
 
   const grams = form.watch("value") || 0;
-  const payout = computeSellPayout(grams, fineRate);
+  const payout = computeSellPayout(grams, fineRate ?? 0);
   const exceedsBalance = grams > available;
   const activePayout = PAYOUT_METHODS.find((m) => m.key === payoutKey);
 
@@ -373,7 +374,7 @@ function SellForm({ metal }: { metal: Metal }) {
       <Separator />
 
       <div className="space-y-1.5">
-        <SummaryRow label={`Sell price (${METAL_LABEL[metal]})`} value={`${formatBDT(fineRate)}/g`} />
+        <SummaryRow label={`Sell price (${METAL_LABEL[metal]})`} value={fineRate !== null ? `${formatBDT(fineRate)}/g` : "…"} />
         <SummaryRow label="Weight" value={`${grams.toFixed(3)} g`} />
         <SummaryRow label={`Spread (${(SELL_SPREAD_RATE * 100).toFixed(0)}%)`} value={`-${formatBDT(payout.spreadBDT)}`} />
         <SummaryRow label="You get" value={formatBDT(payout.netPayoutBDT)} strong />
@@ -384,7 +385,7 @@ function SellForm({ metal }: { metal: Metal }) {
           type="submit"
           variant="gold-solid"
           className="w-full"
-          disabled={form.formState.isSubmitting || grams <= 0 || exceedsBalance}
+          disabled={form.formState.isSubmitting || grams <= 0 || exceedsBalance || fineRate === null}
         >
           <ArrowDownRight />
           {form.formState.isSubmitting ? "Processing…" : `Sell ${METAL_LABEL[metal]} · ${formatBDT(payout.netPayoutBDT)}`}

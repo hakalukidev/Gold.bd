@@ -13,11 +13,6 @@ export const PRODUCT_IMAGES: Record<Metal, Record<ProductForm, string>> = {
   silver: { bar: "/products/silver-bar.webp", coin: "/products/silver-coin.webp" },
 };
 
-// The platform only tracks one admin-set rate (fine gold/silver price per
-// gram) per metal — 22K, the karat these bars/coins are minted/struck at, is
-// derived from it by purity ratio.
-export const PURITY_22K = 22 / 24;
-
 // Smaller denominations carry a heavier minting/making-charge premium over
 // the spot rate, narrowing as weight goes up — mirrors how real bar/coin
 // pricing works rather than a flat markup across every size.
@@ -30,7 +25,8 @@ export const PRODUCT_WEIGHTS = [
 
 export type ProductWeight = (typeof PRODUCT_WEIGHTS)[number];
 
-/** The per-gram price a SKU actually sells at: fine rate → 22K → + this weight's premium. */
-export function effectivePricePerGram(fine22kPerGram: number | null, weight: ProductWeight): number | null {
-  return fine22kPerGram !== null ? fine22kPerGram * (1 + weight.premium) : null;
+/** The per-gram price a SKU actually sells at: the real 22K anchor rate the
+ * platform prices off + this weight's premium. */
+export function effectivePricePerGram(pricePerGram22k: number | null, weight: ProductWeight): number | null {
+  return pricePerGram22k !== null ? pricePerGram22k * (1 + weight.premium) : null;
 }

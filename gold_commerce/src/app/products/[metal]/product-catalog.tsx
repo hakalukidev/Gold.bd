@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useAppDispatch } from "@/store/hooks";
 import { addToCart } from "@/store/slices/cart-slice";
 import { useMetalRate, type Metal } from "@/hooks/use-metal-rate";
-import { PRODUCT_IMAGES, PRODUCT_WEIGHTS, PURITY_22K, effectivePricePerGram, type ProductForm, type ProductWeight } from "@/lib/products";
+import { PRODUCT_IMAGES, PRODUCT_WEIGHTS, effectivePricePerGram, type ProductForm, type ProductWeight } from "@/lib/products";
 import { useT } from "@/lib/i18n/use-t";
 import { formatBDT } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -43,10 +43,12 @@ export function ProductCatalog({ metal }: { metal: Metal }) {
   const [qty, setQty] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
 
-  const fine22k = useMemo(() => {
-    const goldFine = goldRate ? Number(goldRate.pricePerGramBDT) * PURITY_22K : null;
-    const silverFine = silverRate ? Number(silverRate.pricePerGramBDT) * PURITY_22K : null;
-    return { gold: goldFine, silver: silverFine } satisfies Record<Metal, number | null>;
+  // Both queries already come back as the real 22K anchor rate (see
+  // rate.controller.js) — no more back-solving a "fine" price to derive it.
+  const pricePerGram22k = useMemo(() => {
+    const gold22k = goldRate ? Number(goldRate.pricePerGramBDT) : null;
+    const silver22k = silverRate ? Number(silverRate.pricePerGramBDT) : null;
+    return { gold: gold22k, silver: silver22k } satisfies Record<Metal, number | null>;
   }, [goldRate, silverRate]);
 
   function skuTitle(sku: Sku) {
@@ -57,7 +59,7 @@ export function ProductCatalog({ metal }: { metal: Metal }) {
   }
 
   function skuPricing(sku: Sku) {
-    const perGram = effectivePricePerGram(fine22k[sku.metal], sku.weight);
+    const perGram = effectivePricePerGram(pricePerGram22k[sku.metal], sku.weight);
     const unitPrice = perGram !== null ? perGram * sku.weight.grams : null;
     return { perGram, unitPrice };
   }

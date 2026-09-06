@@ -13,6 +13,8 @@ import type { Metal } from "@/lib/mock-rates";
  * not the fee-inclusive total.
  */
 export const BHORI_IN_GRAMS = 11.664;
+/** 1 vori = 16 ana in the traditional Bangladeshi gold weight system. */
+export const ANA_IN_GRAMS = BHORI_IN_GRAMS / 16;
 export const GOVT_GOLD_TAX_PER_BHORI_BDT = 2500;
 export const TRANSACTION_CHARGE_RATE = 0.015;
 

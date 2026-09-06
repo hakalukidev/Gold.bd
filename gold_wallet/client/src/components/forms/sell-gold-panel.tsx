@@ -12,7 +12,7 @@ import { useMetalRate, useMetalRateHistory } from "@/hooks/use-metal-rate";
 import { useWallet } from "@/hooks/use-wallet";
 import { computeSellPayout, SELL_SPREAD_RATE } from "@/lib/gold-fees";
 import { formatBDT } from "@/lib/format";
-import { getLatestRate, getRateHistory, type Metal } from "@/lib/mock-rates";
+import type { Metal } from "@/lib/mock-rates";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
 import { METAL_LABEL, METALS, PAYOUT_METHODS } from "@/lib/trade-products";
 import { MarketPriceChart, METAL_CHART_COLOR, toPricePoints } from "@/components/market/market-price-chart";
@@ -27,8 +27,9 @@ import { SELECTED_GOLD, SELECTED_SILVER } from "@/components/shared/payment-meth
 import { cn } from "@/lib/utils";
 
 /**
- * Selling quotes the *fine* metal rate rather than a minted SKU price — the
- * vault carries one gold balance and one silver balance, not per-SKU lots — and
+ * Selling quotes the metal's real 22K anchor rate rather than a minted SKU
+ * price — the vault carries one gold balance and one silver balance, not
+ * per-SKU lots — and
  * both metals go through the same `/api/{metal}/sell` mutation (see
  * use-gold-trade.ts). Only the Gold.bd Wallet payout is wired to anything in
  * this repo; the two cash-out routes are gateway integrations with no backend
@@ -47,7 +48,7 @@ export function SellGoldPanel() {
   const sell = useSellMetal(metal);
 
   const wallet = walletData ?? MOCK_WALLET;
-  const pricePerGram = Number((rateData ?? getLatestRate(metal)).pricePerGramBDT);
+  const pricePerGram = rateData ? Number(rateData.pricePerGramBDT) : null;
   // Both balances come straight off the wallet — no per-metal rate query
   // needed just to show stock, unlike the price calc above which does.
   const goldAvailable = Number(wallet.goldBalanceGrams);
@@ -57,10 +58,10 @@ export function SellGoldPanel() {
 
   // Same chart the Market page draws — daily series, holding-value axis
   // driven by what's actually in the vault for whichever metal is selected.
-  const pricePoints = toPricePoints(rateHistory ?? getRateHistory(metal), "daily");
+  const pricePoints = toPricePoints(rateHistory ?? [], "daily");
 
   const grams = form.watch("value") || 0;
-  const payout = computeSellPayout(grams, pricePerGram);
+  const payout = computeSellPayout(grams, pricePerGram ?? 0);
   const exceedsBalance = grams > available;
   const activePayout = PAYOUT_METHODS.find((m) => m.key === payoutKey);
 
@@ -129,7 +130,9 @@ export function SellGoldPanel() {
               <div className="rounded-md border border-gold/20 bg-gold/5 p-4">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold">{METAL_LABEL[metal]} price</p>
-                  <span className="text-sm font-semibold text-gold tabular-nums">{formatBDT(pricePerGram)}/g</span>
+                  <span className="text-sm font-semibold text-gold tabular-nums">
+                    {pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "…"}
+                  </span>
                 </div>
                 <div className="mt-2">
                   <MarketPriceChart
@@ -211,7 +214,7 @@ export function SellGoldPanel() {
                 type="submit"
                 variant={isSilver ? "silver-solid" : "gold-solid"}
                 className="w-full"
-                disabled={form.formState.isSubmitting || grams <= 0 || exceedsBalance}
+                disabled={form.formState.isSubmitting || grams <= 0 || exceedsBalance || pricePerGram === null}
               >
                 <ArrowDownRight />
                 {form.formState.isSubmitting ? "Processing…" : `Sell ${METAL_LABEL[metal]} · ${formatBDT(payout.netPayoutBDT)}`}
@@ -228,7 +231,7 @@ export function SellGoldPanel() {
           <CardTitle>Payout summary</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <SummaryRow label={`Sell price (${METAL_LABEL[metal]})`} value={`${formatBDT(pricePerGram)}/g`} />
+          <SummaryRow label={`Sell price (${METAL_LABEL[metal]})`} value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "…"} />
           <SummaryRow label="Weight" value={`${grams.toFixed(3)} g`} />
           <SummaryRow label={`Spread (${(SELL_SPREAD_RATE * 100).toFixed(0)}%)`} value={`-${formatBDT(payout.spreadBDT)}`} />
           <Separator />

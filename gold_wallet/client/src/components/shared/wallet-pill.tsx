@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useGoldRate } from "@/hooks/use-gold-rate";
 import { useWallet } from "@/hooks/use-wallet";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatBDTCompact, formatGrams, formatUSDCompact, gramsToMg } from "@/lib/format";
-import { getLatestRate, USD_BDT_RATE } from "@/lib/mock-rates";
+import { USD_BDT_RATE } from "@/lib/mock-rates";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
 import { cn } from "@/lib/utils";
 
@@ -17,16 +18,17 @@ const UNIT_LABEL: Record<Unit, string> = { BDT: "taka", USD: "US dollars", GOLD:
 /** "Wallet 4,250 BDT" chip for the dashboard top bar — click it to show the
  * same balance in USD, then as the gold it would buy at today's rate, then back
  * to taka. Reads the same ["wallet"] / ["gold-rate"] queries the trade forms
- * use, so it stays in sync with them; both fall back to the mock data while
- * there is no backend behind this app, the way UserMenu falls back to
- * MOCK_USER. */
+ * use, so it stays in sync with them. The wallet query shows a skeleton bar
+ * while in flight, then MOCK_WALLET's zero balance once it settles (no
+ * backend behind this app yet); the rate query is real, so it just reads "…"
+ * for the gold view until its first tick arrives. */
 export function WalletPill({ className }: { className?: string }) {
   const [unit, setUnit] = useState<Unit>("BDT");
-  const { data: wallet } = useWallet();
+  const { data: wallet, isLoading: walletLoading } = useWallet();
   const { data: rate } = useGoldRate();
 
   const balanceBDT = Number((wallet ?? MOCK_WALLET).cashBalanceBDT);
-  const pricePerGram = Number((rate ?? getLatestRate("gold")).pricePerGramBDT);
+  const pricePerGram = Number(rate?.pricePerGramBDT ?? 0);
   const next = UNITS[(UNITS.indexOf(unit) + 1) % UNITS.length];
 
   // Gold view: what the cash balance is worth in metal at today's rate.
@@ -52,7 +54,9 @@ export function WalletPill({ className }: { className?: string }) {
     >
       <span className="text-muted-foreground">Wallet</span>
       {/* Fixed min-width so cycling units doesn't shuffle the top bar around. */}
-      <span className="min-w-[4.5rem] text-right font-bold text-gold tabular-nums">{value}</span>
+      <span className="flex min-w-18 items-center justify-end text-right font-bold text-gold tabular-nums">
+        {walletLoading ? <Skeleton className="h-3.5 w-14" /> : value}
+      </span>
     </button>
   );
 }

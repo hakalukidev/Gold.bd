@@ -67,7 +67,7 @@ const dictionary = {
       rateCard: {
         liveLabel: "লাইভ গোল্ড রেট (৳)",
         label22k: "২২ক্যা",
-        label24k: "২৪ক্যা",
+        label21k: "২১ক্যা",
         perGram: "/ গ্রাম",
         updated: "এইমাত্র হালনাগাদ",
       },
@@ -482,7 +482,7 @@ const dictionary = {
       rateCard: {
         liveLabel: "Live Gold Rate (BDT)",
         label22k: "22K",
-        label24k: "24K",
+        label21k: "21K",
         perGram: "/ Gram",
         updated: "Updated just now",
       },

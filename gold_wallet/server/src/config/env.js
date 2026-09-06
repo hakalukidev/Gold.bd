@@ -43,6 +43,18 @@ const schema = z
     OTP_TTL_MINUTES: z.coerce.number().int().positive().default(5),
     OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
     OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().positive().default(60),
+
+    // BAJUS (Bangladesh Jewellers Association) gold/silver rate feed. Polled by
+    // src/jobs/rate-sync.job.js on a timer and stored in the metal_rates table;
+    // src/modules/rates serves it back out at /api/gold and /api/silver.
+    BAJUS_API_URL: z
+      .string()
+      .url()
+      .default("https://bajusrate.com/wp-content/bajus/index.php?gold=data"),
+    RATE_SYNC_INTERVAL_MINUTES: z.coerce.number().int().positive().default(30),
+    // Local phone number (no "88" prefix) texted whenever a sync detects a
+    // price change. Optional — leave blank to only log rate changes.
+    ADMIN_ALERT_PHONE: z.string().default(""),
   })
   .refine((v) => v.JWT_ACCESS_SECRET !== v.JWT_REFRESH_SECRET, {
     message: "JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different",
