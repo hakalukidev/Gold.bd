@@ -1,0 +1,323 @@
+"use client";
+
+import { KaratSelector, type GoldKarat } from "@/components/shared/karat-selector";
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { ArrowDownRight, Wallet as WalletIcon } from "lucide-react";
+import { tradeGramsSchema } from "@/lib/validations/gold";
+import { ApiError } from "@/lib/api-client";
+import { useSellMetal } from "@/hooks/use-gold-trade";
+import { useMetalRate } from "@/hooks/use-metal-rate";
+import { useWallet } from "@/hooks/use-wallet";
+import { computeSellPayout, SELL_SPREAD_RATE } from "@/lib/gold-fees";
+import { formatBDT } from "@/lib/format";
+import type { Metal } from "@/lib/mock-rates";
+import { MOCK_WALLET } from "@/lib/mock-wallet";
+import { METAL_LABEL, METALS, PAYOUT_METHODS } from "@/lib/trade-products";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import { SELECTED_GOLD, SELECTED_SILVER } from "@/components/shared/payment-method-button";
+import { cn } from "@/lib/utils";
+
+/**
+ * Selling quotes the metal's real 22K anchor rate rather than a minted SKU
+ * price — the vault carries one gold balance and one silver balance, not
+ * per-SKU lots — and
+ * both metals go through the same `/api/{metal}/sell` mutation (see
+ * use-gold-trade.ts). Only the Gold.bd Wallet payout is wired to anything in
+ * this repo; the two cash-out routes are gateway integrations with no backend
+ * (see CLAUDE.md), so they're marked "Soon" rather than faked.
+ */
+export function SellGoldPanel() {
+  const router = useRouter();
+  const [karat, setKarat] = useState<GoldKarat>(22);
+  const { data: walletData } = useWallet();
+
+  const form = useForm<{ value: number }>({ defaultValues: { value: 0.5 } });
+  const [metal, setMetal] = useState<Metal>("gold");
+  const [payoutKey, setPayoutKey] = useState(PAYOUT_METHODS[0].key);
+
+  const { data: rateData } = useMetalRate(metal);
+  const sell = useSellMetal(metal, karat);
+
+  const wallet = walletData ?? MOCK_WALLET;
+  const pricePerGram = rateData ? Number(rateData.pricePerGramBDT) * (metal === "gold" ? karat / 22 : 1) : null;
+  // Both balances come straight off the wallet — no per-metal rate query
+  // needed just to show stock, unlike the price calc above which does.
+  const goldAvailable = Number(wallet.goldBalanceGrams) * 22 / karat;
+  const silverAvailable = Number(wallet.silverBalanceGrams);
+  const available = metal === "gold" ? goldAvailable : silverAvailable;
+  const sliderMax = available > 0 ? available : 1;
+
+  const grams = form.watch("value") || 0;
+  const payout = computeSellPayout(grams, pricePerGram ?? 0);
+  const exceedsBalance = grams > available;
+  const activePayout = PAYOUT_METHODS.find((m) => m.key === payoutKey);
+
+  // Every "selected" highlight on this page follows whichever metal is
+  // active, not a fixed gold accent — so switching to Silver re-colors the
+  // payout chip, the sell button, etc. to match.
+  const isSilver = metal === "silver";
+  const selectedAccent = isSilver ? SELECTED_SILVER : SELECTED_GOLD;
+
+  function selectPayoutMethod(key: string, enabled: boolean) {
+    if (!enabled) {
+      toast.info("Coming soon — payouts go to your Gold.bd Wallet for now.");
+      return;
+    }
+    setPayoutKey(key);
+  }
+
+  async function onSubmit(values: { value: number }) {
+    const parsed = tradeGramsSchema(metal, "sell").safeParse(values.value);
+    if (!parsed.success) {
+      form.setError("value", { message: parsed.error.issues[0]?.message ?? "Enter a valid weight" });
+      return;
+    }
+    if (values.value > available) {
+      form.setError("value", { message: `You only hold ${available.toFixed(3)} g` });
+      return;
+    }
+
+    try {
+      await sell.mutateAsync(values.value);
+      toast.success("Sale completed");
+      form.reset({ value: 0.5 });
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Sale failed");
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "flex size-8 shrink-0 items-center justify-center rounded-full border",
+                  isSilver ? "border-silver/30 bg-silver/10 text-silver" : "border-gold/30 bg-gold/10 text-gold"
+                )}
+              >
+                <ArrowDownRight className="size-4" strokeWidth={1.75} />
+              </span>
+              <div>
+                <CardTitle>Sell {METAL_LABEL[metal]}</CardTitle>
+                <p className="text-xs text-muted-foreground">Priced at the live rate, paid out instantly</p>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+            {/* Metal selector — leads with each metal's held stock, so it's
+                the first thing shown rather than something you find out only
+                after picking a metal and looking below the weight field. */}
+            <div className="grid grid-cols-2 gap-2">
+              {METALS.map((m) => (
+                <MetalStockButton
+                  key={m}
+                  metal={m}
+                  label={METAL_LABEL[m]}
+                  available={m === "gold" ? goldAvailable : silverAvailable}
+                  selected={metal === m}
+                  onSelect={setMetal}
+                />
+              ))}
+            </div>
+
+            {metal === "gold" && <KaratSelector value={karat} onChange={setKarat} />}
+            {/* Big weight entry */}
+            <FormField
+              control={form.control}
+              name="value"
+              render={({ field }) => (
+                <FormItem className="gap-3 text-center">
+                  <Label className="block text-xs font-semibold tracking-wide text-muted-foreground uppercase">You are selling</Label>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        {...field}
+                        onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber)}
+                        className="h-auto w-32 border-none bg-transparent text-center text-4xl font-semibold shadow-none focus-visible:ring-0"
+                      />
+                    </FormControl>
+                    <span className="text-xl font-medium text-muted-foreground">g</span>
+                  </div>
+                  {form.formState.errors.value ? (
+                    <FormMessage className="text-sm" />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      of {available.toFixed(3)}g available · {METAL_LABEL[metal]}
+                    </p>
+                  )}
+
+                  <Slider
+                    value={Math.min(grams, sliderMax)}
+                    min={0}
+                    max={sliderMax}
+                    step={sliderMax / 100}
+                    disabled={available <= 0}
+                    onValueChange={(v) => form.setValue("value", Number(v.toFixed(3)), { shouldValidate: true })}
+                  />
+                </FormItem>
+              )}
+            />
+
+            {exceedsBalance && !form.formState.errors.value && (
+              <p className="text-sm text-destructive">You only hold {available.toFixed(3)} g.</p>
+            )}
+
+            {/* Payout method */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Receive payout via</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {PAYOUT_METHODS.slice(0, 2).map((m) => (
+                  <PayoutButton
+                    key={m.key}
+                    method={m}
+                    selected={payoutKey === m.key}
+                    onSelect={selectPayoutMethod}
+                    accent={selectedAccent}
+                  />
+                ))}
+                <PayoutButton
+                  method={PAYOUT_METHODS[2]}
+                  selected={payoutKey === PAYOUT_METHODS[2].key}
+                  onSelect={selectPayoutMethod}
+                  accent={selectedAccent}
+                  className="col-span-2"
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Payout summary — folded into the same card now that there's
+                no chart alongside it to justify a separate sidebar card. */}
+            <div className="space-y-1.5">
+              <SummaryRow label={`Sell price (${METAL_LABEL[metal]})`} value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "…"} />
+              <SummaryRow label="Weight" value={`${grams.toFixed(3)} g`} />
+              <SummaryRow label={`Spread (${(SELL_SPREAD_RATE * 100).toFixed(0)}%)`} value={`-${formatBDT(payout.spreadBDT)}`} />
+              <SummaryRow label="You get" value={formatBDT(payout.netPayoutBDT)} strong />
+            </div>
+
+            <div className="space-y-2 text-center">
+              <Button
+                type="submit"
+                variant={isSilver ? "silver-solid" : "gold-solid"}
+                className="w-full"
+                disabled={form.formState.isSubmitting || grams <= 0 || exceedsBalance || pricePerGram === null}
+              >
+                <ArrowDownRight />
+                {form.formState.isSubmitting ? "Processing…" : `Sell ${METAL_LABEL[metal]} · ${formatBDT(payout.netPayoutBDT)}`}
+              </Button>
+              {activePayout && <p className="text-xs text-muted-foreground">{activePayout.note}</p>}
+            </div>
+          </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function MetalStockButton({
+  metal,
+  label,
+  available,
+  selected,
+  onSelect,
+}: {
+  metal: Metal;
+  label: string;
+  available: number;
+  selected: boolean;
+  onSelect: (metal: Metal) => void;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      aria-pressed={selected}
+      onClick={() => onSelect(metal)}
+      className={cn(
+        "h-auto flex-col gap-0.5 rounded-md py-2.5",
+        // Each button colors itself as its own metal when active — the Gold
+        // tile turns gold, the Silver tile turns silver — rather than both
+        // always reading gold regardless of which one is selected.
+        selected && (metal === "gold" ? SELECTED_GOLD : SELECTED_SILVER)
+      )}
+    >
+      <span className="font-semibold">{label}</span>
+      <span className={cn("text-xs font-normal", selected ? "text-ink/70" : "text-muted-foreground")}>
+        {available.toFixed(3)} g in stock
+      </span>
+    </Button>
+  );
+}
+
+function PayoutButton({
+  method,
+  selected,
+  onSelect,
+  accent = SELECTED_GOLD,
+  className,
+}: {
+  method: { key: string; label: string; icon: typeof WalletIcon; enabled: boolean };
+  selected: boolean;
+  onSelect: (key: string, enabled: boolean) => void;
+  /** Selected-state color — follows the active metal (gold/silver) on the
+   * page this is used from. */
+  accent?: string;
+  className?: string;
+}) {
+  const Icon = method.icon;
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      aria-pressed={selected}
+      aria-disabled={!method.enabled}
+      onClick={() => onSelect(method.key, method.enabled)}
+      className={cn(
+        "h-auto justify-center gap-2 rounded-md py-2.5 font-medium whitespace-normal",
+        selected && accent,
+        !method.enabled && "opacity-60",
+        className
+      )}
+    >
+      <Icon className="size-4" strokeWidth={1.75} />
+      {method.label}
+      {!method.enabled && (
+        <Badge variant="secondary" className="text-[10px]">
+          Soon
+        </Badge>
+      )}
+    </Button>
+  );
+}
+
+function SummaryRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className={cn("flex items-center justify-between gap-2", strong ? "text-base font-semibold" : "text-sm")}>
+      <span className={strong ? undefined : "text-muted-foreground"}>{label}</span>
+      <span className="tabular-nums">{value}</span>
+    </div>
+  );
+}

@@ -12,7 +12,7 @@ import { useMetalRate, type Metal } from "@/hooks/use-metal-rate";
 import { useT } from "@/lib/i18n/use-t";
 import { formatBDT } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { PRODUCT_IMAGES, PRODUCT_WEIGHTS, PURITY_22K, effectivePricePerGram, type ProductForm as Form, type ProductWeight as Weight } from "@/lib/products";
+import { PRODUCT_IMAGES, PRODUCT_WEIGHTS, effectivePricePerGram, type ProductForm as Form, type ProductWeight as Weight } from "@/lib/products";
 
 function ProductCard({
   metal,
@@ -142,8 +142,9 @@ function MetalRow({ metal, form }: { metal: Metal; form: Form }) {
   const t = useT();
   const { data: rate } = useMetalRate(metal);
 
-  const fine = rate ? Number(rate.pricePerGramBDT) : null;
-  const price22k = fine !== null ? fine * PURITY_22K : null;
+  // Already the real 22K anchor rate (see rate.controller.js) — no more
+  // back-solving a "fine" price to derive it.
+  const price22k = rate ? Number(rate.pricePerGramBDT) : null;
 
   return (
     <div>

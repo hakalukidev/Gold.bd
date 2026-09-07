@@ -7,14 +7,16 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { ArrowLeft, Check, Minus, Plus, Store, Trash2, Truck, Wallet } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Store, Trash2, Truck, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { clearCart, removeFromCart, updateQuantity } from "@/store/slices/cart-slice";
+import { removeFromCart, updateQuantity } from "@/store/slices/cart-slice";
 import { checkoutSchema, DELIVERY_METHODS, PAYMENT_METHODS, type CheckoutInput, type DeliveryMethod, type PaymentMethod } from "@/lib/validations/checkout";
 import { BD_DIVISIONS, districtsOf } from "@/lib/bd-geo";
 import { useT } from "@/lib/i18n/use-t";
 import { formatBDT } from "@/lib/format";
+import { api, ApiError } from "@/lib/api-client";
+import type { PaymentInitResponse } from "@/types";
 import { cn } from "@/lib/utils";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { GoldPriceTicker } from "@/components/landing/gold-price-ticker";
@@ -111,7 +113,7 @@ export default function CheckoutPage() {
   const items = useAppSelector((state) => state.cart.items);
 
   const [promoCode, setPromoCode] = useState("");
-  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const form = useForm<CheckoutInput>({
     resolver: zodResolver(checkoutSchema),
@@ -149,37 +151,43 @@ export default function CheckoutPage() {
     toast.info(c.promoComingSoon);
   }
 
-  function onSubmit() {
-    // There's no payment gateway or orders API in this repo (see CLAUDE.md) —
-    // record the request locally, the same way the "instabuy" reference site
-    // hands an order to human follow-up for payment confirmation.
+  // Places an order and starts an SSLCommerz sandbox session for it via
+  // wallet_server's payments module (see /api/payments/init) — this app
+  // holds no gateway credentials and never sees card/bKash details itself,
+  // it only gets back a hosted checkout URL to send the browser to. The cart
+  // stays intact until the shopper actually returns from the gateway having
+  // paid (checkout/success clears it), so a cancelled/failed attempt doesn't
+  // lose their order.
+  async function onSubmit(values: CheckoutInput) {
     const orderId = `GB-${Date.now().toString(36).toUpperCase()}`;
-    setPlacedOrderId(orderId);
-    dispatch(clearCart());
-    toast.success(c.successTitle);
-  }
-
-  if (placedOrderId) {
-    return (
-      <main className="flex flex-1 flex-col">
-        <GoldPriceTicker />
-        <LandingHeader />
-        <div className="flex flex-1 items-center justify-center bg-ink px-4 py-24">
-          <div className="w-full max-w-md rounded-md border border-white/10 bg-white/5 p-8 text-center">
-            <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-gold/15 text-gold">
-              <Check className="size-7" />
-            </span>
-            <h1 className="mt-4 text-xl font-bold text-white">{c.successTitle}</h1>
-            <p className="mt-2 text-sm text-neutral-400">{c.successDescription}</p>
-            <p className="mt-4 text-xs text-neutral-500">
-              {c.successOrderNo}: <span className="font-mono text-neutral-300">{placedOrderId}</span>
-            </p>
-            <Button variant="gold-solid" className="mt-6 w-full" nativeButton={false} render={<Link href="/products/gold">{c.continueShopping}</Link>} />
-          </div>
-        </div>
-        <LandingFooter />
-      </main>
-    );
+    try {
+      setIsRedirecting(true);
+      const { gatewayUrl } = await api.post<PaymentInitResponse>("/api/payments/init", {
+        source: "commerce",
+        purpose: "order",
+        amount: total,
+        currency: "BDT",
+        customer: {
+          name: values.recipientName,
+          email: values.recipientEmail,
+          phone: values.recipientPhone,
+          address: values.deliveryMethod === "home" ? values.address : undefined,
+        },
+        returnBaseUrl: `${window.location.origin}/checkout`,
+        metadata: {
+          orderId,
+          deliveryMethod: values.deliveryMethod,
+          division: values.division,
+          district: values.district,
+          note: values.note,
+          items: items.map((item) => ({ id: item.id, name: item.name, quantity: item.quantity, unitPriceBDT: item.unitPriceBDT })),
+        },
+      });
+      window.location.href = gatewayUrl;
+    } catch (error) {
+      setIsRedirecting(false);
+      toast.error(error instanceof ApiError ? error.message : "Could not start payment. Please try again.");
+    }
   }
 
   return (
@@ -417,8 +425,8 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                <Button type="submit" variant="gold-solid" className="mt-5 w-full" disabled={form.formState.isSubmitting}>
-                  {form.formState.isSubmitting ? c.placingOrder : c.placeOrder}
+                <Button type="submit" variant="gold-solid" className="mt-5 w-full" disabled={form.formState.isSubmitting || isRedirecting}>
+                  {form.formState.isSubmitting || isRedirecting ? c.placingOrder : c.placeOrder}
                 </Button>
               </div>
             </form>

@@ -31,9 +31,16 @@ export interface TransactionSummary {
   createdAt: string;
 }
 
+/** BAJUS's four published grades — see wallet_server's metal_rates table. */
+export type Karat = "22k" | "21k" | "18k" | "sonaton";
+
 export interface GoldRateSummary {
   pricePerGramBDT: string;
   effectiveAt: string;
+  /** The real BAJUS-reported grade — always 22K (the platform's anchor) when
+   * the request didn't pass `?karat=`. */
+  karat?: Karat;
+  pricePerBhoriBDT?: string;
 }
 
 /** Gold and silver rates cross the wire in the same shape. */
@@ -53,6 +60,25 @@ export interface SiteSettings {
   instagramUrl: string;
   linkedinUrl: string;
   youtubeUrl: string;
+}
+
+/** SSLCommerz payment session state — see wallet_server's payments module,
+ * the single gateway integration this site and gold_wallet/client both use. */
+export type PaymentStatus = "PENDING" | "VALID" | "FAILED" | "CANCELLED";
+
+export interface PaymentInitResponse {
+  tranId: string;
+  /** SSLCommerz's hosted checkout page — redirect the browser here. */
+  gatewayUrl: string;
+}
+
+export interface PaymentStatusResponse {
+  tranId: string;
+  purpose: "order" | "deposit";
+  status: PaymentStatus;
+  amountBDT: string;
+  currency: string;
+  metadata: Record<string, unknown>;
 }
 
 /** Standard envelope returned by every /api/* route. */

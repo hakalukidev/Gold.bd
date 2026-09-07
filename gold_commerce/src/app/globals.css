@@ -258,6 +258,17 @@
   html {
     @apply font-sans;
   }
+  /* Every amount/quantity field is a plain number input we style ourselves —
+     drop the browser's native up/down stepper everywhere instead of
+     one-offing this per form. */
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
 }
 /* Quick links (wallet) — the icons are bare white glyphs with no chip behind
    them, so hover feedback has to come from the SVG itself. Each one mimes what
