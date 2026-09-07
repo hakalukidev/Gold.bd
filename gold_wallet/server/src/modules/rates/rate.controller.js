@@ -2,6 +2,7 @@ const asyncHandler = require("../../utils/async-handler");
 const HttpError = require("../../utils/http-error");
 const metalRateRepo = require("../../repositories/metal-rate.repository");
 const rateSyncJob = require("../../jobs/rate-sync.job");
+const fxSyncJob = require("../../jobs/fx-sync.job");
 
 /**
  * BAJUS publishes 22K/21K/18K/সনাতন — not 24K fine gold — so there's no real
@@ -16,7 +17,13 @@ function toRealGrade(rate) {
     pricePerBhoriBDT: rate.pricePerBhoriBDT,
     karat: rate.karat,
     effectiveAt: rate.effectiveAt,
+    // BAJUS's own "last updated" timestamp — how stale their published
+    // figure is, not when wallet_server last talked to them.
     reportedAt: rate.reportedAt,
+    // When wallet_server actually last pulled from BAJUS (cron tick or a
+    // "sync now" click), regardless of whether BAJUS's own number moved.
+    // This is what the client's "synced Xh ago" caption should read.
+    syncedAt: rateSyncJob.getLastSyncedAt()?.toISOString() ?? null,
   };
 }
 
@@ -59,4 +66,21 @@ const syncRates = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { syncedAt: rateSyncJob.getLastSyncedAt() } });
 });
 
-module.exports = { getRate, getRateHistory, syncRates };
+/** BDT-per-unit quotes for the wallet's currency-conversion card. 404s only
+ * until the very first poll (started at process boot) lands; after that it
+ * always has at least a stale-but-real quote to serve, since a failed poll
+ * never clears the cache. */
+const getFxRates = asyncHandler(async (req, res) => {
+  const ratesPerUnit = fxSyncJob.getRates();
+  if (!ratesPerUnit) throw new HttpError(404, "No FX rates available yet");
+  res.json({
+    success: true,
+    data: {
+      base: "BDT",
+      ratesPerUnit,
+      syncedAt: fxSyncJob.getLastSyncedAt()?.toISOString() ?? null,
+    },
+  });
+});
+
+module.exports = { getRate, getRateHistory, syncRates, getFxRates };

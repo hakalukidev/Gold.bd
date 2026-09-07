@@ -5,15 +5,17 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LogIn, Mail, Phone, User } from "lucide-react";
+import { toast } from "sonner";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
+import { walletAuthApi } from "@/lib/wallet-auth-api";
+import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { IconInput } from "@/components/shared/icon-input";
 import { PasswordInput } from "@/components/shared/password-input";
 
-// UI-only flow: this app is the frontend on its own, with no auth backend
-// behind it, so a valid form just moves the user on to the OTP step
-// (register -> /verify-otp -> /wallet).
+// Step 1 of registration: wallet_server validates the form and texts a
+// 6-digit code; no account exists yet (register -> /verify-otp -> /wallet).
 export default function RegisterPage() {
   const router = useRouter();
   const form = useForm<RegisterInput>({
@@ -21,8 +23,26 @@ export default function RegisterPage() {
     defaultValues: { fullName: "", phone: "", email: "", password: "", confirmPassword: "" },
   });
 
-  function onSubmit(values: RegisterInput) {
-    router.push(`/verify-otp?phone=${encodeURIComponent(values.phone)}&purpose=REGISTER`);
+  async function onSubmit(values: RegisterInput) {
+    try {
+      const { devCode } = await walletAuthApi.register({
+        fullName: values.fullName,
+        phone: values.phone,
+        email: values.email || undefined,
+        password: values.password,
+      });
+      const devCodeParam = devCode ? `&devCode=${encodeURIComponent(devCode)}` : "";
+      router.push(`/verify-otp?phone=${encodeURIComponent(values.phone)}&purpose=REGISTER${devCodeParam}`);
+    } catch (error) {
+      if (error instanceof ApiError && error.fieldErrors) {
+        for (const [field, messages] of Object.entries(error.fieldErrors)) {
+          if (field in values) {
+            form.setError(field as keyof RegisterInput, { message: messages[0] });
+          }
+        }
+      }
+      toast.error(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
+    }
   }
 
   return (
@@ -122,8 +142,13 @@ export default function RegisterPage() {
             />
           </div>
 
-          <Button type="submit" variant="gold-solid" className="h-10 w-full rounded-md text-sm">
-            Create account
+          <Button
+            type="submit"
+            variant="gold-solid"
+            className="h-10 w-full rounded-md text-sm"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? "Creating account…" : "Create account"}
           </Button>
         </form>
       </Form>

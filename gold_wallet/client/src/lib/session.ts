@@ -27,10 +27,27 @@ export function setAccessToken(token: string) {
 }
 
 export function getAccessToken() {
+  // Guarded for SSR: Next.js still renders "use client" components on the
+  // server for the initial HTML, and callers now include hook bodies (e.g.
+  // useWallet) that run there too, not just browser-only event handlers.
+  if (typeof window === "undefined") return null;
   return sessionStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
 export function clearSession() {
   document.cookie = `${SESSION_COOKIE}=; path=/; max-age=0; samesite=lax`;
   sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+
+/** Fired by api-client when an authenticated wallet_server call comes back
+ * 401 — the access token died (expired, or the session was revoked server
+ * side) mid-visit. Listened for once, near the app root (see providers.tsx),
+ * so every page that happens to be open when that happens reacts the same
+ * way instead of each caller having to notice its own 401 and log out. */
+export const SESSION_EXPIRED_EVENT = "gb:session-expired";
+
+export function notifySessionExpired() {
+  if (typeof window === "undefined") return;
+  clearSession();
+  window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
 }

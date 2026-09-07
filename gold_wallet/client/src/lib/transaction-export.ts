@@ -6,7 +6,8 @@ const COLUMNS = [
   "Description",
   "Type",
   "Status",
-  "Gold (g)",
+  "Metal",
+  "Weight (g)",
   "Rate (BDT/g)",
   "Amount (BDT)",
 ] as const;
@@ -32,7 +33,8 @@ export function toTransactionCsv(transactions: TransactionSummary[]): string {
       TYPE_LABEL[t.type],
       t.type,
       t.status,
-      t.goldGrams ?? "",
+      t.metal ?? "",
+      (t.metal === "silver" ? t.silverGrams : t.goldGrams) ?? "",
       t.pricePerGramBDT ?? "",
       t.totalAmountBDT,
     ]

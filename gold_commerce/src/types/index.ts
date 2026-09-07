@@ -62,6 +62,25 @@ export interface SiteSettings {
   youtubeUrl: string;
 }
 
+/** SSLCommerz payment session state — see wallet_server's payments module,
+ * the single gateway integration this site and gold_wallet/client both use. */
+export type PaymentStatus = "PENDING" | "VALID" | "FAILED" | "CANCELLED";
+
+export interface PaymentInitResponse {
+  tranId: string;
+  /** SSLCommerz's hosted checkout page — redirect the browser here. */
+  gatewayUrl: string;
+}
+
+export interface PaymentStatusResponse {
+  tranId: string;
+  purpose: "order" | "deposit";
+  status: PaymentStatus;
+  amountBDT: string;
+  currency: string;
+  metadata: Record<string, unknown>;
+}
+
 /** Standard envelope returned by every /api/* route. */
 export type ApiResponse<T> =
   | { success: true; data: T }

@@ -9,9 +9,10 @@ import { MOCK_WALLET } from "@/lib/mock-wallet";
 
 /** Small "Wallet ৳4,250" chip for page headers (e.g. buy-gold) — reads the
  * same ["wallet"] query the trade forms use, so it stays in sync with them.
- * Shows a skeleton bar while that query is still in flight, then MOCK_WALLET's
- * zero balance once it settles (there is no backend behind this app yet), so
- * a fresh fetch never reads as a confirmed ৳0 balance. */
+ * Shows a skeleton bar while that query is still in flight, then the real
+ * cash balance from wallet_server's wallet module once it settles
+ * (MOCK_WALLET's zero while signed out), so a fresh fetch never reads as a
+ * confirmed ৳0 balance. */
 export function WalletBadge() {
   const { data, isLoading } = useWallet();
   const wallet = data ?? MOCK_WALLET;

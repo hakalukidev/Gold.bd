@@ -1,5 +1,8 @@
 "use client";
 
+import { KaratSelector, type GoldKarat } from "@/components/shared/karat-selector";
+
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -19,10 +22,11 @@ import { cn } from "@/lib/utils";
 
 export function GoldTradeForm({ side }: { side: "BUY" | "SELL" }) {
   const router = useRouter();
+  const [karat, setKarat] = useState<GoldKarat>(22);
   const { data: rate } = useGoldRate();
   const { data: wallet } = useWallet();
-  const buy = useBuyGold();
-  const sell = useSellGold();
+  const buy = useBuyGold(karat);
+  const sell = useSellGold(karat);
   const mutation = side === "BUY" ? buy : sell;
 
   const form = useForm<BuyGoldInput>({
@@ -31,7 +35,7 @@ export function GoldTradeForm({ side }: { side: "BUY" | "SELL" }) {
   });
 
   const grams = form.watch("goldGrams");
-  const estimate = rate && grams ? Number(rate.pricePerGramBDT) * Number(grams) : 0;
+  const estimate = rate && grams ? (Number(rate.pricePerGramBDT) * karat / 22) * Number(grams) : 0;
 
   async function onSubmit(values: BuyGoldInput) {
     try {
@@ -46,6 +50,7 @@ export function GoldTradeForm({ side }: { side: "BUY" | "SELL" }) {
 
   return (
     <div className="space-y-4">
+      <KaratSelector value={karat} onChange={setKarat} />
       <div className="flex items-center justify-between rounded-md border border-gold/20 bg-gold/5 px-3 py-2 text-sm">
         <span className="flex items-center gap-1.5 font-medium text-gold">
           <TrendingUp className="size-4" strokeWidth={1.75} />
@@ -59,7 +64,7 @@ export function GoldTradeForm({ side }: { side: "BUY" | "SELL" }) {
           <p className="mb-2 text-sm font-medium">Categories</p>
           <div className="grid grid-cols-4 gap-2">
             {PRODUCT_WEIGHTS.map((weight) => {
-              const cost = rate ? Number(rate.pricePerGramBDT) * weight.grams : null;
+              const cost = rate ? (Number(rate.pricePerGramBDT) * karat / 22) * weight.grams : null;
               const isSelected = grams === weight.grams;
               return (
                 <button
@@ -98,7 +103,7 @@ export function GoldTradeForm({ side }: { side: "BUY" | "SELL" }) {
                     min="0"
                     placeholder="1.000"
                     {...field}
-                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber)}
                   />
                 </FormControl>
                 {side === "SELL" && wallet ? (

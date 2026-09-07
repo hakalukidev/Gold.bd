@@ -23,7 +23,9 @@ type UnitKey = (typeof UNITS)[number]["key"];
 
 /** "2m ago" / "just now" for the sync button's tooltip and caption — how long
  * since wallet_server actually last pulled this reading from BAJUS
- * (`reportedAt`), not how long since this component last rendered it. */
+ * (`syncedAt`), not how long since this component last rendered it, and not
+ * how stale BAJUS's own published figure is (`reportedAt` — those can differ
+ * by hours whenever BAJUS hasn't updated their number between our polls). */
 function relativeSyncLabel(iso: string | undefined): string {
   if (!iso) return "never synced";
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -66,7 +68,7 @@ export function GoldRatePill({ className }: { className?: string }) {
   // Whole taka only — the decimals of a per-vori price don't fit the chrome.
   const value = formatBDT(pricePerGram * unit.grams).replace(/\.\d+$/, "");
 
-  const syncedLabel = relativeSyncLabel(rate?.reportedAt);
+  const syncedLabel = relativeSyncLabel(rate?.syncedAt ?? undefined);
 
   function handleSync() {
     sync.mutate(undefined, {

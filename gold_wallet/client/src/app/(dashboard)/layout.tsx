@@ -8,7 +8,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <DashboardSidebar />
       <SidebarInset className="min-w-0">
         <DashboardTopbar />
-        <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 lg:px-8">{children}</div>
+        <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 has-[[data-buy-page]]:max-w-none has-[[data-buy-page]]:pt-2 lg:px-8">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -18,6 +18,18 @@ export const ANA_IN_GRAMS = BHORI_IN_GRAMS / 16;
 export const GOVT_GOLD_TAX_PER_BHORI_BDT = 2500;
 export const TRANSACTION_CHARGE_RATE = 0.015;
 
+/** Units a weight can be entered in — grams (the wallet's own unit), or
+ * vori/ana, the units Bangladeshi gold buyers actually think in. Shared by
+ * the Digital Gold and Physical Gold buy panels (and mirrors the Market
+ * page's own PRICE_UNITS, which quotes rather than takes weight). */
+export const WEIGHT_UNITS = [
+  { key: "gram", label: "Gram", grams: 1 },
+  { key: "vori", label: "Vori", grams: BHORI_IN_GRAMS },
+  { key: "ana", label: "Ana", grams: ANA_IN_GRAMS },
+] as const;
+
+export type WeightUnitKey = (typeof WEIGHT_UNITS)[number]["key"];
+
 export interface BuyOrderBreakdown {
   grams: number;
   govtTaxBDT: number;

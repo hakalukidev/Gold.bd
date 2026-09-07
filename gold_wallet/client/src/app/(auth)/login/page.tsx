@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,12 +24,23 @@ import { PasswordInput } from "@/components/shared/password-input";
 // can't be used to probe which numbers are registered.
 // "Remember me" and "Forgot password?" stay presentational — there's no
 // remember-me or password-reset endpoint on the backend yet.
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { phone: "", password: "" },
   });
+
+  // Landed here via the auto-logout in providers.tsx (an authenticated call
+  // 401'd because the access token expired or was revoked) rather than the
+  // user choosing to sign out — say why instead of leaving them wondering
+  // where their session went.
+  useEffect(() => {
+    if (searchParams.get("reason") === "expired") {
+      toast.error("Your session has expired. Please sign in again.");
+    }
+  }, [searchParams]);
 
   async function onSubmit(values: LoginInput) {
     try {
@@ -129,5 +141,13 @@ export default function LoginPage() {
 
       <p className="mt-6 text-center text-xs text-muted-foreground">Secure. Trusted. 100% yours.</p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

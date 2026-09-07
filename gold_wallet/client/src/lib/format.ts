@@ -48,7 +48,8 @@ export function formatBDTCompact(amount: number | string): string {
   return `${new Intl.NumberFormat("en-BD", { maximumFractionDigits: 0 }).format(n)} BDT`;
 }
 
-/** "$34.86" — the USD view of a balance (see USD_BDT_RATE in mock-rates.ts). */
+/** "$34.86" — the USD view of a balance (rate comes from useFxRates(), which
+ * falls back to USD_BDT_RATE in mock-rates.ts). */
 export function formatUSDCompact(amount: number | string): string {
   const n = typeof amount === "string" ? Number(amount) : amount;
   return new Intl.NumberFormat("en-US", {
@@ -58,7 +59,8 @@ export function formatUSDCompact(amount: number | string): string {
   }).format(n);
 }
 
-/** "€1,204.55" — a BDT balance converted into another currency (see BDT_PER_FOREIGN_UNIT in mock-rates.ts). */
+/** "€1,204.55" — a BDT balance converted into another currency (rates come
+ * from useFxRates(), which falls back to BDT_PER_FOREIGN_UNIT in mock-rates.ts). */
 export function formatForeign(amount: number, currency: string): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",

@@ -30,8 +30,9 @@ import { useWallet } from "@/hooks/use-wallet";
 import { useGoldRate } from "@/hooks/use-gold-rate";
 import { useMetalRate, type Metal } from "@/hooks/use-metal-rate";
 import { useTransactions } from "@/hooks/use-transactions";
+import { useFxRates } from "@/hooks/use-fx-rates";
 import { formatBDT, formatForeign, formatGrams, formatUSDCompact, gramsToMg } from "@/lib/format";
-import { BDT_PER_FOREIGN_UNIT, USD_BDT_RATE, type ForeignCurrency } from "@/lib/mock-rates";
+import type { ForeignCurrency } from "@/lib/mock-rates";
 import { MOCK_PURITY_MIX, MOCK_SILVER_PURITY_MIX, MOCK_WALLET } from "@/lib/mock-wallet";
 import { REFERRAL_REWARD_GRAMS, referralCode } from "@/lib/referral";
 import { MOCK_USER } from "@/lib/mock-user";
@@ -49,12 +50,16 @@ type Direction = "deposit" | "withdraw";
  * actually holds. */
 function TotalBalanceCard({
   totalBDT,
+  usdRate,
   netBDT,
   netPct,
   onManage,
   loading,
 }: {
   totalBDT: number;
+  /** Live BDT-per-USD quote from useFxRates() — falls back to the
+   * illustrative mock-rates.ts figure while the feed hasn't loaded yet. */
+  usdRate: number;
   netBDT: number;
   netPct: number | null;
   onManage: (direction: Direction) => void;
@@ -83,7 +88,7 @@ function TotalBalanceCard({
                 <p className="mt-2 text-3xl font-bold tracking-tight tabular-nums">{formatBDT(totalBDT)}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {"≈ "}
-                  {formatUSDCompact(totalBDT / USD_BDT_RATE)} · cash + metals at today&apos;s rates
+                  {formatUSDCompact(totalBDT / usdRate)} · cash + metals at today&apos;s rates
                 </p>
               </>
             )}
@@ -172,9 +177,9 @@ function AccountCard({
         <Image src={art} alt="" width={44} height={44} aria-hidden className="size-11 drop-shadow-sm" />
       </div>
 
-      <p className="relative mt-4 text-2xl font-bold tracking-tight tabular-nums">
+      <div className="relative mt-4 text-2xl font-bold tracking-tight tabular-nums">
         {loading ? <Skeleton className={cn("h-7 w-28", skeleton)} /> : value}
-      </p>
+      </div>
 
       <div className={cn("relative mt-5 flex items-end justify-between text-[11px]", muted)}>
         <span className="tabular-nums">{loading ? <Skeleton className={cn("h-3 w-20", skeleton)} /> : footLeft}</span>
@@ -443,6 +448,11 @@ const CURRENCY_NAME: Record<ForeignCurrency, string> = {
 const CURRENCY_SYMBOL: Record<ForeignCurrency, string> = { USD: "$", EUR: "€", GBP: "£", SAR: "﷼" };
 
 function CurrencyCard({ totalBDT }: { totalBDT: number }) {
+  // Live BDT-per-unit quotes (see fx-sync.job.js on wallet_server), falling
+  // back to the illustrative mock-rates.ts figures until the first fetch
+  // lands or if it ever fails.
+  const { ratesPerUnit, isLive } = useFxRates();
+
   return (
     <Card>
       <CardHeader>
@@ -453,18 +463,20 @@ function CurrencyCard({ totalBDT }: { totalBDT: number }) {
       </CardHeader>
       <CardContent>
         <ul className="divide-y">
-          {(Object.keys(BDT_PER_FOREIGN_UNIT) as ForeignCurrency[]).map((code) => (
+          {(Object.keys(ratesPerUnit) as ForeignCurrency[]).map((code) => (
             <li key={code} className="flex items-center gap-3 py-2.5">
               <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">{CURRENCY_SYMBOL[code]}</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{code}</p>
                 <p className="truncate text-[11px] text-muted-foreground">{CURRENCY_NAME[code]}</p>
               </div>
-              <span className="shrink-0 text-sm font-semibold tabular-nums">{formatForeign(totalBDT / BDT_PER_FOREIGN_UNIT[code], code)}</span>
+              <span className="shrink-0 text-sm font-semibold tabular-nums">{formatForeign(totalBDT / ratesPerUnit[code], code)}</span>
             </li>
           ))}
         </ul>
-        <p className="mt-2 text-[11px] text-muted-foreground">Your total balance at indicative rates.</p>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Your total balance at {isLive ? "today's live" : "indicative"} rates.
+        </p>
       </CardContent>
     </Card>
   );
@@ -475,16 +487,18 @@ function CurrencyCard({ totalBDT }: { totalBDT: number }) {
 /* -------------------------------------------------------------------------- */
 
 export default function WalletPage() {
-  // Neither `/api/wallet` nor `/api/transactions` exists in this repo (see
-  // CLAUDE.md), so the wallet query falls back to MOCK_WALLET's zero balance
-  // once it settles — WalletBadge/WalletActivity do the same — while
-  // walletLoading drives a spinner for every figure below that's derived from
-  // it, so a still-loading balance never reads as a confirmed zero. The rate
-  // queries are real, so they just read 0 until their first tick arrives.
+  // `/api/wallet` is real now (wallet_server's wallet module — cash comes from
+  // confirmed SSLCommerz deposits; gold/silver stay 0 until a trading module
+  // exists). `/api/transactions` still doesn't, so that query falls back to
+  // an empty list. walletLoading drives a spinner for every figure below
+  // that's derived from the wallet, so a still-loading balance never reads as
+  // a confirmed zero — WalletBadge/WalletPill do the same. The rate queries
+  // are real too, so they just read 0 until their first tick arrives.
   const { data: walletData, isLoading: walletLoading } = useWallet();
   const { data: rateData } = useGoldRate();
   const { data: silverRateData } = useMetalRate("silver");
   const { data: transactionsData } = useTransactions();
+  const { ratesPerUnit: fxRatesPerUnit } = useFxRates();
 
   const wallet = walletData ?? MOCK_WALLET;
   const transactions = transactionsData ?? [];
@@ -515,6 +529,7 @@ export default function WalletPage() {
         <div className="space-y-4 lg:sticky lg:top-6">
           <TotalBalanceCard
             totalBDT={totalBDT}
+            usdRate={fxRatesPerUnit.USD}
             netBDT={last30.netBDT}
             netPct={percentChange(last30.netBDT, prev30.netBDT)}
             onManage={setManage}

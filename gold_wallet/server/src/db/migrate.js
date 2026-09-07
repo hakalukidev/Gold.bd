@@ -6,10 +6,21 @@
  */
 const fs = require("node:fs");
 const path = require("node:path");
-const pool = require("./pool");
+const { Pool } = require("pg");
+const env = require("../config/env");
 const logger = require("../utils/logger");
 
 const MIGRATIONS_DIR = path.join(__dirname, "migrations");
+
+// Deliberately its own pool, not the shared one in ./pool.js: once DB roles
+// are split (see db/roles/grant-app-role.sql), migrations need the
+// DDL-capable role while every other module's ./pool.js should be running as
+// the restricted app role. Falls back to DATABASE_URL so a single-role setup
+// (the default — fine for local dev) needs no extra config.
+const pool = new Pool({
+  connectionString: env.MIGRATE_DATABASE_URL || env.DATABASE_URL,
+  ssl: env.DATABASE_SSL ? { rejectUnauthorized: true } : false,
+});
 
 async function ensureMigrationsTable(client) {
   await client.query(`

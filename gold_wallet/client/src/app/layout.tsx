@@ -41,6 +41,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${manrope.variable} ${notoSerifBengali.variable} ${geistMono.variable} ${playfairDisplay.variable} dark h-full antialiased`}
+      // Browser extensions (grammar/translation tools, etc.) inject their own
+      // attributes into <html> — e.g. `data-qb-installed` — before React
+      // hydrates. Without this, React treats that as a real mismatch and
+      // discards + re-renders the whole tree, which is what was surfacing as
+      // an unrelated-looking hydration diff/"state update before mount"
+      // warning deep inside DashboardLayout's Sidebar.
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground" suppressHydrationWarning>
         <Providers>{children}</Providers>

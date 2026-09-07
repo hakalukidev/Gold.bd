@@ -2,18 +2,16 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowDownToLine, ArrowUpFromLine, Banknote, Coins, Gem, ReceiptText, TrendingDown, TrendingUp } from "lucide-react";
+import { Banknote, Coins, Gem, ReceiptText, TrendingDown, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
-import { WalletBadge } from "@/components/shared/wallet-badge";
-import { DeltaChip, SectionLabel } from "@/components/shared/flow-stat-tile";
+import { DeltaChip } from "@/components/shared/flow-stat-tile";
 import { MarketPriceChart, METAL_CHART_COLOR, toMonthlyPoints, toPricePoints } from "@/components/market/market-price-chart";
 import { TradeCard } from "@/components/market/trade-card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWallet } from "@/hooks/use-wallet";
 import { useMetalRate, useMetalRateHistory } from "@/hooks/use-metal-rate";
@@ -202,10 +200,12 @@ function HoldingsTable({ rows, totalBDT, walletLoading }: { rows: HoldingRow[]; 
 /* -------------------------------------------------------------------------- */
 
 /**
- * Market — the dashboard's home screen. A live gold/silver price graph on the
- * left (carrying the signed-in user's cash and, on its right axis, what their
- * own holding of the charted metal is worth), and the buy/sell desk on the
- * right. The two share one `metal` selection, so switching the graph switches
+ * Market — the dashboard's home screen. A full-width live gold/silver price
+ * graph (carrying the signed-in user's cash and, on its right axis, what
+ * their own holding of the charted metal is worth), with the Buy/Sell trade
+ * desk collapsed into the header as a button pair that opens the trade drawer
+ * — replacing the wallet balance badge that used to sit there. The graph and
+ * the drawer share one `metal` selection, so switching the graph switches
  * what the trade panel is quoting and vice versa. A karat filter above the
  * graph switches it between the real 22K/21K/18K/Sonaton figures BAJUS
  * reports (see KARATS above).
@@ -314,183 +314,135 @@ export default function MarketPage() {
         description="Live gold and silver prices, what you hold, and one place to trade"
         titleAdornment={
           <div className="flex items-center gap-2">
-            <Select value={metal} onValueChange={(v) => setMetal(v as Metal)}>
-              <SelectTrigger size="sm" aria-label="Metal">
-                <SelectValue>{(v: Metal) => METAL_LABEL[v]}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {METALS.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {METAL_LABEL[m]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={unitKey} onValueChange={(v) => setUnitKey(v as UnitKey)}>
-              <SelectTrigger size="sm" aria-label="Price unit">
-                <SelectValue>{(v: UnitKey) => PRICE_UNITS.find((u) => u.key === v)?.label}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {PRICE_UNITS.map((u) => (
-                  <SelectItem key={u.key} value={u.key}>
-                    {u.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PillToggle
+              ariaLabel="Metal"
+              options={METALS.map((m) => ({ key: m, label: METAL_LABEL[m] }))}
+              value={metal}
+              onChange={setMetal}
+            />
+            <PillToggle
+              ariaLabel="Price unit"
+              options={PRICE_UNITS.map((u) => ({ key: u.key, label: u.label }))}
+              value={unitKey}
+              onChange={setUnitKey}
+            />
           </div>
         }
-        action={<WalletBadge />}
+        action={<TradeCard metal={metal} onMetalChange={setMetal} />}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] lg:items-start">
-        {/* ---------- Chart + holdings ---------- */}
-        <div className="space-y-4">
-          <Card>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm font-medium text-muted-foreground">
-                  {KARAT_LABEL[karatKey]} {METAL_LABEL[metal]} price
-                </span>
-                <PillToggle
-                  ariaLabel="Time range"
-                  options={RANGES.map((r) => ({ key: r.key, label: r.label }))}
-                  value={rangeKey}
-                  onChange={setRangeKey}
-                />
-              </div>
-
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-medium text-muted-foreground">
+                {KARAT_LABEL[karatKey]} {METAL_LABEL[metal]} price
+              </span>
               <PillToggle
-                ariaLabel="Karat grade"
-                options={KARATS.map((k) => ({ key: k.key, label: k.label }))}
-                value={karatKey}
-                onChange={setKaratKey}
+                ariaLabel="Time range"
+                options={RANGES.map((r) => ({ key: r.key, label: r.label }))}
+                value={rangeKey}
+                onChange={setRangeKey}
               />
+            </div>
 
-              <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
-                <p className="text-3xl font-bold tracking-tight tabular-nums">{formatBDT(latestPrice * unit.grams)}</p>
-                <span className="pb-1 text-sm text-muted-foreground">
-                  per {unit.label.toLowerCase()} · {KARAT_LABEL[karatKey]} {METAL_LABEL[metal]}
-                </span>
-                <span className="pb-1">
-                  <DeltaChip pct={rangeChangePct} />
-                </span>
-              </div>
+            <PillToggle
+              ariaLabel="Karat grade"
+              options={KARATS.map((k) => ({ key: k.key, label: k.label }))}
+              value={karatKey}
+              onChange={setKaratKey}
+            />
 
-              {points.length < 2 ? (
-                <EmptyState icon={TrendingUp} title="No rate history yet" />
-              ) : (
-                <MarketPriceChart
-                  data={points}
-                  holdingGrams={0}
-                  color={METAL_CHART_COLOR[metal]}
-                  metalLabel={`${KARAT_LABEL[karatKey]} ${METAL_LABEL[metal]}`}
-                />
-              )}
+            <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
+              <p className="text-3xl font-bold tracking-tight tabular-nums">{formatBDT(latestPrice * unit.grams)}</p>
+              <span className="pb-1 text-sm text-muted-foreground">
+                per {unit.label.toLowerCase()} · {KARAT_LABEL[karatKey]} {METAL_LABEL[metal]}
+              </span>
+              <span className="pb-1">
+                <DeltaChip pct={rangeChangePct} />
+              </span>
+            </div>
 
-              <p className="text-[11px] text-muted-foreground">
-                The real {KARAT_LABEL[karatKey]} rate BAJUS reports — your vault is valued at the platform&apos;s 22K anchor rate,
-                shown in Holdings below.
-              </p>
-            </CardContent>
-          </Card>
+            {points.length < 2 ? (
+              <EmptyState icon={TrendingUp} title="No rate history yet" />
+            ) : (
+              <MarketPriceChart
+                data={points}
+                holdingGrams={0}
+                color={METAL_CHART_COLOR[metal]}
+                metalLabel={`${KARAT_LABEL[karatKey]} ${METAL_LABEL[metal]}`}
+              />
+            )}
 
-          <HoldingsTable rows={holdingRows} totalBDT={totalBDT} walletLoading={walletLoading} />
+            <p className="text-[11px] text-muted-foreground">
+              The real {KARAT_LABEL[karatKey]} rate BAJUS reports — your vault is valued at the platform&apos;s 22K anchor rate,
+              shown in Holdings below.
+            </p>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle>Recent activity</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground"
-                  nativeButton={false}
-                  render={
-                    <Link href="/transactions">
-                      <ReceiptText />
-                      Transaction History
-                    </Link>
-                  }
-                />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {transactions.length === 0 ? (
-                <EmptyState
-                  icon={ReceiptText}
-                  title="No transactions yet"
-                  description="Your buys, sells, deposits, and withdrawals will show up here."
-                />
-              ) : (
-                <ul className="divide-y">
-                  {transactions.slice(0, 5).map((t) => {
-                    const Icon = TYPE_ICON[t.type];
-                    const credit = CREDIT_TYPES.includes(t.type);
-                    return (
-                      <li key={t.id} className="flex items-center gap-3 py-2.5 text-sm">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold">
-                          <Icon className="size-4" strokeWidth={1.75} />
+        <HoldingsTable rows={holdingRows} totalBDT={totalBDT} walletLoading={walletLoading} />
+
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle>Recent activity</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                nativeButton={false}
+                render={
+                  <Link href="/transactions">
+                    <ReceiptText />
+                    Transaction History
+                  </Link>
+                }
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            {transactions.length === 0 ? (
+              <EmptyState
+                icon={ReceiptText}
+                title="No transactions yet"
+                description="Your buys, sells, deposits, and withdrawals will show up here."
+              />
+            ) : (
+              <ul className="divide-y">
+                {transactions.slice(0, 5).map((t) => {
+                  const Icon = TYPE_ICON[t.type];
+                  const credit = CREDIT_TYPES.includes(t.type);
+                  return (
+                    <li key={t.id} className="flex items-center gap-3 py-2.5 text-sm">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold">
+                        <Icon className="size-4" strokeWidth={1.75} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{TYPE_LABEL[t.type]}</p>
+                        <p className="text-[11px] text-muted-foreground">{formatDateTime(t.createdAt)}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span
+                          className={cn(
+                            "font-medium tabular-nums",
+                            credit ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
+                          )}
+                        >
+                          {credit ? "+" : "−"}
+                          {formatBDT(t.totalAmountBDT)}
                         </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium">{TYPE_LABEL[t.type]}</p>
-                          <p className="text-[11px] text-muted-foreground">{formatDateTime(t.createdAt)}</p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <span
-                            className={cn(
-                              "font-medium tabular-nums",
-                              credit ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
-                            )}
-                          >
-                            {credit ? "+" : "−"}
-                            {formatBDT(t.totalAmountBDT)}
-                          </span>
-                          <Badge variant={t.status === "COMPLETED" ? "default" : t.status === "FAILED" ? "destructive" : "secondary"}>
-                            {t.status}
-                          </Badge>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ---------- Trade desk ---------- */}
-        <div className="space-y-4 lg:sticky lg:top-20">
-          <TradeCard metal={metal} onMetalChange={setMetal} />
-
-          <Card size="sm">
-            <CardContent className="flex flex-col gap-2">
-              <SectionLabel>Move money</SectionLabel>
-              <Button
-                variant="outline"
-                className="h-auto justify-start gap-2.5 py-2.5"
-                nativeButton={false}
-                render={
-                  <Link href="/wallet">
-                    <ArrowDownToLine className="size-4 text-gold" strokeWidth={1.75} />
-                    Add money to wallet
-                  </Link>
-                }
-              />
-              <Button
-                variant="outline"
-                className="h-auto justify-start gap-2.5 py-2.5"
-                nativeButton={false}
-                render={
-                  <Link href="/wallet">
-                    <ArrowUpFromLine className="size-4 text-gold" strokeWidth={1.75} />
-                    Withdraw cash
-                  </Link>
-                }
-              />
-            </CardContent>
-          </Card>
-        </div>
+                        <Badge variant={t.status === "COMPLETED" ? "default" : t.status === "FAILED" ? "destructive" : "secondary"}>
+                          {t.status}
+                        </Badge>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

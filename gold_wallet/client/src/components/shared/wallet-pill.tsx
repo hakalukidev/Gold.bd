@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useGoldRate } from "@/hooks/use-gold-rate";
 import { useWallet } from "@/hooks/use-wallet";
+import { useFxRates } from "@/hooks/use-fx-rates";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatBDTCompact, formatGrams, formatUSDCompact, gramsToMg } from "@/lib/format";
-import { USD_BDT_RATE } from "@/lib/mock-rates";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
 import { cn } from "@/lib/utils";
 
@@ -19,13 +19,15 @@ const UNIT_LABEL: Record<Unit, string> = { BDT: "taka", USD: "US dollars", GOLD:
  * same balance in USD, then as the gold it would buy at today's rate, then back
  * to taka. Reads the same ["wallet"] / ["gold-rate"] queries the trade forms
  * use, so it stays in sync with them. The wallet query shows a skeleton bar
- * while in flight, then MOCK_WALLET's zero balance once it settles (no
- * backend behind this app yet); the rate query is real, so it just reads "…"
- * for the gold view until its first tick arrives. */
+ * while in flight, then the real cash balance from wallet_server's wallet
+ * module once it settles (MOCK_WALLET's zero while signed out); the rate
+ * query is real too, so it just reads "…" for the gold view until its first
+ * tick arrives. */
 export function WalletPill({ className }: { className?: string }) {
   const [unit, setUnit] = useState<Unit>("BDT");
   const { data: wallet, isLoading: walletLoading } = useWallet();
   const { data: rate } = useGoldRate();
+  const { ratesPerUnit } = useFxRates();
 
   const balanceBDT = Number((wallet ?? MOCK_WALLET).cashBalanceBDT);
   const pricePerGram = Number(rate?.pricePerGramBDT ?? 0);
@@ -36,7 +38,7 @@ export function WalletPill({ className }: { className?: string }) {
     unit === "BDT"
       ? formatBDTCompact(balanceBDT)
       : unit === "USD"
-        ? formatUSDCompact(balanceBDT / USD_BDT_RATE)
+        ? formatUSDCompact(balanceBDT / ratesPerUnit.USD)
         : pricePerGram > 0
           ? formatGrams(gramsToMg(balanceBDT / pricePerGram))
           : "…";

@@ -1,5 +1,7 @@
 "use client";
 
+import { KaratSelector, type GoldKarat } from "@/components/shared/karat-selector";
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
@@ -8,16 +10,16 @@ import { ArrowDownRight, Wallet as WalletIcon } from "lucide-react";
 import { tradeGramsSchema } from "@/lib/validations/gold";
 import { ApiError } from "@/lib/api-client";
 import { useSellMetal } from "@/hooks/use-gold-trade";
-import { useMetalRate, useMetalRateHistory } from "@/hooks/use-metal-rate";
+import { useMetalRate } from "@/hooks/use-metal-rate";
 import { useWallet } from "@/hooks/use-wallet";
 import { computeSellPayout, SELL_SPREAD_RATE } from "@/lib/gold-fees";
 import { formatBDT } from "@/lib/format";
 import type { Metal } from "@/lib/mock-rates";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
 import { METAL_LABEL, METALS, PAYOUT_METHODS } from "@/lib/trade-products";
-import { MarketPriceChart, METAL_CHART_COLOR, toPricePoints } from "@/components/market/market-price-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -37,6 +39,7 @@ import { cn } from "@/lib/utils";
  */
 export function SellGoldPanel() {
   const router = useRouter();
+  const [karat, setKarat] = useState<GoldKarat>(22);
   const { data: walletData } = useWallet();
 
   const form = useForm<{ value: number }>({ defaultValues: { value: 0.5 } });
@@ -44,21 +47,16 @@ export function SellGoldPanel() {
   const [payoutKey, setPayoutKey] = useState(PAYOUT_METHODS[0].key);
 
   const { data: rateData } = useMetalRate(metal);
-  const { data: rateHistory } = useMetalRateHistory(metal);
-  const sell = useSellMetal(metal);
+  const sell = useSellMetal(metal, karat);
 
   const wallet = walletData ?? MOCK_WALLET;
-  const pricePerGram = rateData ? Number(rateData.pricePerGramBDT) : null;
+  const pricePerGram = rateData ? Number(rateData.pricePerGramBDT) * (metal === "gold" ? karat / 22 : 1) : null;
   // Both balances come straight off the wallet — no per-metal rate query
   // needed just to show stock, unlike the price calc above which does.
-  const goldAvailable = Number(wallet.goldBalanceGrams);
+  const goldAvailable = Number(wallet.goldBalanceGrams) * 22 / karat;
   const silverAvailable = Number(wallet.silverBalanceGrams);
   const available = metal === "gold" ? goldAvailable : silverAvailable;
   const sliderMax = available > 0 ? available : 1;
-
-  // Same chart the Market page draws — daily series, holding-value axis
-  // driven by what's actually in the vault for whichever metal is selected.
-  const pricePoints = toPricePoints(rateHistory ?? [], "daily");
 
   const grams = form.watch("value") || 0;
   const payout = computeSellPayout(grams, pricePerGram ?? 0);
@@ -101,11 +99,29 @@ export function SellGoldPanel() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_340px] lg:items-start">
-      {/* ---------- Sell form ---------- */}
+    <div className="mx-auto max-w-2xl">
       <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "flex size-8 shrink-0 items-center justify-center rounded-full border",
+                  isSilver ? "border-silver/30 bg-silver/10 text-silver" : "border-gold/30 bg-gold/10 text-gold"
+                )}
+              >
+                <ArrowDownRight className="size-4" strokeWidth={1.75} />
+              </span>
+              <div>
+                <CardTitle>Sell {METAL_LABEL[metal]}</CardTitle>
+                <p className="text-xs text-muted-foreground">Priced at the live rate, paid out instantly</p>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
         <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             {/* Metal selector — leads with each metal's held stock, so it's
                 the first thing shown rather than something you find out only
                 after picking a metal and looking below the weight field. */}
@@ -122,65 +138,50 @@ export function SellGoldPanel() {
               ))}
             </div>
 
-            {/* Price chart for whichever metal is selected above — the same
-                dual-axis chart the Market page uses, so switching tabs swaps
-                both the data and the right-hand "what your stock is worth"
-                axis (only drawn when you actually hold any). */}
-            {pricePoints.length >= 2 && (
-              <div className="rounded-md border border-gold/20 bg-gold/5 p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold">{METAL_LABEL[metal]} price</p>
-                  <span className="text-sm font-semibold text-gold tabular-nums">
-                    {pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "…"}
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <MarketPriceChart
-                    data={pricePoints}
-                    holdingGrams={available}
-                    color={METAL_CHART_COLOR[metal]}
-                    metalLabel={METAL_LABEL[metal]}
-                  />
-                </div>
-                {available > 0 && (
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    Left axis is the market price per gram; the right axis values your own {available.toFixed(3)} g of{" "}
-                    {METAL_LABEL[metal].toLowerCase()} at the same price.
-                  </p>
-                )}
-              </div>
-            )}
-
+            {metal === "gold" && <KaratSelector value={karat} onChange={setKarat} />}
             {/* Big weight entry */}
-            <div className="space-y-3 text-center">
-              <Label className="block text-xs font-semibold tracking-wide text-muted-foreground uppercase">You are selling</Label>
-              <div className="flex items-center justify-center gap-1.5">
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.001"
-                  {...form.register("value", { valueAsNumber: true })}
-                  className="h-auto w-32 border-none bg-transparent text-center text-4xl font-semibold shadow-none focus-visible:ring-0"
-                />
-                <span className="text-xl font-medium text-muted-foreground">g</span>
-              </div>
-              {form.formState.errors.value ? (
-                <p className="text-sm text-destructive">{form.formState.errors.value.message}</p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  of {available.toFixed(3)}g available · {METAL_LABEL[metal]}
-                </p>
-              )}
+            <FormField
+              control={form.control}
+              name="value"
+              render={({ field }) => (
+                <FormItem className="gap-3 text-center">
+                  <Label className="block text-xs font-semibold tracking-wide text-muted-foreground uppercase">You are selling</Label>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        {...field}
+                        onChange={(e) => field.onChange(Number.isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber)}
+                        className="h-auto w-32 border-none bg-transparent text-center text-4xl font-semibold shadow-none focus-visible:ring-0"
+                      />
+                    </FormControl>
+                    <span className="text-xl font-medium text-muted-foreground">g</span>
+                  </div>
+                  {form.formState.errors.value ? (
+                    <FormMessage className="text-sm" />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      of {available.toFixed(3)}g available · {METAL_LABEL[metal]}
+                    </p>
+                  )}
 
-              <Slider
-                value={Math.min(grams, sliderMax)}
-                min={0}
-                max={sliderMax}
-                step={sliderMax / 100}
-                disabled={available <= 0}
-                onValueChange={(v) => form.setValue("value", Number(v.toFixed(3)), { shouldValidate: true })}
-              />
-            </div>
+                  <Slider
+                    value={Math.min(grams, sliderMax)}
+                    min={0}
+                    max={sliderMax}
+                    step={sliderMax / 100}
+                    disabled={available <= 0}
+                    onValueChange={(v) => form.setValue("value", Number(v.toFixed(3)), { shouldValidate: true })}
+                  />
+                </FormItem>
+              )}
+            />
+
+            {exceedsBalance && !form.formState.errors.value && (
+              <p className="text-sm text-destructive">You only hold {available.toFixed(3)} g.</p>
+            )}
 
             {/* Payout method */}
             <div className="space-y-2">
@@ -205,9 +206,16 @@ export function SellGoldPanel() {
               </div>
             </div>
 
-            {exceedsBalance && !form.formState.errors.value && (
-              <p className="text-sm text-destructive">You only hold {available.toFixed(3)} g.</p>
-            )}
+            <Separator />
+
+            {/* Payout summary — folded into the same card now that there's
+                no chart alongside it to justify a separate sidebar card. */}
+            <div className="space-y-1.5">
+              <SummaryRow label={`Sell price (${METAL_LABEL[metal]})`} value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "…"} />
+              <SummaryRow label="Weight" value={`${grams.toFixed(3)} g`} />
+              <SummaryRow label={`Spread (${(SELL_SPREAD_RATE * 100).toFixed(0)}%)`} value={`-${formatBDT(payout.spreadBDT)}`} />
+              <SummaryRow label="You get" value={formatBDT(payout.netPayoutBDT)} strong />
+            </div>
 
             <div className="space-y-2 text-center">
               <Button
@@ -222,23 +230,7 @@ export function SellGoldPanel() {
               {activePayout && <p className="text-xs text-muted-foreground">{activePayout.note}</p>}
             </div>
           </form>
-        </CardContent>
-      </Card>
-
-      {/* ---------- Payout summary ---------- */}
-      <Card className="lg:sticky lg:top-6">
-        <CardHeader>
-          <CardTitle>Payout summary</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <SummaryRow label={`Sell price (${METAL_LABEL[metal]})`} value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "…"} />
-          <SummaryRow label="Weight" value={`${grams.toFixed(3)} g`} />
-          <SummaryRow label={`Spread (${(SELL_SPREAD_RATE * 100).toFixed(0)}%)`} value={`-${formatBDT(payout.spreadBDT)}`} />
-          <Separator />
-          <div className="flex items-center justify-between text-base font-semibold">
-            <span>You get</span>
-            <span className="tabular-nums">{formatBDT(payout.netPayoutBDT)}</span>
-          </div>
+          </Form>
         </CardContent>
       </Card>
     </div>
@@ -321,11 +313,11 @@ function PayoutButton({
   );
 }
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
+function SummaryRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-2 text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium tabular-nums">{value}</span>
+    <div className={cn("flex items-center justify-between gap-2", strong ? "text-base font-semibold" : "text-sm")}>
+      <span className={strong ? undefined : "text-muted-foreground"}>{label}</span>
+      <span className="tabular-nums">{value}</span>
     </div>
   );
 }

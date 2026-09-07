@@ -199,6 +199,10 @@ export default function TransactionsPage() {
 
 function TransactionRow({ transaction: t }: { transaction: TransactionSummary }) {
   const credit = CREDIT_TYPES.includes(t.type);
+  // metal-agnostic: a BUY/SELL row carries whichever of goldGrams/silverGrams
+  // its own `metal` set, never both.
+  const grams = t.metal === "silver" ? t.silverGrams : t.goldGrams;
+  const unit = t.metal === "silver" ? "g Ag" : "g";
 
   return (
     <li className="flex items-center justify-between gap-3 py-4">
@@ -210,10 +214,11 @@ function TransactionRow({ transaction: t }: { transaction: TransactionSummary })
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <div className="text-right">
-          {t.goldGrams && (
+          {grams && (
             <p className={cn("font-semibold tabular-nums", t.type === "BUY" ? "text-emerald-500" : "text-foreground")}>
               {t.type === "BUY" ? "+" : "-"}
-              {Number(t.goldGrams).toFixed(3)}g
+              {Number(grams).toFixed(3)}
+              {unit}
             </p>
           )}
           <p className={cn("text-xs tabular-nums", credit ? "text-emerald-500" : "text-muted-foreground")}>

@@ -11,6 +11,10 @@ const { globalLimiter } = require("./middleware/rate-limit");
 const { notFoundHandler, errorHandler } = require("./middleware/error-handler");
 const authRoutes = require("./modules/auth/auth.routes");
 const rateRoutes = require("./modules/rates/rate.routes");
+const paymentRoutes = require("./modules/payments/payment.routes");
+const walletRoutes = require("./modules/wallet/wallet.routes");
+const tradeRoutes = require("./modules/trade/trade.routes");
+const transactionRoutes = require("./modules/transactions/transaction.routes");
 
 const app = express();
 
@@ -29,6 +33,10 @@ app.use(
 );
 app.use(hpp());
 app.use(express.json({ limit: "10kb" }));
+// SSLCommerz posts success/fail/cancel/ipn as application/x-www-form-urlencoded
+// (both the browser's hosted-page redirect and its own server-to-server IPN),
+// which express.json() above doesn't parse.
+app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 app.use(pinoHttp({ logger }));
 app.use(globalLimiter);
@@ -37,6 +45,12 @@ app.get("/health", (req, res) => res.status(200).json({ success: true, data: { s
 
 app.use("/api/auth", authRoutes);
 app.use("/api", rateRoutes);
+app.use("/api", paymentRoutes);
+app.use("/api", walletRoutes);
+app.use("/api", transactionRoutes);
+// Mounted last: /:metal/buy|sell is a wildcard-first path, so anything more
+// specific above (e.g. /payments/:tranId) should get first refusal.
+app.use("/api", tradeRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

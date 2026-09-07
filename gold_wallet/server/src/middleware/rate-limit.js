@@ -38,4 +38,29 @@ const otpRequestLimiter = rateLimit({
   message: { success: false, error: "Too many verification codes requested. Please try again later." },
 });
 
-module.exports = { globalLimiter, authLimiter, otpRequestLimiter };
+/** Bounds how often one caller can spin up a new SSLCommerz session — each
+ * call is an outbound API request to the gateway, so this is as much about
+ * not hammering SSLCommerz as it is about abuse from one IP. */
+const paymentInitLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: "Too many payment attempts. Please try again later." },
+});
+
+/** Bounds how often one signed-in caller can submit a buy/sell — generous
+ * enough for normal trading, tight enough that a scripted hammering of the
+ * balance-mutating endpoint gets throttled. Keyed by user id (always present
+ * — the route requires auth) rather than IP, so it can't be dodged by
+ * rotating IPs and doesn't penalize other users behind the same NAT/proxy. */
+const tradeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.userId || req.ip,
+  message: { success: false, error: "Too many trade requests. Please try again later." },
+});
+
+module.exports = { globalLimiter, authLimiter, otpRequestLimiter, paymentInitLimiter, tradeLimiter };

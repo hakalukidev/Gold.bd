@@ -27,4 +27,12 @@ export const walletAuthApi = {
     api.post<OtpRequested>(`${WALLET_API_URL}/api/auth/login`, data),
   verifyLogin: (data: { phone: string; code: string }) =>
     api.post<AuthSession>(`${WALLET_API_URL}/api/auth/login/verify`, data),
+  /** Used by the wallet top-up flow (wallet-payments-api.ts) to fill the
+   * SSLCommerz customer fields with the real signed-in profile. The server
+   * nests the profile as `{ user }`, not a bare PublicUser — unwrap it here so
+   * every caller gets the flat shape the type promises. */
+  me: (accessToken: string) =>
+    api
+      .get<{ user: PublicUser }>(`${WALLET_API_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } })
+      .then((r) => r.user),
 };
