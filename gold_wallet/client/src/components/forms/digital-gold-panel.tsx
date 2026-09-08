@@ -16,8 +16,9 @@ import { useWallet } from "@/hooks/use-wallet";
 import { computeBuyOrderBreakdown, WEIGHT_UNITS, type WeightUnitKey } from "@/lib/gold-fees";
 import { tradeAmountSchema, tradeGramsSchema } from "@/lib/validations/gold";
 import { formatBDT } from "@/lib/format";
-import { AMOUNT_PRESETS, METAL_LABEL, METALS } from "@/lib/trade-products";
+import { AMOUNT_PRESETS, METAL_LABEL_KEY, METALS } from "@/lib/trade-products";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,11 +54,13 @@ function SummaryRow({ label, value, strong }: { label: string; value: string; st
  */
 export function DigitalGoldPanel() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [karat, setKarat] = useState<GoldKarat>(22);
   const [metal, setMetal] = useState<Metal>("gold");
   const [mode, setMode] = useState<EntryMode>("amount");
   const [unitKey, setUnitKey] = useState<WeightUnitKey>("gram");
   const unit = WEIGHT_UNITS.find((u) => u.key === unitKey)!;
+  const metalLabel = t(METAL_LABEL_KEY[metal]);
 
   const { data: rateData } = useMetalRate(metal);
   const { data: walletData } = useWallet();
@@ -104,22 +107,22 @@ export function DigitalGoldPanel() {
     const schema = mode === "amount" ? tradeAmountSchema : tradeGramsSchema(metal, "buy");
     const parsed = schema.safeParse(mode === "amount" ? values.value : values.value * unit.grams);
     if (!parsed.success) {
-      form.setError("value", { message: parsed.error.issues[0]?.message ?? "Enter a valid amount" });
+      form.setError("value", { message: parsed.error.issues[0]?.message ?? t("trade.buy.enterValidAmount") });
       return;
     }
     if (!breakdown) return;
     if (insufficient) {
-      form.setError("value", { message: `Your cash wallet holds ${formatBDT(cashBDT)}` });
+      form.setError("value", { message: t("trade.buy.cashWalletHolds", { amount: formatBDT(cashBDT) }) });
       return;
     }
 
     try {
       await buy.mutateAsync(Number(breakdown.grams.toFixed(4)));
-      toast.success(`${breakdown.grams.toFixed(4)} g of ${METAL_LABEL[metal]} added to your wallet`);
+      toast.success(t("digitalGoldPanel.addedToWallet", { grams: breakdown.grams.toFixed(4), metal: metalLabel }));
       form.reset({ value: mode === "amount" ? AMOUNT_PRESETS[1] : 1 });
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Purchase failed");
+      toast.error(error instanceof ApiError ? error.message : t("trade.buy.purchaseFailed"));
     }
   }
 
@@ -132,11 +135,11 @@ export function DigitalGoldPanel() {
               <Image src="/wallet_assets/coins-pair.png" alt="" width={28} height={28} className="size-7 object-contain" />
             </span>
             <div>
-              <CardTitle className="text-lg font-semibold">Digital Gold</CardTitle>
+              <CardTitle className="text-lg font-semibold">{t("buyGoldPanel.digitalGold")}</CardTitle>
             </div>
           </div>
           <Badge variant="outline" className="gap-1.5 rounded-full border-gold/30 bg-gold/10 px-2.5 py-1 text-gold-accent">
-            <span className="size-1.5 rounded-full bg-current" /> Instant purchase
+            <span className="size-1.5 rounded-full bg-current" /> {t("digitalGoldPanel.instantPurchase")}
           </Badge>
         </div>
       </CardHeader>
@@ -144,36 +147,38 @@ export function DigitalGoldPanel() {
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6 lg:grid-cols-[1.15fr_1fr] lg:gap-7">
           <div className="min-w-0 space-y-5">
-          <p className="text-sm font-semibold">Purchase details</p>
+          <p className="text-sm font-semibold">{t("digitalGoldPanel.purchaseDetails")}</p>
           {metal === "gold" && <KaratSelector value={karat} onChange={setKarat} />}
           <div className="grid grid-cols-2 items-start gap-2 sm:gap-3">
           <Tabs value={metal} onValueChange={(v) => handleMetalChange(v as Metal)} className="min-w-0">
-            <TabsList aria-label="Choose metal" className={TAB_LIST}>
+            <TabsList aria-label={t("digitalGoldPanel.chooseMetal")} className={TAB_LIST}>
               {METALS.map((m) => (
                 <TabsTrigger key={m} value={m} className={TAB_TRIGGER}>
-                  <Image src={`/products/${m}-coin.webp`} alt="" width={20} height={20} className="size-4 shrink-0 object-contain sm:size-5" />{METAL_LABEL[m]}
+                  <Image src={`/products/${m}-coin.webp`} alt="" width={20} height={20} className="size-4 shrink-0 object-contain sm:size-5" />
+                  {t(METAL_LABEL_KEY[m])}
                 </TabsTrigger>
               ))}
             </TabsList>
           </Tabs>
 
             <Tabs value={mode} onValueChange={(v) => handleModeChange(v as EntryMode)} className="min-w-0">
-              <TabsList aria-label="Enter amount or weight" className={TAB_LIST}>
+              <TabsList aria-label={t("trade.buy.enterAmountOrWeight")} className={TAB_LIST}>
                 <TabsTrigger value="amount" className={TAB_TRIGGER}>
-                  <Banknote aria-hidden="true" className="hidden size-3.5 sm:block" /> Amount<span className="sr-only"> in BDT</span>
+                  <Banknote aria-hidden="true" className="hidden size-3.5 sm:block" /> {t("digitalGoldPanel.amountTab")}
+                  <span className="sr-only">{t("digitalGoldPanel.amountSrSuffix")}</span>
                 </TabsTrigger>
                 <TabsTrigger value="weight" className={TAB_TRIGGER}>
-                  <Scale aria-hidden="true" className="hidden size-3.5 sm:block" /> Weight
+                  <Scale aria-hidden="true" className="hidden size-3.5 sm:block" /> {t("digitalGoldPanel.weightTab")}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
             {mode === "weight" && (
               <Tabs value={unitKey} onValueChange={(v) => handleUnitChange(v as WeightUnitKey)}>
-                <TabsList aria-label="Weight unit" className={TAB_LIST}>
+                <TabsList aria-label={t("digitalGoldPanel.weightUnitAria")} className={TAB_LIST}>
                   {WEIGHT_UNITS.map((u) => (
                     <TabsTrigger key={u.key} value={u.key} className={cn(TAB_TRIGGER, "px-2.5 text-xs")}>
-                      {u.label}
+                      {t(u.labelKey)}
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -181,7 +186,9 @@ export function DigitalGoldPanel() {
             )}
 
           <div className="space-y-5 rounded-2xl border border-gold/25 bg-linear-to-b from-gold/8 to-transparent px-3 py-6 focus-within:border-gold/60">
-          <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{mode === "amount" ? "Your investment amount" : "Your purchase weight"}</p>
+          <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {mode === "amount" ? t("digitalGoldPanel.investmentAmountLabel") : t("digitalGoldPanel.purchaseWeightLabel")}
+          </p>
           <FormField
             control={form.control}
             name="value"
@@ -191,7 +198,11 @@ export function DigitalGoldPanel() {
                   <FormControl>
                     <Input
                       type="number"
-                      aria-label={mode === "amount" ? "Investment amount in BDT" : `Purchase weight in ${unit.label}`}
+                      aria-label={
+                        mode === "amount"
+                          ? t("digitalGoldPanel.investmentAmountAria")
+                          : t("digitalGoldPanel.purchaseWeightAria", { unit: t(unit.labelKey) })
+                      }
                       min="0"
                       step={mode === "amount" ? "1" : "0.0001"}
                       {...field}
@@ -199,14 +210,19 @@ export function DigitalGoldPanel() {
                       className="h-16 w-48 max-w-[70%] border-none bg-transparent px-0 text-center text-4xl font-semibold tracking-tight shadow-none focus-visible:ring-2 focus-visible:ring-gold/40 md:text-4xl dark:bg-transparent"
                     />
                   </FormControl>
-                  <span className="text-lg font-medium text-muted-foreground">{mode === "amount" ? "BDT" : unit.label.toLowerCase()}</span>
+                  <span className="text-lg font-medium text-muted-foreground">
+                    {mode === "amount" ? "BDT" : t(unit.labelKey).toLowerCase()}
+                  </span>
                 </div>
                 {form.formState.errors.value ? (
                   <FormMessage className="text-center" />
                 ) : (
                   <p className="text-xs text-muted-foreground">
                     {mode === "amount"
-                      ? `≈ ${breakdown ? breakdown.grams.toFixed(4) : "0.0000"} g of ${METAL_LABEL[metal].toLowerCase()}`
+                      ? t("digitalGoldPanel.approxOfMetal", {
+                          grams: breakdown ? breakdown.grams.toFixed(4) : "0.0000",
+                          metal: metalLabel.toLowerCase(),
+                        })
                       : pricePerGram
                         ? `≈ ${formatBDT(rawValue * unit.grams * pricePerGram)}`
                         : ""}
@@ -237,7 +253,7 @@ export function DigitalGoldPanel() {
           </div>
           </div>
           <div className="min-w-0 space-y-5 rounded-2xl border border-border/60 bg-muted/20 p-4 sm:p-5">
-          <p className="text-sm font-semibold">Order summary</p>
+          <p className="text-sm font-semibold">{t("trade.orderSummary")}</p>
           <div className="space-y-2">
             <div
               className={cn(
@@ -247,29 +263,43 @@ export function DigitalGoldPanel() {
             >
               <span className="flex items-center gap-2 text-sm font-medium">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-gold/15"><WalletIcon className="size-4 text-gold-accent" strokeWidth={1.75} /></span>
-                <span>Cash wallet<span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">Available balance</span></span>
+                <span>
+                  {t("wallet.myAccounts.cashWallet")}
+                  <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                    {t("trade.buy.availableBalance")}
+                  </span>
+                </span>
               </span>
               <span className="text-sm font-semibold tabular-nums">{formatBDT(cashBDT)}</span>
             </div>
             {insufficient && (
               <p className="text-xs text-destructive">
-                Not enough cash for this order.{" "}
+                {t("trade.buy.notEnoughCash")}{" "}
                 <Link href="/wallet" className="font-medium underline underline-offset-2">
-                  Add money
+                  {t("trade.buy.addMoney")}
                 </Link>
               </p>
             )}
-            {!insufficient && <Link href="/wallet" className="text-xs font-medium text-gold-accent underline-offset-4 hover:underline">Add money</Link>}
+            {!insufficient && (
+              <Link href="/wallet" className="text-xs font-medium text-gold-accent underline-offset-4 hover:underline">
+                {t("trade.buy.addMoney")}
+              </Link>
+            )}
           </div>
 
           <Separator />
 
           <div className="space-y-3">
-            <SummaryRow label={`${METAL_LABEL[metal]} rate (${metal === "gold" ? `${karat}K` : "999"})`} value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "—"} />
-            <SummaryRow label="You receive" value={breakdown ? `${breakdown.grams.toFixed(4)} g` : "—"} />
-            {metal === "gold" && <SummaryRow label="Govt. gold tax (2,500/bhori)" value={breakdown ? formatBDT(breakdown.govtTaxBDT) : "—"} />}
-            <SummaryRow label="Transaction charge (1.5%)" value={breakdown ? formatBDT(breakdown.transactionChargeBDT) : "—"} />
-            <SummaryRow label="Total payable" value={breakdown ? formatBDT(breakdown.totalPayableBDT) : "—"} strong />
+            <SummaryRow
+              label={t("digitalGoldPanel.rateLabel", { metal: metalLabel, grade: metal === "gold" ? `${karat}K` : "999" })}
+              value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "—"}
+            />
+            <SummaryRow label={t("trade.buy.youReceive")} value={breakdown ? `${breakdown.grams.toFixed(4)} g` : "—"} />
+            {metal === "gold" && (
+              <SummaryRow label={t("trade.buy.govtTax")} value={breakdown ? formatBDT(breakdown.govtTaxBDT) : "—"} />
+            )}
+            <SummaryRow label={t("trade.buy.transactionCharge")} value={breakdown ? formatBDT(breakdown.transactionChargeBDT) : "—"} />
+            <SummaryRow label={t("trade.buy.totalPayable")} value={breakdown ? formatBDT(breakdown.totalPayableBDT) : "—"} strong />
           </div>
 
           <Button
@@ -280,10 +310,10 @@ export function DigitalGoldPanel() {
           >
             <ArrowUpRight />
             {form.formState.isSubmitting
-              ? "Processing…"
+              ? t("trade.buy.processing")
               : amountBDT > 0
-                ? `Buy ${METAL_LABEL[metal]} · ${formatBDT(breakdown?.totalPayableBDT ?? amountBDT)}`
-                : `Buy ${METAL_LABEL[metal]}`}
+                ? t("trade.buy.buyMetalAmount", { metal: metalLabel, amount: formatBDT(breakdown?.totalPayableBDT ?? amountBDT) })
+                : t("trade.buy.buyMetal", { metal: metalLabel })}
           </Button>
           </div>
         </form>

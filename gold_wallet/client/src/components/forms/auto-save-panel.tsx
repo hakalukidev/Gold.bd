@@ -8,7 +8,8 @@ import { useMetalRate } from "@/hooks/use-metal-rate";
 import { formatBDT, formatDateTime } from "@/lib/format";
 import type { Metal } from "@/lib/mock-rates";
 import { PRODUCT_IMAGES } from "@/lib/products";
-import { METAL_LABEL, METALS } from "@/lib/trade-products";
+import { METAL_LABEL_KEY, METALS } from "@/lib/trade-products";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +25,11 @@ type Frequency = "Daily" | "Weekly" | "Monthly";
 const FREQUENCIES: Frequency[] = ["Daily", "Weekly", "Monthly"];
 const PERIODS_PER_YEAR: Record<Frequency, number> = { Daily: 365, Weekly: 52, Monthly: 12 };
 const FREQUENCY_ICON: Record<Frequency, typeof CalendarDays> = { Daily: CalendarDays, Weekly: CalendarRange, Monthly: CalendarClock };
+const FREQUENCY_LABEL_KEY: Record<Frequency, string> = {
+  Daily: "autoSavePanel.frequencies.daily",
+  Weekly: "autoSavePanel.frequencies.weekly",
+  Monthly: "autoSavePanel.frequencies.monthly",
+};
 
 const MIN_AMOUNT = 5;
 const MAX_AMOUNT = 20000;
@@ -73,6 +79,7 @@ const INITIAL_PLANS: AutoSavePlan[] = [
 ];
 
 export function AutoSavePanel() {
+  const { t } = useTranslation();
   const [metal, setMetal] = useState<Metal>("gold");
   const { data: rate } = useMetalRate(metal);
   const [frequency, setFrequency] = useState<Frequency>("Monthly");
@@ -109,18 +116,20 @@ export function AutoSavePanel() {
 
   function startPlan() {
     setPlans((prev) => [{ id: crypto.randomUUID(), metal, frequency, amountBDT: amount, since: new Date(), totalSavedBDT: 0 }, ...prev]);
-    toast.success(`${frequency} ${METAL_LABEL[metal]} Auto-Save plan started`);
+    toast.success(t("autoSavePanel.planStarted", { frequency: t(FREQUENCY_LABEL_KEY[frequency]), metal: t(METAL_LABEL_KEY[metal]) }));
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_340px] lg:items-start">
       <Card>
         <CardHeader>
-          <CardTitle>Set up a new plan</CardTitle>
+          <CardTitle>{t("autoSavePanel.setUpNewPlan")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="space-y-2">
-            <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Metal</Label>
+            <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              {t("autoSavePanel.metal")}
+            </Label>
             <div className="grid grid-cols-2 gap-2">
               {METALS.map((m) => (
                 <Button
@@ -132,21 +141,23 @@ export function AutoSavePanel() {
                   onClick={() => setMetal(m)}
                 >
                   <Image src={PRODUCT_IMAGES[m].coin} alt="" width={20} height={20} className="size-5 object-contain" />
-                  {METAL_LABEL[m]}
+                  {t(METAL_LABEL_KEY[m])}
                 </Button>
               ))}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Frequency</Label>
+            <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              {t("autoSavePanel.frequency")}
+            </Label>
             <div className="flex gap-2">
               {FREQUENCIES.map((f) => {
                 const Icon = FREQUENCY_ICON[f];
                 return (
                   <Button key={f} type="button" variant="outline" className={cn(frequency === f && selectedAccent)} onClick={() => setFrequency(f)}>
                     <Icon className="size-4" />
-                    {f}
+                    {t(FREQUENCY_LABEL_KEY[f])}
                   </Button>
                 );
               })}
@@ -155,7 +166,9 @@ export function AutoSavePanel() {
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Amount per {frequency.toLowerCase()}</Label>
+              <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                {t("autoSavePanel.amountPer", { frequency: t(FREQUENCY_LABEL_KEY[frequency]).toLowerCase() })}
+              </Label>
               <div className="relative w-28">
                 <Input
                   type="number"
@@ -171,41 +184,57 @@ export function AutoSavePanel() {
               </div>
             </div>
             <Slider value={tickIndex} min={0} max={AMOUNT_TICKS.length - 1} step={1} onValueChange={(i) => commitAmount(AMOUNT_TICKS[i])} />
-            <p className="text-xs text-muted-foreground">Drag in steps of 5, 50, then 500 as the amount grows — or type an exact amount, fractions included.</p>
+            <p className="text-xs text-muted-foreground">{t("autoSavePanel.sliderHint")}</p>
           </div>
 
           <div className="rounded-md bg-muted px-4 py-3">
-            <p className="text-sm text-muted-foreground">Projected {METAL_LABEL[metal].toLowerCase()} in 1 year</p>
+            <p className="text-sm text-muted-foreground">
+              {t("autoSavePanel.projectedIn1Year", { metal: t(METAL_LABEL_KEY[metal]).toLowerCase() })}
+            </p>
             <p className={cn("mt-1 text-2xl font-semibold", isSilver ? "text-foreground" : "text-gold")}>
               {projectedGrams !== null ? `${projectedGrams.toFixed(3)} g` : "…"}
             </p>
           </div>
 
           <Button variant={isSilver ? "silver-solid" : "gold-solid"} className="w-full" onClick={startPlan}>
-            Start {frequency} {METAL_LABEL[metal]} plan · {formatBDT(amount)}
+            {t("autoSavePanel.startPlan", {
+              frequency: t(FREQUENCY_LABEL_KEY[frequency]),
+              metal: t(METAL_LABEL_KEY[metal]),
+              amount: formatBDT(amount),
+            })}
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Active plans</CardTitle>
+          <CardTitle>{t("autoSavePanel.activePlans")}</CardTitle>
         </CardHeader>
         <CardContent>
           {plans.length === 0 ? (
-            <EmptyState icon={Sparkles} title="No plans yet" description="Set up a plan to start saving automatically." />
+            <EmptyState
+              icon={Sparkles}
+              title={t("autoSavePanel.noPlansTitle")}
+              description={t("autoSavePanel.noPlansDescription")}
+            />
           ) : (
             <div className="space-y-3">
               {plans.map((plan) => (
                 <div key={plan.id} className="rounded-md border p-3">
                   <div className="flex items-center justify-between">
                     <p className="font-medium">
-                      {plan.frequency} {METAL_LABEL[plan.metal]} Auto-Save
+                      {t("autoSavePanel.planTitle", {
+                        frequency: t(FREQUENCY_LABEL_KEY[plan.frequency]),
+                        metal: t(METAL_LABEL_KEY[plan.metal]),
+                      })}
                     </p>
-                    <Badge className="bg-emerald-500/15 text-emerald-500">Active</Badge>
+                    <Badge className="bg-emerald-500/15 text-emerald-500">{t("autoSavePanel.active")}</Badge>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Since {formatDateTime(plan.since).split(",")[0]} · {formatBDT(plan.totalSavedBDT)} saved
+                    {t("autoSavePanel.sinceSaved", {
+                      date: formatDateTime(plan.since).split(",")[0],
+                      amount: formatBDT(plan.totalSavedBDT),
+                    })}
                   </p>
                 </div>
               ))}

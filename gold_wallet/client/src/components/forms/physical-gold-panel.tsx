@@ -32,14 +32,15 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 type Step = "details" | "address" | "receipt";
 const TAB_LIST = "w-full rounded-2xl border border-border/60 bg-muted/40 p-1 group-data-horizontal/tabs:h-12";
 const TAB_TRIGGER = "flex-1 rounded-xl data-active:border-gold/40 data-active:bg-gold data-active:font-semibold data-active:text-ink dark:data-active:border-gold/40 dark:data-active:bg-gold dark:data-active:text-ink";
-const STEPS: { key: Step; label: string }[] = [
-  { key: "details", label: "1. Details" },
-  { key: "address", label: "2. Delivery" },
-  { key: "receipt", label: "3. Receipt" },
+const STEPS: { key: Step; labelKey: string }[] = [
+  { key: "details", labelKey: "physicalGoldPanel.steps.details" },
+  { key: "address", labelKey: "physicalGoldPanel.steps.address" },
+  { key: "receipt", labelKey: "physicalGoldPanel.steps.receipt" },
 ];
 
 function SummaryRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
@@ -76,6 +77,7 @@ interface Invoice {
  */
 export function PhysicalGoldPanel() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [karat, setKarat] = useState<GoldKarat>(22);
   const [step, setStep] = useState<Step>("details");
   const stepIndex = STEPS.findIndex((s) => s.key === step);
@@ -131,12 +133,12 @@ export function PhysicalGoldPanel() {
     const schema = mode === "amount" ? tradeAmountSchema : tradeGramsSchema(product.metal, "buy");
     const parsed = schema.safeParse(mode === "amount" ? values.value : values.value * unit.grams);
     if (!parsed.success) {
-      amountForm.setError("value", { message: parsed.error.issues[0]?.message ?? "Enter a valid amount" });
+      amountForm.setError("value", { message: parsed.error.issues[0]?.message ?? t("trade.buy.enterValidAmount") });
       return;
     }
     if (!breakdown) return;
     if (insufficient) {
-      amountForm.setError("value", { message: `Your cash wallet holds ${formatBDT(cashBDT)}` });
+      amountForm.setError("value", { message: t("trade.buy.cashWalletHolds", { amount: formatBDT(cashBDT) }) });
       return;
     }
     setStep("address");
@@ -158,11 +160,11 @@ export function PhysicalGoldPanel() {
         totalPayableBDT: breakdown.totalPayableBDT,
         address,
       });
-      toast.success("Order paid — invoice generated");
+      toast.success(t("physicalGoldPanel.orderPaid"));
       setStep("receipt");
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Order failed");
+      toast.error(error instanceof ApiError ? error.message : t("physicalGoldPanel.orderFailed"));
     }
   }
 
@@ -183,17 +185,17 @@ export function PhysicalGoldPanel() {
               <Gem className="size-5" strokeWidth={1.5} />
             </span>
             <div>
-              <CardTitle className="text-lg font-semibold">Physical Gold</CardTitle>
+              <CardTitle className="text-lg font-semibold">{t("physicalGoldPanel.title")}</CardTitle>
             </div>
           </div>
-          <div aria-label="Order progress" className="flex flex-wrap gap-2 text-xs font-medium text-muted-foreground">
+          <div aria-label={t("physicalGoldPanel.orderProgress")} className="flex flex-wrap gap-2 text-xs font-medium text-muted-foreground">
             {STEPS.map((s, i) => (
               <span
                 key={s.key}
                 aria-current={i === stepIndex ? "step" : undefined}
                 className={cn("rounded-full border px-3 py-2", i <= stepIndex ? "border-gold/30 bg-gold/10 text-gold-accent" : "border-border/60")}
               >
-                {s.label}
+                {t(s.labelKey)}
               </span>
             ))}
           </div>
@@ -205,7 +207,7 @@ export function PhysicalGoldPanel() {
           <form onSubmit={amountForm.handleSubmit(goToAddress)} className="grid items-start gap-7 xl:grid-cols-[minmax(0,1.4fr)_minmax(360px,1fr)]">
             <div className="min-w-0 space-y-5">
             <div className="space-y-1">
-              <h2 className="text-sm font-semibold">Select product</h2>
+              <h2 className="text-sm font-semibold">{t("physicalGoldPanel.selectProduct")}</h2>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-5">
               {TRADE_PRODUCTS.filter((opt) => opt.key !== "gold-coin-24k").map((opt) => (
@@ -229,28 +231,28 @@ export function PhysicalGoldPanel() {
             </div>
 
             <div className="min-w-0 space-y-5 rounded-2xl border border-border/60 bg-muted/20 p-4 sm:p-5">
-            <h2 className="text-base font-semibold">Your order</h2>
+            <h2 className="text-base font-semibold">{t("physicalGoldPanel.yourOrder")}</h2>
             <div className="flex flex-col gap-2">
               <Tabs value={mode} onValueChange={(v) => handleModeChange(v as "amount" | "weight")} className="flex-1">
-                <TabsList aria-label="Enter amount or weight" className={TAB_LIST}>
+                <TabsList aria-label={t("trade.buy.enterAmountOrWeight")} className={TAB_LIST}>
                   <TabsTrigger value="amount" className={TAB_TRIGGER}>
-                    Amount (BDT)
+                    {t("trade.buy.amountBdt")}
                   </TabsTrigger>
                   <TabsTrigger value="weight" className={TAB_TRIGGER}>
-                    Weight
+                    {t("digitalGoldPanel.weightTab")}
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
               {mode === "weight" && (
                 <Tabs value={unitKey} onValueChange={(v) => handleUnitChange(v as WeightUnitKey)}>
-                  <TabsList aria-label="Weight unit" className={TAB_LIST}>
+                  <TabsList aria-label={t("digitalGoldPanel.weightUnitAria")} className={TAB_LIST}>
                     {WEIGHT_UNITS.map((u) => (
                       <TabsTrigger
                         key={u.key}
                         value={u.key}
                         className={cn(TAB_TRIGGER, "px-2.5 text-xs")}
                       >
-                        {u.label}
+                        {t(u.labelKey)}
                       </TabsTrigger>
                     ))}
                   </TabsList>
@@ -259,7 +261,9 @@ export function PhysicalGoldPanel() {
             </div>
 
             <div className="space-y-4 rounded-2xl border border-gold/25 bg-linear-to-b from-gold/8 to-transparent px-3 py-5 focus-within:border-gold/60">
-            <p className="text-center text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">{mode === "amount" ? "Your purchase amount" : "Your purchase weight"}</p>
+            <p className="text-center text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+              {mode === "amount" ? t("physicalGoldPanel.purchaseAmountLabel") : t("digitalGoldPanel.purchaseWeightLabel")}
+            </p>
             <FormField
               control={amountForm.control}
               name="value"
@@ -269,7 +273,11 @@ export function PhysicalGoldPanel() {
                     <FormControl>
                       <Input
                         type="number"
-                        aria-label={mode === "amount" ? "Purchase amount in BDT" : `Purchase weight in ${unit.label}`}
+                        aria-label={
+                          mode === "amount"
+                            ? t("physicalGoldPanel.purchaseAmountAria")
+                            : t("digitalGoldPanel.purchaseWeightAria", { unit: t(unit.labelKey) })
+                        }
                         min="0"
                         step={mode === "amount" ? "1" : "0.0001"}
                         {...field}
@@ -277,14 +285,19 @@ export function PhysicalGoldPanel() {
                         className="h-14 w-48 max-w-[70%] border-none bg-transparent px-0 text-center text-4xl font-semibold tracking-tight shadow-none focus-visible:ring-2 focus-visible:ring-gold/40 md:text-4xl dark:bg-transparent"
                       />
                     </FormControl>
-                    <span className="text-lg font-medium text-muted-foreground">{mode === "amount" ? "BDT" : unit.label.toLowerCase()}</span>
+                    <span className="text-lg font-medium text-muted-foreground">
+                      {mode === "amount" ? "BDT" : t(unit.labelKey).toLowerCase()}
+                    </span>
                   </div>
                   {amountForm.formState.errors.value ? (
                     <FormMessage className="text-center" />
                   ) : (
                     <p className="text-xs text-muted-foreground">
                       {mode === "amount"
-                        ? `≈ ${breakdown ? breakdown.grams.toFixed(4) : "0.0000"} g of ${product.unitNoun}`
+                        ? t("trade.buy.approxOf", {
+                            grams: breakdown ? breakdown.grams.toFixed(4) : "0.0000",
+                            unit: product.unitNoun,
+                          })
                         : pricePerGram
                           ? `≈ ${formatBDT(rawValue * unit.grams * pricePerGram)}`
                           : ""}
@@ -314,7 +327,9 @@ export function PhysicalGoldPanel() {
 
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Pay with</Label>
+              <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                {t("trade.buy.payWith")}
+              </Label>
               <div
                 className={cn(
                   "flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3",
@@ -323,15 +338,20 @@ export function PhysicalGoldPanel() {
               >
                 <span className="flex items-center gap-2 text-sm font-medium">
                   <span className="flex size-9 items-center justify-center rounded-xl bg-gold/15"><WalletIcon className="size-4 text-gold-accent" strokeWidth={1.75} /></span>
-                  <span>Cash wallet<span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">Available balance</span></span>
+                  <span>
+                    {t("wallet.myAccounts.cashWallet")}
+                    <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                      {t("trade.buy.availableBalance")}
+                    </span>
+                  </span>
                 </span>
                 <span className="text-sm font-semibold tabular-nums">{formatBDT(cashBDT)}</span>
               </div>
               {insufficient && (
                 <p className="text-xs text-destructive">
-                  Not enough cash for this order.{" "}
+                  {t("trade.buy.notEnoughCash")}{" "}
                   <Link href="/wallet" className="font-medium underline underline-offset-2">
-                    Add money
+                    {t("trade.buy.addMoney")}
                   </Link>
                 </p>
               )}
@@ -340,16 +360,18 @@ export function PhysicalGoldPanel() {
             <Separator />
 
             <div className="space-y-3">
-              <SummaryRow label={`${product.label} price`} value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "—"} />
-              <SummaryRow label="You receive" value={breakdown ? `${breakdown.grams.toFixed(4)} g` : "—"} />
-              {product.metal === "gold" && <SummaryRow label="Govt. gold tax (2,500/bhori)" value={breakdown ? formatBDT(breakdown.govtTaxBDT) : "—"} />}
-              <SummaryRow label="Transaction charge (1.5%)" value={breakdown ? formatBDT(breakdown.transactionChargeBDT) : "—"} />
-              <SummaryRow label="Total payable" value={breakdown ? formatBDT(breakdown.totalPayableBDT) : "—"} strong />
+              <SummaryRow label={t("trade.buy.priceLabel", { product: product.label })} value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "—"} />
+              <SummaryRow label={t("trade.buy.youReceive")} value={breakdown ? `${breakdown.grams.toFixed(4)} g` : "—"} />
+              {product.metal === "gold" && (
+                <SummaryRow label={t("trade.buy.govtTax")} value={breakdown ? formatBDT(breakdown.govtTaxBDT) : "—"} />
+              )}
+              <SummaryRow label={t("trade.buy.transactionCharge")} value={breakdown ? formatBDT(breakdown.transactionChargeBDT) : "—"} />
+              <SummaryRow label={t("trade.buy.totalPayable")} value={breakdown ? formatBDT(breakdown.totalPayableBDT) : "—"} strong />
             </div>
 
             <Button type="submit" variant="gold-solid" className="h-12 w-full rounded-xl text-sm font-semibold" disabled={pricePerGram === null || amountBDT <= 0 || insufficient}>
               <Truck />
-              Continue to delivery
+              {t("physicalGoldPanel.continueToDelivery")}
             </Button>
             </div>
           </form>
@@ -371,14 +393,16 @@ export function PhysicalGoldPanel() {
               </div>
 
               <div className="space-y-3">
-                <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Courier delivery address</Label>
+                <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  {t("physicalGoldPanel.courierAddress")}
+                </Label>
                 <FormField
                   control={addressForm.control}
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input placeholder="Full name" {...field} />
+                        <Input placeholder={t("collectPanel.fullNamePlaceholder")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -390,7 +414,7 @@ export function PhysicalGoldPanel() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input placeholder="Phone number" {...field} />
+                        <Input placeholder={t("collectPanel.phonePlaceholder")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -403,7 +427,7 @@ export function PhysicalGoldPanel() {
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Input placeholder="District" {...field} />
+                          <Input placeholder={t("collectPanel.districtPlaceholder")} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -415,7 +439,7 @@ export function PhysicalGoldPanel() {
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Input placeholder="Postal code" {...field} />
+                          <Input placeholder={t("collectPanel.postalCodePlaceholder")} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -428,23 +452,25 @@ export function PhysicalGoldPanel() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Textarea rows={2} placeholder="Street address" {...field} />
+                        <Textarea rows={2} placeholder={t("collectPanel.streetAddressPlaceholder")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <p className="text-xs text-muted-foreground">Fully insured, tracked delivery anywhere in Bangladesh · estimated arrival 5-7 days.</p>
+                <p className="text-xs text-muted-foreground">{t("physicalGoldPanel.insuredDeliveryNote")}</p>
               </div>
 
               <div className="flex gap-2">
                 <Button type="button" variant="outline" className="h-12 rounded-xl" onClick={() => setStep("details")} disabled={buy.isPending}>
                   <ArrowLeft />
-                  Back
+                  {t("kyc.back")}
                 </Button>
                 <Button type="submit" variant="gold-solid" className="h-auto min-h-12 flex-1 rounded-xl whitespace-normal" disabled={buy.isPending}>
                   <ArrowUpRight />
-                  {buy.isPending ? "Processing…" : `Submit order & pay ${formatBDT(breakdown.totalPayableBDT)}`}
+                  {buy.isPending
+                    ? t("trade.buy.processing")
+                    : t("physicalGoldPanel.submitOrderPay", { amount: formatBDT(breakdown.totalPayableBDT) })}
                 </Button>
               </div>
             </form>
@@ -458,15 +484,16 @@ export function PhysicalGoldPanel() {
 }
 
 function ReceiptStep({ invoice, onNewOrder }: { invoice: Invoice; onNewOrder: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-border/60 p-4 sm:p-6">
       <div className="flex flex-col items-center gap-2 text-center">
         <span className="flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
           <CheckCircle2 className="size-6" strokeWidth={1.75} />
         </span>
-        <p className="text-lg font-semibold">Order confirmed</p>
+        <p className="text-lg font-semibold">{t("physicalGoldPanel.orderConfirmed")}</p>
         <p className="text-sm text-muted-foreground">
-          Invoice {invoice.orderId} · {formatDateTime(invoice.placedAt)}
+          {t("physicalGoldPanel.invoiceMeta", { orderId: invoice.orderId, date: formatDateTime(invoice.placedAt) })}
         </p>
       </div>
 
@@ -482,16 +509,20 @@ function ReceiptStep({ invoice, onNewOrder }: { invoice: Invoice; onNewOrder: ()
       </div>
 
       <div className="space-y-1.5 rounded-md bg-muted/40 p-3">
-        <SummaryRow label={`${invoice.product.label} price`} value={`${formatBDT(invoice.pricePerGram)}/g`} />
-        <SummaryRow label="Weight" value={`${invoice.grams.toFixed(4)} g`} />
-        {invoice.product.metal === "gold" && <SummaryRow label="Govt. gold tax (2,500/bhori)" value={formatBDT(invoice.govtTaxBDT)} />}
-        <SummaryRow label="Transaction charge (1.5%)" value={formatBDT(invoice.transactionChargeBDT)} />
+        <SummaryRow label={t("trade.buy.priceLabel", { product: invoice.product.label })} value={`${formatBDT(invoice.pricePerGram)}/g`} />
+        <SummaryRow label={t("trade.sell.weight")} value={`${invoice.grams.toFixed(4)} g`} />
+        {invoice.product.metal === "gold" && (
+          <SummaryRow label={t("trade.buy.govtTax")} value={formatBDT(invoice.govtTaxBDT)} />
+        )}
+        <SummaryRow label={t("trade.buy.transactionCharge")} value={formatBDT(invoice.transactionChargeBDT)} />
         <Separator />
-        <SummaryRow label="Total paid" value={formatBDT(invoice.totalPayableBDT)} strong />
+        <SummaryRow label={t("physicalGoldPanel.totalPaid")} value={formatBDT(invoice.totalPayableBDT)} strong />
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Delivery to</Label>
+        <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          {t("physicalGoldPanel.deliveryTo")}
+        </Label>
         <div className="rounded-md border p-3 text-sm">
           <p className="font-medium">{invoice.address.fullName}</p>
           <p className="text-muted-foreground">{invoice.address.phone}</p>
@@ -499,16 +530,16 @@ function ReceiptStep({ invoice, onNewOrder }: { invoice: Invoice; onNewOrder: ()
             {invoice.address.streetAddress}, {invoice.address.district} {invoice.address.postalCode}
           </p>
         </div>
-        <p className="text-xs text-muted-foreground">Fully insured, tracked delivery · estimated arrival 5-7 days.</p>
+        <p className="text-xs text-muted-foreground">{t("physicalGoldPanel.insuredDeliveryNote")}</p>
       </div>
 
       <div className="flex gap-2">
         <Button type="button" variant="outline" className="flex-1" onClick={() => window.print()}>
           <Printer />
-          Print invoice
+          {t("physicalGoldPanel.printInvoice")}
         </Button>
         <Button type="button" variant="gold-solid" className="flex-1" onClick={onNewOrder}>
-          Make another purchase
+          {t("physicalGoldPanel.makeAnotherPurchase")}
         </Button>
       </div>
     </div>
@@ -516,6 +547,7 @@ function ReceiptStep({ invoice, onNewOrder }: { invoice: Invoice; onNewOrder: ()
 }
 
 function ProductSpotlight({ product }: { product: TradeProduct }) {
+  const { t } = useTranslation();
   const image = PRODUCT_IMAGES[product.metal][product.form];
 
   return (
@@ -528,16 +560,16 @@ function ProductSpotlight({ product }: { product: TradeProduct }) {
         <p className="text-xl font-semibold">{product.label}</p>
         <dl className="mt-5 space-y-3 text-xs sm:text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <dt className="text-muted-foreground">Purity:</dt>
+            <dt className="text-muted-foreground">{t("physicalGoldPanel.purity")}</dt>
             <dd className="font-medium">{product.purityNote}</dd>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <dt className="text-muted-foreground">Sourced from:</dt>
-            <dd className="font-medium">BAJUS-certified refiners</dd>
+            <dt className="text-muted-foreground">{t("physicalGoldPanel.sourcedFrom")}</dt>
+            <dd className="font-medium">{t("physicalGoldPanel.sourcedFromValue")}</dd>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <dt className="text-muted-foreground">Quality:</dt>
-            <dd className="font-medium">Assay-certified, tamper-sealed</dd>
+            <dt className="text-muted-foreground">{t("physicalGoldPanel.quality")}</dt>
+            <dd className="font-medium">{t("physicalGoldPanel.qualityValue")}</dd>
           </div>
         </dl>
       </div>

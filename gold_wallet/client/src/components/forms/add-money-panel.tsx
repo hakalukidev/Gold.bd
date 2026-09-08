@@ -21,23 +21,24 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PaymentMethodButton, SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 const AMOUNT_PRESETS = [500, 1000, 2000, 5000, 10000];
-
-// Which channel the shopper picks here is only a hint — SSLCommerz's own
-// hosted page (the actual next screen for a deposit) has its own bKash/Nagad/
-// card/bank picker, so this selection doesn't get sent anywhere. All four
-// stay enabled since SSLCommerz's sandbox supports each of them.
-const PAYMENT_METHODS: { key: string; label: string; enabled: boolean }[] = [
-  { key: "bkash", label: "bKash", enabled: true },
-  { key: "nagad", label: "Nagad", enabled: true },
-  { key: "bank", label: "Bank Transfer", enabled: true },
-  { key: "card", label: "Card", enabled: true },
-];
 
 type Direction = "deposit" | "withdraw";
 
 function MoneyMoveForm({ direction }: { direction: Direction }) {
+  const { t } = useTranslation();
+  // Which channel the shopper picks here is only a hint — SSLCommerz's own
+  // hosted page (the actual next screen for a deposit) has its own bKash/Nagad/
+  // card/bank picker, so this selection doesn't get sent anywhere. All four
+  // stay enabled since SSLCommerz's sandbox supports each of them.
+  const PAYMENT_METHODS: { key: string; label: string; enabled: boolean }[] = [
+    { key: "bkash", label: "bKash", enabled: true },
+    { key: "nagad", label: "Nagad", enabled: true },
+    { key: "bank", label: t("addMoneyPanel.methods.bankTransfer"), enabled: true },
+    { key: "card", label: t("addMoneyPanel.methods.card"), enabled: true },
+  ];
   const withdraw = useWithdraw();
   const [method, setMethod] = useState(PAYMENT_METHODS[0].key);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -64,17 +65,17 @@ function MoneyMoveForm({ direction }: { direction: Direction }) {
     if (direction === "withdraw") {
       try {
         await withdraw.mutateAsync(values.amountBDT);
-        toast.success("Withdrawal successful");
+        toast.success(t("addMoneyPanel.withdrawalSuccess"));
         form.reset({ amountBDT: AMOUNT_PRESETS[1] });
       } catch (error) {
-        toast.error(error instanceof ApiError ? error.message : "Withdrawal failed");
+        toast.error(error instanceof ApiError ? error.message : t("addMoneyPanel.withdrawalFailed"));
       }
       return;
     }
 
     const accessToken = getAccessToken();
     if (!accessToken) {
-      toast.error("Sign in to add money to your wallet");
+      toast.error(t("addMoneyPanel.signInToAddMoney"));
       return;
     }
 
@@ -96,7 +97,7 @@ function MoneyMoveForm({ direction }: { direction: Direction }) {
       window.location.href = gatewayUrl;
     } catch (error) {
       setIsRedirecting(false);
-      toast.error(error instanceof ApiError ? error.message : "Could not start payment. Please try again.");
+      toast.error(error instanceof ApiError ? error.message : t("addMoneyPanel.couldNotStartPayment"));
     }
   }
 
@@ -110,7 +111,7 @@ function MoneyMoveForm({ direction }: { direction: Direction }) {
         render={({ field }) => (
           <FormItem className="gap-1 text-center">
             <Label className="block text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              {direction === "deposit" ? "Add money" : "Withdraw money"}
+              {direction === "deposit" ? t("addMoneyPanel.addMoney") : t("addMoneyPanel.withdrawMoney")}
             </Label>
             <div className="flex items-center justify-center gap-1.5">
               <FormControl>
@@ -146,7 +147,9 @@ function MoneyMoveForm({ direction }: { direction: Direction }) {
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Payment method</Label>
+        <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          {t("addMoneyPanel.paymentMethod")}
+        </Label>
         <div className="grid grid-cols-2 gap-2">
           {PAYMENT_METHODS.map((m) => (
             <PaymentMethodButton key={m.key} method={m} selected={method === m.key} onSelect={selectMethod} />
@@ -159,14 +162,14 @@ function MoneyMoveForm({ direction }: { direction: Direction }) {
           {direction === "deposit" ? <ArrowDownToLine /> : <ArrowUpFromLine />}
           {isBusy
             ? direction === "deposit"
-              ? "Redirecting to payment…"
-              : "Processing…"
-            : `${direction === "deposit" ? "Add" : "Withdraw"} ${formatBDT(amountBDT || 0)}`}
+              ? t("addMoneyPanel.redirecting")
+              : t("addMoneyPanel.processing")
+            : direction === "deposit"
+              ? t("addMoneyPanel.addAmount", { amount: formatBDT(amountBDT || 0) })
+              : t("addMoneyPanel.withdrawAmount", { amount: formatBDT(amountBDT || 0) })}
         </Button>
         <p className="text-xs text-muted-foreground">
-          {direction === "deposit"
-            ? "You'll be redirected to SSLCommerz's secure checkout to complete this payment."
-            : "Demo flow — no payout gateway yet, this debits your wallet directly."}
+          {direction === "deposit" ? t("addMoneyPanel.depositNote") : t("addMoneyPanel.withdrawNote")}
         </p>
       </div>
     </form>
@@ -178,6 +181,7 @@ function MoneyMoveForm({ direction }: { direction: Direction }) {
  * drops these straight into its "Manage balance" dialog, while AddMoneyPanel
  * below wraps the same thing in a Card for use inline on a page. */
 export function MoneyMoveTabs({ defaultDirection = "deposit" }: { defaultDirection?: Direction }) {
+  const { t } = useTranslation();
   const { data } = useWallet();
   const wallet = data ?? MOCK_WALLET;
 
@@ -185,17 +189,19 @@ export function MoneyMoveTabs({ defaultDirection = "deposit" }: { defaultDirecti
     <Tabs defaultValue={defaultDirection}>
       <TabsList className="w-full">
         <TabsTrigger value="deposit" className="flex-1">
-          Add money
+          {t("addMoneyPanel.addTab")}
         </TabsTrigger>
         <TabsTrigger value="withdraw" className="flex-1">
-          Withdraw
+          {t("addMoneyPanel.withdrawTab")}
         </TabsTrigger>
       </TabsList>
       <TabsContent value="deposit" className="pt-5">
         <MoneyMoveForm direction="deposit" />
       </TabsContent>
       <TabsContent value="withdraw" className="pt-5">
-        <p className="mb-3 text-center text-xs text-muted-foreground">Available: {formatBDT(wallet.cashBalanceBDT)}</p>
+        <p className="mb-3 text-center text-xs text-muted-foreground">
+          {t("addMoneyPanel.available", { amount: formatBDT(wallet.cashBalanceBDT) })}
+        </p>
         <MoneyMoveForm direction="withdraw" />
       </TabsContent>
     </Tabs>

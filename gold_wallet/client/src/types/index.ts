@@ -107,6 +107,16 @@ export interface PaymentStatusResponse {
   metadata: Record<string, unknown>;
 }
 
+/** Admin-editable trade fee/tax settings (see wallet_server's
+ * platform-settings.repository.js) — the authoritative values a buy/sell is
+ * actually priced with, not just a display constant. */
+export interface PlatformFeeSettings {
+  transactionChargeRate: number;
+  govtGoldTaxPerBhoriBdt: number;
+  sellSpreadRate: number;
+  updatedAt: string | null;
+}
+
 /** Standard envelope returned by every /api/* route. */
 export type ApiResponse<T> =
   | { success: true; data: T }

@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { formatBDT, formatBDTShort } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import type { Metal } from "@/lib/mock-rates";
 import type { MetalRateSummary } from "@/types";
 
@@ -108,6 +109,7 @@ export function MarketPriceChart({
   color: string;
   metalLabel: string;
 }) {
+  const { t } = useTranslation();
   const gradientId = useId();
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -157,8 +159,8 @@ export function MarketPriceChart({
           role="img"
           aria-label={
             showHoldingAxis
-              ? `${metalLabel} price per gram, with the value of your ${holdingGrams.toFixed(3)} g holding on the right axis`
-              : `${metalLabel} price per gram`
+              ? t("marketPriceChart.ariaWithHolding", { metal: metalLabel, grams: holdingGrams.toFixed(3) })
+              : t("marketPriceChart.ariaPlain", { metal: metalLabel })
           }
         >
           <defs>
@@ -252,7 +254,10 @@ export function MarketPriceChart({
             </p>
             {showHoldingAxis && (
               <p className="mt-0.5 text-muted-foreground tabular-nums">
-                Your {holdingGrams.toFixed(3)} g · {formatBDT(hovered.pricePerGram * holdingGrams)}
+                {t("marketPriceChart.yourHolding", {
+                  grams: holdingGrams.toFixed(3),
+                  value: formatBDT(hovered.pricePerGram * holdingGrams),
+                })}
               </p>
             )}
           </div>

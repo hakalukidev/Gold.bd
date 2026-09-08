@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/shared/page-header";
 import { WalletBadge } from "@/components/shared/wallet-badge";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 interface KycProfile {
   id: string;
@@ -30,7 +31,13 @@ const statusIcon: Record<KycProfile["status"], LucideIcon> = {
   REJECTED: XCircle,
 };
 
-const STEPS = ["Phone", "Details", "NID", "Selfie"] as const;
+const STATUS_LABEL_KEY: Record<KycProfile["status"], string> = {
+  APPROVED: "kyc.status.approved",
+  PENDING: "kyc.status.pending",
+  REJECTED: "kyc.status.rejected",
+};
+
+const STEP_KEYS = ["kyc.steps.phone", "kyc.steps.details", "kyc.steps.nid", "kyc.steps.selfie"] as const;
 
 function maskPhone(phone: string) {
   return phone.length > 4 ? `${phone.slice(0, -4).replace(/./g, "•")}${phone.slice(-4)}` : phone;
@@ -48,6 +55,7 @@ function UploadUrlTile({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border p-6 text-center">
       <span className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -57,7 +65,7 @@ function UploadUrlTile({
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Paste image URL"
+        placeholder={t("kyc.uploadPlaceholder")}
         className="text-center text-xs"
       />
     </div>
@@ -96,6 +104,7 @@ function OtpBoxes() {
 
 function VerifyWizard({ prefillReason }: { prefillReason?: string }) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const { data: user } = useMe();
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState("");
@@ -118,14 +127,14 @@ function VerifyWizard({ prefillReason }: { prefillReason?: string }) {
     const documentUrls = [nidFrontUrl, nidBackUrl, selfieUrl].filter(Boolean);
     const parsed = submitKycSchema.safeParse({ nidNumber, documentUrls });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Check the details you entered");
+      toast.error(parsed.error.issues[0]?.message ?? t("kyc.checkDetails"));
       return;
     }
     try {
       await submit.mutateAsync(parsed.data);
-      toast.success("KYC submitted — pending review");
+      toast.success(t("kyc.submitted"));
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Submission failed");
+      toast.error(error instanceof ApiError ? error.message : t("kyc.submissionFailed"));
     }
   }
 
@@ -133,26 +142,26 @@ function VerifyWizard({ prefillReason }: { prefillReason?: string }) {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Verify your account" description="Quick KYC to unlock full access" action={<WalletBadge />} />
+      <PageHeader title={t("kyc.header.title")} description={t("kyc.header.description")} action={<WalletBadge />} />
 
       {/* Step progress */}
       <div className="flex gap-1.5">
-        {STEPS.map((label, i) => (
-          <div key={label} className={cn("h-1.5 flex-1 rounded-full", i + 1 <= step ? "bg-gold" : "bg-muted")} />
+        {STEP_KEYS.map((labelKey, i) => (
+          <div key={labelKey} className={cn("h-1.5 flex-1 rounded-full", i + 1 <= step ? "bg-gold" : "bg-muted")} />
         ))}
       </div>
 
       <Card className="mx-auto max-w-xl">
         <CardContent className="space-y-5">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            Step {step} of {STEPS.length}
+            {t("kyc.stepOf", { step, total: STEP_KEYS.length })}
           </p>
 
           {prefillReason && step === 1 && <p className="text-sm text-destructive">{prefillReason}</p>}
 
           {step === 1 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Verify your phone number</h2>
+              <h2 className="text-lg font-semibold">{t("kyc.phoneStep.title")}</h2>
               <p className="text-sm text-muted-foreground">{user ? maskPhone(user.phone) : "…"}</p>
               <OtpBoxes />
             </div>
@@ -160,18 +169,23 @@ function VerifyWizard({ prefillReason }: { prefillReason?: string }) {
 
           {step === 2 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Your personal details</h2>
+              <h2 className="text-lg font-semibold">{t("kyc.detailsStep.title")}</h2>
               <div className="space-y-1.5">
-                <Label htmlFor="kyc-name">Full name</Label>
-                <Input id="kyc-name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" />
+                <Label htmlFor="kyc-name">{t("kyc.detailsStep.fullName")}</Label>
+                <Input
+                  id="kyc-name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder={t("kyc.detailsStep.fullName")}
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="kyc-dob">Date of birth</Label>
+                  <Label htmlFor="kyc-dob">{t("kyc.detailsStep.dob")}</Label>
                   <Input id="kyc-dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="kyc-nid">NID number</Label>
+                  <Label htmlFor="kyc-nid">{t("kyc.detailsStep.nidNumber")}</Label>
                   <Input
                     id="kyc-nid"
                     value={nidNumber}
@@ -185,37 +199,37 @@ function VerifyWizard({ prefillReason }: { prefillReason?: string }) {
 
           {step === 3 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Upload your NID</h2>
+              <h2 className="text-lg font-semibold">{t("kyc.nidStep.title")}</h2>
               <div className="grid grid-cols-2 gap-3">
-                <UploadUrlTile label="NID front" value={nidFrontUrl} onChange={setNidFrontUrl} />
-                <UploadUrlTile label="NID back" value={nidBackUrl} onChange={setNidBackUrl} />
+                <UploadUrlTile label={t("kyc.nidStep.front")} value={nidFrontUrl} onChange={setNidFrontUrl} />
+                <UploadUrlTile label={t("kyc.nidStep.back")} value={nidBackUrl} onChange={setNidBackUrl} />
               </div>
             </div>
           )}
 
           {step === 4 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Selfie verification</h2>
-              <UploadUrlTile label="Take or upload a selfie" value={selfieUrl} onChange={setSelfieUrl} />
+              <h2 className="text-lg font-semibold">{t("kyc.selfieStep.title")}</h2>
+              <UploadUrlTile label={t("kyc.selfieStep.uploadLabel")} value={selfieUrl} onChange={setSelfieUrl} />
             </div>
           )}
 
           <div className="flex justify-between pt-2">
             <Button type="button" variant="outline" disabled={step === 1} onClick={() => setStep((s) => s - 1)}>
-              Back
+              {t("kyc.back")}
             </Button>
-            {step < STEPS.length ? (
+            {step < STEP_KEYS.length ? (
               <Button
                 type="button"
                 variant="gold-solid"
                 disabled={step === 2 && !nidNumberValid}
                 onClick={() => setStep((s) => s + 1)}
               >
-                Continue
+                {t("kyc.continue")}
               </Button>
             ) : (
               <Button type="button" variant="gold-solid" disabled={submit.isPending} onClick={handleSubmit}>
-                {submit.isPending ? "Submitting…" : "Submit for review"}
+                {submit.isPending ? t("kyc.submitting") : t("kyc.submitForReview")}
               </Button>
             )}
           </div>
@@ -226,6 +240,7 @@ function VerifyWizard({ prefillReason }: { prefillReason?: string }) {
 }
 
 export default function KycPage() {
+  const { t } = useTranslation();
   const { data: profile } = useQuery({
     queryKey: ["kyc"],
     queryFn: () => api.get<KycProfile | null>("/api/kyc"),
@@ -235,7 +250,7 @@ export default function KycPage() {
     const StatusIcon = statusIcon[profile.status];
     return (
       <div className="space-y-6">
-        <PageHeader title="Verify your account" description="Quick KYC to unlock full access" action={<WalletBadge />} />
+        <PageHeader title={t("kyc.header.title")} description={t("kyc.header.description")} action={<WalletBadge />} />
         <Card className="mx-auto max-w-xl">
           <CardContent className="flex items-start gap-3">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold">
@@ -243,10 +258,12 @@ export default function KycPage() {
             </span>
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-semibold">KYC status</p>
-                <Badge variant={profile.status === "APPROVED" ? "default" : "secondary"}>{profile.status}</Badge>
+                <p className="font-semibold">{t("kyc.status.title")}</p>
+                <Badge variant={profile.status === "APPROVED" ? "default" : "secondary"}>
+                  {t(STATUS_LABEL_KEY[profile.status])}
+                </Badge>
               </div>
-              <p className="mt-0.5 text-sm text-muted-foreground">NID: {profile.nidNumber}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">{t("kyc.nidLabel", { number: profile.nidNumber })}</p>
             </div>
           </CardContent>
         </Card>
@@ -254,5 +271,13 @@ export default function KycPage() {
     );
   }
 
-  return <VerifyWizard prefillReason={profile?.status === "REJECTED" ? `Previous submission rejected: ${profile.rejectReason ?? "no reason given"}. Resubmit below.` : undefined} />;
+  return (
+    <VerifyWizard
+      prefillReason={
+        profile?.status === "REJECTED"
+          ? t("kyc.previousRejected", { reason: profile.rejectReason ?? t("kyc.noReasonGiven") })
+          : undefined
+      }
+    />
+  );
 }

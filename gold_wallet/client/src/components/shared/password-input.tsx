@@ -5,12 +5,14 @@ import type { ComponentProps } from "react";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 /** Password field — leading lock icon, trailing eye toggle to reveal/hide
  * the value. Forwards everything (including `ref`, via React 19's
  * ref-as-prop) straight through to `Input`, same as IconInput. */
 export function PasswordInput({ className, ...props }: ComponentProps<typeof Input>) {
   const [visible, setVisible] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <div className="relative">
@@ -23,7 +25,7 @@ export function PasswordInput({ className, ...props }: ComponentProps<typeof Inp
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
-        aria-label={visible ? "Hide password" : "Show password"}
+        aria-label={visible ? t("passwordInput.hide") : t("passwordInput.show")}
         className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
       >
         {visible ? <EyeOff className="size-4" strokeWidth={1.75} /> : <Eye className="size-4" strokeWidth={1.75} />}

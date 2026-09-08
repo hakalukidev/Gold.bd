@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { formatBDT, formatBDTShort } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import type { FlowPoint } from "@/lib/wallet-flow";
 
 const WIDTH = 640;
@@ -45,6 +46,7 @@ function smoothPath(points: [number, number][]): string {
  * week or a month, months for a year.
  */
 export function MoneyFlowChart({ data }: { data: FlowPoint[] }) {
+  const { t } = useTranslation();
   const gradientId = useId();
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -88,7 +90,7 @@ export function MoneyFlowChart({ data }: { data: FlowPoint[] }) {
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           className="w-full touch-none"
           role="img"
-          aria-label="Money in and money out over the selected date range"
+          aria-label={t("moneyFlowChart.aria")}
         >
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -222,14 +224,14 @@ export function MoneyFlowChart({ data }: { data: FlowPoint[] }) {
                 className="size-2 rounded-full"
                 style={{ background: FLOW_IN_COLOR }}
               />
-              In {formatBDT(hovered.inBDT)}
+              {t("moneyFlowChart.in")} {formatBDT(hovered.inBDT)}
             </p>
             <p className="flex items-center gap-1.5 font-semibold tabular-nums">
               <span
                 className="size-2 rounded-full"
                 style={{ background: FLOW_OUT_COLOR }}
               />
-              Out {formatBDT(hovered.outBDT)}
+              {t("moneyFlowChart.out")} {formatBDT(hovered.outBDT)}
             </p>
           </div>
         )}

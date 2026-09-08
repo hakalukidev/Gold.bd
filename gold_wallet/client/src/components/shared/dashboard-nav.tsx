@@ -11,7 +11,18 @@ import {
   User,
   Vault,
   Wallet,
+  type LucideIcon,
 } from "lucide-react";
+
+/** Shape shared by every sidebar-style nav entry, including ones that live
+ * outside DASHBOARD_NAV_LINKS below (e.g. dashboard-sidebar.tsx's
+ * role-gated Admin link) — kept separate from the `as const` array's own
+ * inferred literal-union type, which only fits its own fixed entries. */
+export interface NavLinkEntry {
+  href: string;
+  labelKey: string;
+  icon: LucideIcon;
+}
 
 // Single source of truth for the dashboard sidebar (dashboard-sidebar.tsx) and
 // the top bar's current-page label (dashboard-topbar.tsx), so the two can't
@@ -24,19 +35,19 @@ import {
 // page rather than a sidebar entry of its own. "Market" is the home screen: the
 // live gold/silver graph plus the buy/sell desk (see market/page.tsx).
 export const DASHBOARD_NAV_LINKS = [
-  { href: "/wallet", label: "Wallet", icon: Wallet },
-  { href: "/market", label: "Market", icon: CandlestickChart },
-  { href: "/buy-gold", label: "Buy Gold", icon: ArrowUpRight },
-  { href: "/sell-gold", label: "Sell Gold", icon: ArrowDownRight },
-  { href: "/auto-save", label: "Auto-Save", icon: PiggyBank },
-  { href: "/collect", label: "Collect", icon: PackageCheck },
-  { href: "/gift-gold", label: "Gift Gold", icon: Gift },
-  { href: "/transactions", label: "Transaction History", icon: History },
-  { href: "/vault", label: "Vault", icon: Vault },
-  { href: "/loan-against-gold", label: "Loan Against Gold", icon: HandCoins },
-  { href: "/profile", label: "Profile", icon: User },
-  { href: "/kyc", label: "Verify Account", icon: IdCard },
-];
+  { href: "/wallet", labelKey: "nav.wallet", icon: Wallet },
+  { href: "/market", labelKey: "nav.market", icon: CandlestickChart },
+  { href: "/buy-gold", labelKey: "nav.buyGold", icon: ArrowUpRight },
+  { href: "/sell-gold", labelKey: "nav.sellGold", icon: ArrowDownRight },
+  { href: "/auto-save", labelKey: "nav.autoSave", icon: PiggyBank },
+  { href: "/collect", labelKey: "nav.collect", icon: PackageCheck },
+  { href: "/gift-gold", labelKey: "nav.giftGold", icon: Gift },
+  { href: "/transactions", labelKey: "nav.transactionHistory", icon: History },
+  { href: "/vault", labelKey: "nav.vault", icon: Vault },
+  { href: "/loan-against-gold", labelKey: "nav.loanAgainstGold", icon: HandCoins },
+  { href: "/profile", labelKey: "nav.profile", icon: User },
+  { href: "/kyc", labelKey: "nav.verifyAccount", icon: IdCard },
+] as const;
 
 /** Links that live under the sidebar's "Account" group instead of the main
  * menu. Filtering by href (rather than slicing the array) keeps the order above

@@ -16,6 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Label } from "@/components/ui/label";
 import { IconInput } from "@/components/shared/icon-input";
 import { PasswordInput } from "@/components/shared/password-input";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 // Step 1 of a real 2FA login: wallet_server checks the phone/password against
 // the account and, only if they match, texts an OTP (login -> /verify-otp ->
@@ -27,6 +28,7 @@ import { PasswordInput } from "@/components/shared/password-input";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { phone: "", password: "" },
@@ -38,8 +40,9 @@ function LoginForm() {
   // where their session went.
   useEffect(() => {
     if (searchParams.get("reason") === "expired") {
-      toast.error("Your session has expired. Please sign in again.");
+      toast.error(t("auth.login.sessionExpired"));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   async function onSubmit(values: LoginInput) {
@@ -48,14 +51,14 @@ function LoginForm() {
       const devCodeParam = devCode ? `&devCode=${encodeURIComponent(devCode)}` : "";
       router.push(`/verify-otp?phone=${encodeURIComponent(values.phone)}&purpose=LOGIN${devCodeParam}`);
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
+      toast.error(error instanceof ApiError ? error.message : t("common.genericError"));
     }
   }
 
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
-      <p className="mt-1.5 text-sm text-muted-foreground">Sign in to continue to your gold account.</p>
+      <h1 className="text-3xl font-bold tracking-tight">{t("auth.login.title")}</h1>
+      <p className="mt-1.5 text-sm text-muted-foreground">{t("auth.login.subtitle")}</p>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4">
@@ -64,7 +67,7 @@ function LoginForm() {
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Mobile number</FormLabel>
+                <FormLabel>{t("auth.login.phoneLabel")}</FormLabel>
                 <FormControl>
                   <IconInput
                     icon={Phone}
@@ -84,11 +87,11 @@ function LoginForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel>{t("auth.login.passwordLabel")}</FormLabel>
                 <FormControl>
                   <PasswordInput
                     autoComplete="current-password"
-                    placeholder="Enter your password"
+                    placeholder={t("auth.login.passwordPlaceholder")}
                     className="h-11"
                     {...field}
                   />
@@ -102,11 +105,11 @@ function LoginForm() {
             <div className="flex items-center gap-2">
               <Checkbox id="remember-me" />
               <Label htmlFor="remember-me" className="text-sm font-normal text-muted-foreground">
-                Remember me
+                {t("auth.login.rememberMe")}
               </Label>
             </div>
             <Link href="/verify-otp?purpose=LOGIN" className="text-sm font-medium text-gold hover:underline">
-              Forgot password?
+              {t("auth.login.forgotPassword")}
             </Link>
           </div>
 
@@ -116,14 +119,14 @@ function LoginForm() {
             className="h-11 w-full rounded-md text-sm"
             disabled={form.formState.isSubmitting}
           >
-            {form.formState.isSubmitting ? "Signing in…" : "Sign in"}
+            {form.formState.isSubmitting ? t("auth.login.signingIn") : t("auth.login.signIn")}
           </Button>
         </form>
       </Form>
 
       <div className="my-5 flex items-center gap-3">
         <span className="h-px flex-1 bg-border" />
-        <span className="text-xs text-muted-foreground">or</span>
+        <span className="text-xs text-muted-foreground">{t("common.or")}</span>
         <span className="h-px flex-1 bg-border" />
       </div>
 
@@ -134,12 +137,12 @@ function LoginForm() {
         render={
           <Link href="/register">
             <UserPlus className="size-4" strokeWidth={1.75} />
-            Create an account
+            {t("auth.login.createAccount")}
           </Link>
         }
       />
 
-      <p className="mt-6 text-center text-xs text-muted-foreground">Secure. Trusted. 100% yours.</p>
+      <p className="mt-6 text-center text-xs text-muted-foreground">{t("auth.login.footer")}</p>
     </div>
   );
 }

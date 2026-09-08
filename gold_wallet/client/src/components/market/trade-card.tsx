@@ -19,7 +19,7 @@ import type { Metal } from "@/lib/mock-rates";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
 import {
   AMOUNT_PRESETS,
-  METAL_LABEL,
+  METAL_LABEL_KEY,
   PAYOUT_METHODS,
   TRADE_PRODUCTS,
   productPricePerGram,
@@ -35,6 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { SectionLabel } from "@/components/shared/flow-stat-tile";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 type EntryMode = "amount" | "weight";
 
@@ -54,9 +55,12 @@ function SummaryRow({ label, value, strong }: { label: string; value: string; st
  * and sets the final (bold) row off with its own divider, so "Total payable" /
  * "You get" reads as the answer rather than just another row in the list. */
 function SummaryPanel({ children, total }: { children: ReactNode; total: ReactNode }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2 rounded-2xl border border-border/60 bg-muted/20 p-4">
-      <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Order summary</p>
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        {t("trade.orderSummary")}
+      </p>
       {children}
       <div className="mt-3 border-t border-dashed border-border pt-3">{total}</div>
     </div>
@@ -75,6 +79,8 @@ function SummaryPanel({ children, total }: { children: ReactNode; total: ReactNo
  */
 function BuyForm({ metal, product }: { metal: Metal; product: TradeProduct }) {
   const router = useRouter();
+  const { t } = useTranslation();
+  const metalLabel = t(METAL_LABEL_KEY[metal]);
   const [karat, setKarat] = useState<GoldKarat>(22);
   const { data: rateData } = useMetalRate(metal);
   const { data: walletData } = useWallet();
@@ -108,23 +114,23 @@ function BuyForm({ metal, product }: { metal: Metal; product: TradeProduct }) {
     const schema = mode === "amount" ? tradeAmountSchema : tradeGramsSchema(metal, "buy");
     const parsed = schema.safeParse(values.value);
     if (!parsed.success) {
-      form.setError("value", { message: parsed.error.issues[0]?.message ?? "Enter a valid amount" });
+      form.setError("value", { message: parsed.error.issues[0]?.message ?? t("trade.buy.enterValidAmount") });
       return;
     }
     if (!breakdown) return;
     if (insufficient) {
-      form.setError("value", { message: `Your cash wallet holds ${formatBDT(cashBDT)}` });
+      form.setError("value", { message: t("trade.buy.cashWalletHolds", { amount: formatBDT(cashBDT) }) });
       return;
     }
 
     try {
       await buy.mutateAsync(Number(breakdown.grams.toFixed(4)));
-      toast.success("Purchase completed");
+      toast.success(t("trade.buy.purchaseCompleted"));
       form.reset({ value: AMOUNT_PRESETS[1] });
       setMode("amount");
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Purchase failed");
+      toast.error(error instanceof ApiError ? error.message : t("trade.buy.purchaseFailed"));
     }
   }
 
@@ -134,19 +140,21 @@ function BuyForm({ metal, product }: { metal: Metal; product: TradeProduct }) {
       {metal === "gold" && <KaratSelector value={karat} onChange={setKarat} />}
       <div className="space-y-3">
         <Tabs value={mode} onValueChange={(v) => handleModeChange(v as EntryMode)}>
-          <TabsList aria-label="Enter amount or weight" className={TAB_LIST}>
+          <TabsList aria-label={t("trade.buy.enterAmountOrWeight")} className={TAB_LIST}>
             <TabsTrigger value="amount" className={TAB_TRIGGER}>
-              Amount (BDT)
+              {t("trade.buy.amountBdt")}
             </TabsTrigger>
             <TabsTrigger value="weight" className={TAB_TRIGGER}>
-              Weight (grams)
+              {t("trade.buy.weightGrams")}
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
       <div className="space-y-4 rounded-2xl border border-gold/25 bg-linear-to-b from-gold/8 to-transparent px-3 py-5 focus-within:border-gold/60">
-        <p className="text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{mode === "amount" ? "How much would you like to invest?" : "How much would you like to buy?"}</p>
+        <p className="text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          {mode === "amount" ? t("trade.buy.howMuchInvest") : t("trade.buy.howMuchBuy")}
+        </p>
         <FormField
           control={form.control}
           name="value"
@@ -156,7 +164,7 @@ function BuyForm({ metal, product }: { metal: Metal; product: TradeProduct }) {
                 <FormControl>
                   <Input
                     type="number"
-                    aria-label={mode === "amount" ? "Purchase amount in BDT" : "Purchase weight in grams"}
+                    aria-label={mode === "amount" ? t("trade.buy.ariaAmount") : t("trade.buy.ariaWeight")}
                     min="0"
                     step={mode === "amount" ? "1" : "0.001"}
                     {...field}
@@ -171,9 +179,12 @@ function BuyForm({ metal, product }: { metal: Metal; product: TradeProduct }) {
               ) : (
                 <p className="text-xs text-muted-foreground">
                   {mode === "amount"
-                    ? `≈ ${breakdown ? breakdown.grams.toFixed(4) : "0.0000"} g of ${metal === "gold" ? `${karat}K gold bar` : product.unitNoun}`
+                    ? t("trade.buy.approxOf", {
+                        grams: breakdown ? breakdown.grams.toFixed(4) : "0.0000",
+                        unit: metal === "gold" ? `${karat}K gold bar` : product.unitNoun,
+                      })
                     : pricePerGram
-                      ? `≈ ${formatBDT(rawValue * pricePerGram)}`
+                      ? t("trade.buy.approxBdt", { amount: formatBDT(rawValue * pricePerGram) })
                       : ""}
                 </p>
               )}
@@ -202,7 +213,7 @@ function BuyForm({ metal, product }: { metal: Metal; product: TradeProduct }) {
 
       {/* Funding source — cash only */}
       <div className="space-y-1.5">
-        <SectionLabel>Pay with</SectionLabel>
+        <SectionLabel>{t("trade.buy.payWith")}</SectionLabel>
         <div
           className={cn(
             "flex items-center justify-between gap-3 rounded-2xl border p-4",
@@ -213,27 +224,45 @@ function BuyForm({ metal, product }: { metal: Metal; product: TradeProduct }) {
             <span className="flex size-10 items-center justify-center rounded-xl bg-gold/15">
               <WalletIcon className="size-5 text-gold-accent" strokeWidth={1.75} />
             </span>
-            <span>Cash wallet<span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">Available balance</span></span>
+            <span>
+              {t("wallet.myAccounts.cashWallet")}
+              <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                {t("trade.buy.availableBalance")}
+              </span>
+            </span>
           </span>
-          <span className="flex items-center gap-2 text-sm font-semibold tabular-nums">{formatBDT(cashBDT)}{!insufficient && <Check className="size-4 shrink-0 text-gold-accent" />}</span>
+          <span className="flex items-center gap-2 text-sm font-semibold tabular-nums">
+            {formatBDT(cashBDT)}
+            {!insufficient && <Check className="size-4 shrink-0 text-gold-accent" />}
+          </span>
         </div>
         {insufficient ? (
           <p className="text-xs text-destructive">
-            Not enough cash for this order.{" "}
+            {t("trade.buy.notEnoughCash")}{" "}
             <Link href="/wallet" className="font-medium underline underline-offset-2">
-              Add money
+              {t("trade.buy.addMoney")}
             </Link>
           </p>
         ) : (
-          <p className="px-1 text-xs leading-relaxed text-muted-foreground">Paid directly from your cash wallet. <Link href="/wallet" className="font-medium text-gold-accent underline-offset-4 hover:underline">Add money</Link></p>
+          <p className="px-1 text-xs leading-relaxed text-muted-foreground">
+            {t("trade.buy.paidDirectly")}{" "}
+            <Link href="/wallet" className="font-medium text-gold-accent underline-offset-4 hover:underline">
+              {t("trade.buy.addMoney")}
+            </Link>
+          </p>
         )}
       </div>
 
-      <SummaryPanel total={<SummaryRow label="Total payable" value={breakdown ? formatBDT(breakdown.totalPayableBDT) : "—"} strong />}>
-        <SummaryRow label={`${product.label} price`} value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "—"} />
-        <SummaryRow label="You receive" value={breakdown ? `${breakdown.grams.toFixed(4)} g` : "—"} />
-        {metal === "gold" && <SummaryRow label="Govt. gold tax (2,500/bhori)" value={breakdown ? formatBDT(breakdown.govtTaxBDT) : "—"} />}
-        <SummaryRow label="Transaction charge (1.5%)" value={breakdown ? formatBDT(breakdown.transactionChargeBDT) : "—"} />
+      <SummaryPanel total={<SummaryRow label={t("trade.buy.totalPayable")} value={breakdown ? formatBDT(breakdown.totalPayableBDT) : "—"} strong />}>
+        <SummaryRow
+          label={t("trade.buy.priceLabel", { product: product.label })}
+          value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "—"}
+        />
+        <SummaryRow label={t("trade.buy.youReceive")} value={breakdown ? `${breakdown.grams.toFixed(4)} g` : "—"} />
+        {metal === "gold" && (
+          <SummaryRow label={t("trade.buy.govtTax")} value={breakdown ? formatBDT(breakdown.govtTaxBDT) : "—"} />
+        )}
+        <SummaryRow label={t("trade.buy.transactionCharge")} value={breakdown ? formatBDT(breakdown.transactionChargeBDT) : "—"} />
       </SummaryPanel>
 
       <Button
@@ -244,10 +273,10 @@ function BuyForm({ metal, product }: { metal: Metal; product: TradeProduct }) {
       >
         <ArrowUpRight />
         {form.formState.isSubmitting
-          ? "Processing…"
+          ? t("trade.buy.processing")
           : amountBDT > 0
-            ? `Buy ${METAL_LABEL[metal]} · ${formatBDT(breakdown?.totalPayableBDT ?? amountBDT)}`
-            : `Buy ${METAL_LABEL[metal]}`}
+            ? t("trade.buy.buyMetalAmount", { metal: metalLabel, amount: formatBDT(breakdown?.totalPayableBDT ?? amountBDT) })
+            : t("trade.buy.buyMetal", { metal: metalLabel })}
       </Button>
     </form>
     </Form>
@@ -263,6 +292,8 @@ function BuyForm({ metal, product }: { metal: Metal; product: TradeProduct }) {
  * per-SKU lots. */
 function SellForm({ metal }: { metal: Metal }) {
   const router = useRouter();
+  const { t } = useTranslation();
+  const metalLabel = t(METAL_LABEL_KEY[metal]);
   const [karat, setKarat] = useState<GoldKarat>(22);
   const { data: rateData } = useMetalRate(metal);
   const { data: walletData } = useWallet();
@@ -283,7 +314,7 @@ function SellForm({ metal }: { metal: Metal }) {
 
   function selectPayout(key: string, enabled: boolean) {
     if (!enabled) {
-      toast.info("Coming soon — payouts go to your Gold.bd Wallet for now.");
+      toast.info(t("trade.sell.comingSoon"));
       return;
     }
     setPayoutKey(key);
@@ -292,21 +323,21 @@ function SellForm({ metal }: { metal: Metal }) {
   async function onSubmit(values: { value: number }) {
     const parsed = tradeGramsSchema(metal, "sell").safeParse(values.value);
     if (!parsed.success) {
-      form.setError("value", { message: parsed.error.issues[0]?.message ?? "Enter a valid weight" });
+      form.setError("value", { message: parsed.error.issues[0]?.message ?? t("trade.sell.enterValidWeight") });
       return;
     }
     if (values.value > available) {
-      form.setError("value", { message: `You only hold ${available.toFixed(3)} g` });
+      form.setError("value", { message: t("trade.sell.onlyHold", { amount: available.toFixed(3) }) });
       return;
     }
 
     try {
       await sell.mutateAsync(values.value);
-      toast.success("Sale completed");
+      toast.success(t("trade.sell.saleCompleted"));
       form.reset({ value: 0.5 });
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Sale failed");
+      toast.error(error instanceof ApiError ? error.message : t("trade.sell.saleFailed"));
     }
   }
 
@@ -319,12 +350,12 @@ function SellForm({ metal }: { metal: Metal }) {
         name="value"
         render={({ field }) => (
           <FormItem className="gap-4 rounded-2xl border border-gold/25 bg-linear-to-b from-gold/8 to-transparent px-4 py-5 text-center">
-            <SectionLabel>You are selling</SectionLabel>
+            <SectionLabel>{t("trade.sell.youAreSelling")}</SectionLabel>
             <div className="flex items-center justify-center gap-1.5">
               <FormControl>
                 <Input
                   type="number"
-                  aria-label="Weight to sell in grams"
+                  aria-label={t("trade.sell.ariaWeight")}
                   min="0"
                   step="0.001"
                   {...field}
@@ -338,7 +369,7 @@ function SellForm({ metal }: { metal: Metal }) {
               <FormMessage className="text-center" />
             ) : (
               <p className="text-xs text-muted-foreground">
-                of {available.toFixed(3)} g available · {METAL_LABEL[metal]}
+                {t("trade.sell.ofAvailable", { available: available.toFixed(3), metal: metalLabel })}
               </p>
             )}
 
@@ -355,7 +386,7 @@ function SellForm({ metal }: { metal: Metal }) {
       />
 
       <div className="space-y-1.5">
-        <SectionLabel>Receive payout via</SectionLabel>
+        <SectionLabel>{t("trade.sell.receivePayoutVia")}</SectionLabel>
         <div className="grid gap-1.5">
           {PAYOUT_METHODS.map((m) => {
             const Icon = m.icon;
@@ -379,7 +410,7 @@ function SellForm({ metal }: { metal: Metal }) {
                 </span>
                 {!m.enabled && (
                   <Badge variant="secondary" className="text-[9px]">
-                    Soon
+                    {t("trade.sell.soon")}
                   </Badge>
                 )}
               </Button>
@@ -388,10 +419,16 @@ function SellForm({ metal }: { metal: Metal }) {
         </div>
       </div>
 
-      <SummaryPanel total={<SummaryRow label="You get" value={formatBDT(payout.netPayoutBDT)} strong />}>
-        <SummaryRow label={`Sell price (${METAL_LABEL[metal]})`} value={fineRate !== null ? `${formatBDT(fineRate)}/g` : "…"} />
-        <SummaryRow label="Weight" value={`${grams.toFixed(3)} g`} />
-        <SummaryRow label={`Spread (${(SELL_SPREAD_RATE * 100).toFixed(0)}%)`} value={`-${formatBDT(payout.spreadBDT)}`} />
+      <SummaryPanel total={<SummaryRow label={t("trade.sell.youGet")} value={formatBDT(payout.netPayoutBDT)} strong />}>
+        <SummaryRow
+          label={t("trade.sell.sellPrice", { metal: metalLabel })}
+          value={fineRate !== null ? `${formatBDT(fineRate)}/g` : "…"}
+        />
+        <SummaryRow label={t("trade.sell.weight")} value={`${grams.toFixed(3)} g`} />
+        <SummaryRow
+          label={t("trade.sell.spread", { pct: (SELL_SPREAD_RATE * 100).toFixed(0) })}
+          value={`-${formatBDT(payout.spreadBDT)}`}
+        />
       </SummaryPanel>
 
       <div className="space-y-1.5 text-center">
@@ -402,7 +439,9 @@ function SellForm({ metal }: { metal: Metal }) {
           disabled={form.formState.isSubmitting || grams <= 0 || exceedsBalance || fineRate === null}
         >
           <ArrowDownRight />
-          {form.formState.isSubmitting ? "Processing…" : `Sell ${METAL_LABEL[metal]} · ${formatBDT(payout.netPayoutBDT)}`}
+          {form.formState.isSubmitting
+            ? t("trade.buy.processing")
+            : t("trade.sell.sellMetalAmount", { metal: metalLabel, amount: formatBDT(payout.netPayoutBDT) })}
         </Button>
         {activePayout && <p className="text-xs text-muted-foreground">{activePayout.note}</p>}
       </div>
@@ -422,6 +461,8 @@ function SellForm({ metal }: { metal: Metal }) {
  * owned by the page so the chart and trade form stay in step.
  */
 export function TradeCard({ metal }: { metal: Metal; onMetalChange: (metal: Metal) => void }) {
+  const { t } = useTranslation();
+  const metalLabel = t(METAL_LABEL_KEY[metal]);
   const [open, setOpen] = useState(false);
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const product = TRADE_PRODUCTS.find((p) => p.metal === metal)!;
@@ -436,11 +477,11 @@ export function TradeCard({ metal }: { metal: Metal; onMetalChange: (metal: Meta
       <div className="flex items-center gap-2">
         <Button variant="gold-solid" size="sm" onClick={() => openDrawer("buy")}>
           <ArrowUpRight />
-          Buy {METAL_LABEL[metal]}
+          {t("trade.buy.buyMetal", { metal: metalLabel })}
         </Button>
         <Button variant="outline" size="sm" onClick={() => openDrawer("sell")}>
           <ArrowDownRight />
-          Sell {METAL_LABEL[metal]}
+          {t("trade.drawer.sell")} {metalLabel}
         </Button>
       </div>
 
@@ -450,21 +491,23 @@ export function TradeCard({ metal }: { metal: Metal; onMetalChange: (metal: Meta
             <div className="flex items-center gap-3">
               <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-gold/25 bg-gold/10 text-gold-accent"><Gem className="size-6" strokeWidth={1.5} /></span>
               <div>
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold-accent">Your next investment</p>
-                <SheetTitle className="text-xl font-semibold">Trade {METAL_LABEL[metal]}</SheetTitle>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold-accent">
+                  {t("trade.drawer.yourNextInvestment")}
+                </p>
+                <SheetTitle className="text-xl font-semibold">{t("trade.drawer.tradeMetal", { metal: metalLabel })}</SheetTitle>
               </div>
             </div>
-            <SheetDescription className="text-xs leading-relaxed">A little today. More for tomorrow. Buy and sell at the live rate.</SheetDescription>
+            <SheetDescription className="text-xs leading-relaxed">{t("trade.drawer.tagline")}</SheetDescription>
           </SheetHeader>
 
           <div className="p-4 sm:p-6">
             <Tabs value={side} onValueChange={(v) => setSide(v as "buy" | "sell")}>
-              <TabsList aria-label="Trade direction" className={TAB_LIST}>
+              <TabsList aria-label={t("trade.drawer.tradeDirection")} className={TAB_LIST}>
                 <TabsTrigger value="buy" className={TAB_TRIGGER}>
-                  <ArrowUpRight className="size-4" /> Buy
+                  <ArrowUpRight className="size-4" /> {t("trade.drawer.buy")}
                 </TabsTrigger>
                 <TabsTrigger value="sell" className={TAB_TRIGGER}>
-                  <ArrowDownRight className="size-4" /> Sell
+                  <ArrowDownRight className="size-4" /> {t("trade.drawer.sell")}
                 </TabsTrigger>
               </TabsList>
 

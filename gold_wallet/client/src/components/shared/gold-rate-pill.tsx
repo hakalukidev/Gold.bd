@@ -11,30 +11,32 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatBDT } from "@/lib/format";
 import { BHORI_IN_GRAMS } from "@/lib/gold-fees";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 /** Click cycles the price through these weights. */
 const UNITS = [
-  { key: "gram", label: "/g", grams: 1 },
-  { key: "bhori", label: "/bhori", grams: BHORI_IN_GRAMS },
-  { key: "tenGram", label: "/10g", grams: 10 },
+  { key: "gram", labelKey: "goldRatePill.unitGram", grams: 1 },
+  { key: "bhori", labelKey: "goldRatePill.unitBhori", grams: BHORI_IN_GRAMS },
+  { key: "tenGram", labelKey: "goldRatePill.unitTenGram", grams: 10 },
 ] as const;
 
 type UnitKey = (typeof UNITS)[number]["key"];
+type Translate = ReturnType<typeof useTranslation>["t"];
 
 /** "2m ago" / "just now" for the sync button's tooltip and caption — how long
  * since wallet_server actually last pulled this reading from BAJUS
  * (`syncedAt`), not how long since this component last rendered it, and not
  * how stale BAJUS's own published figure is (`reportedAt` — those can differ
  * by hours whenever BAJUS hasn't updated their number between our polls). */
-function relativeSyncLabel(iso: string | undefined): string {
-  if (!iso) return "never synced";
+function relativeSyncLabel(t: Translate, iso: string | undefined): string {
+  if (!iso) return t("goldRatePill.neverSynced");
   const diffMs = Date.now() - new Date(iso).getTime();
-  if (diffMs < 60_000) return "just now";
+  if (diffMs < 60_000) return t("goldRatePill.justNow");
   const minutes = Math.floor(diffMs / 60_000);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return t("goldRatePill.minutesAgo", { n: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 24) return t("goldRatePill.hoursAgo", { n: hours });
+  return t("goldRatePill.daysAgo", { n: Math.floor(hours / 24) });
 }
 
 /** "Live ৳21,839/g ▲0.42%" chip for the dashboard top bar, with a "sync now"
@@ -47,6 +49,7 @@ function relativeSyncLabel(iso: string | undefined): string {
  * flashing ৳0/g before the real rate arrives. */
 export function GoldRatePill({ className }: { className?: string }) {
   const [unitKey, setUnitKey] = useState<UnitKey>("gram");
+  const { t } = useTranslation();
   const { data: rate, isLoading } = useGoldRate();
   const { data: history } = useGoldRateHistory();
   const sync = useSyncRates();
@@ -68,11 +71,11 @@ export function GoldRatePill({ className }: { className?: string }) {
   // Whole taka only — the decimals of a per-vori price don't fit the chrome.
   const value = formatBDT(pricePerGram * unit.grams).replace(/\.\d+$/, "");
 
-  const syncedLabel = relativeSyncLabel(rate?.syncedAt ?? undefined);
+  const syncedLabel = relativeSyncLabel(t, rate?.syncedAt ?? undefined);
 
   function handleSync() {
     sync.mutate(undefined, {
-      onError: (error) => toast.error(error instanceof ApiError ? error.message : "Couldn't sync — try again"),
+      onError: (error) => toast.error(error instanceof ApiError ? error.message : t("goldRatePill.syncError")),
     });
   }
 
@@ -86,8 +89,13 @@ export function GoldRatePill({ className }: { className?: string }) {
       <button
         type="button"
         onClick={() => setUnitKey(next.key)}
-        title={`Live 22K gold rate — show price ${next.label}`}
-        aria-label={`Live gold rate ${value} ${unit.label}, ${changePct.toFixed(2)} percent today — show price ${next.label}`}
+        title={t("goldRatePill.titlePrice", { unit: t(next.labelKey) })}
+        aria-label={t("goldRatePill.ariaPrice", {
+          value,
+          unit: t(unit.labelKey),
+          change: changePct.toFixed(2),
+          next: t(next.labelKey),
+        })}
         className="flex items-center gap-1.5 rounded-full transition-colors hover:bg-gold/20 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         {/* Pulsing green dot = the rate is live/polling, not a frozen snapshot. */}
@@ -95,7 +103,7 @@ export function GoldRatePill({ className }: { className?: string }) {
           <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-75" />
           <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
         </span>
-        <span className="text-muted-foreground">Live</span>
+        <span className="text-muted-foreground">{t("goldRatePill.live")}</span>
         {/* Fixed min-width so cycling units doesn't shuffle the top bar around. */}
         <span className="flex min-w-22 items-center justify-end text-right font-bold text-gold tabular-nums">
           {isLoading ? (
@@ -103,7 +111,7 @@ export function GoldRatePill({ className }: { className?: string }) {
           ) : (
             <>
               {value}
-              <span className="font-medium text-gold/70">{unit.label}</span>
+              <span className="font-medium text-gold/70">{t(unit.labelKey)}</span>
             </>
           )}
         </span>
@@ -133,8 +141,8 @@ export function GoldRatePill({ className }: { className?: string }) {
         type="button"
         onClick={handleSync}
         disabled={sync.isPending}
-        title={`Synced ${syncedLabel} — click to sync now`}
-        aria-label={`Rate last synced ${syncedLabel} — sync now`}
+        title={t("goldRatePill.titleSync", { synced: syncedLabel })}
+        aria-label={t("goldRatePill.ariaSync", { synced: syncedLabel })}
         className="flex items-center gap-1 rounded-full text-muted-foreground transition-colors hover:text-gold focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60"
       >
         <RefreshCw className={cn("size-3", sync.isPending && "animate-spin")} aria-hidden="true" />

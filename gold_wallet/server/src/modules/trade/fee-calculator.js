@@ -5,38 +5,42 @@
  * comment says as much: "no backend accepts this breakdown"); trusting a
  * client-computed total would let a tampered request pay/receive whatever
  * it likes, so this module is now the one place a trade's price is actually
- * decided. Keep these constants in sync with gold-fees.ts if the fee model
- * ever changes — there's no shared package between the two repos.
+ * decided. Keep the DEFAULTS below in sync with gold-fees.ts if the fee
+ * model's starting point ever changes — there's no shared package between
+ * the two repos. The live rates themselves are admin-editable (see
+ * platform-settings.repository.js) — trade.service.js fetches them and
+ * passes them in as `settings` rather than this module reading a constant.
  */
 const BHORI_IN_GRAMS = 11.664;
-const GOVT_GOLD_TAX_PER_BHORI_BDT = 2500;
-const TRANSACTION_CHARGE_RATE = 0.015;
-const SELL_SPREAD_RATE = 0.02;
+
+const DEFAULTS = {
+  govtGoldTaxPerBhoriBdt: 2500,
+  transactionChargeRate: 0.015,
+  sellSpreadRate: 0.02,
+};
 
 /** Buy side: price + govt. gold tax (gold only, charged per bhori) + a flat
  * transaction charge on the traded amount. */
-function computeBuyBreakdown(grams, pricePerGramBDT, metal) {
+function computeBuyBreakdown(grams, pricePerGramBDT, metal, settings = DEFAULTS) {
   const amountBDT = grams * pricePerGramBDT;
-  const govtTaxBDT = metal === "gold" ? (grams / BHORI_IN_GRAMS) * GOVT_GOLD_TAX_PER_BHORI_BDT : 0;
-  const transactionChargeBDT = amountBDT * TRANSACTION_CHARGE_RATE;
+  const govtTaxBDT = metal === "gold" ? (grams / BHORI_IN_GRAMS) * settings.govtGoldTaxPerBhoriBdt : 0;
+  const transactionChargeBDT = amountBDT * settings.transactionChargeRate;
   const totalPayableBDT = amountBDT + govtTaxBDT + transactionChargeBDT;
   return { amountBDT, govtTaxBDT, transactionChargeBDT, totalPayableBDT };
 }
 
 /** Sell side: a buy/sell spread rather than a flat charge — payout quoted
  * below the market price. */
-function computeSellPayout(grams, pricePerGramBDT) {
+function computeSellPayout(grams, pricePerGramBDT, settings = DEFAULTS) {
   const grossBDT = grams * pricePerGramBDT;
-  const spreadBDT = grossBDT * SELL_SPREAD_RATE;
+  const spreadBDT = grossBDT * settings.sellSpreadRate;
   const netPayoutBDT = grossBDT - spreadBDT;
   return { grossBDT, spreadBDT, netPayoutBDT };
 }
 
 module.exports = {
   BHORI_IN_GRAMS,
-  GOVT_GOLD_TAX_PER_BHORI_BDT,
-  TRANSACTION_CHARGE_RATE,
-  SELL_SPREAD_RATE,
+  DEFAULTS,
   computeBuyBreakdown,
   computeSellPayout,
 };

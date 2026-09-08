@@ -3,6 +3,7 @@ const withTransaction = require("../../db/with-transaction");
 const walletRepo = require("../../repositories/wallet.repository");
 const ledgerRepo = require("../../repositories/ledger.repository");
 const metalRateRepo = require("../../repositories/metal-rate.repository");
+const platformSettingsRepo = require("../../repositories/platform-settings.repository");
 const feeCalc = require("./fee-calculator");
 
 // Same anchor grade rate.controller.js prices everything off — BAJUS's real
@@ -47,7 +48,13 @@ async function buy(userId, metal, grams, idempotencyKey, karat = 22) {
   const purity = metal === "gold" ? karat / 22 : 1;
   const balanceGrams = grams * purity;
   const pricePerGramBDT = (await getRateOrThrow(metal)) * purity;
-  const { govtTaxBDT, transactionChargeBDT, totalPayableBDT } = feeCalc.computeBuyBreakdown(grams, pricePerGramBDT, metal);
+  const settings = await platformSettingsRepo.getFeeSettings();
+  const { govtTaxBDT, transactionChargeBDT, totalPayableBDT } = feeCalc.computeBuyBreakdown(
+    grams,
+    pricePerGramBDT,
+    metal,
+    settings
+  );
 
   return withIdempotency(userId, idempotencyKey, () =>
     withTransaction(async (client) => {
@@ -83,7 +90,8 @@ async function sell(userId, metal, grams, idempotencyKey, karat = 22) {
   const purity = metal === "gold" ? karat / 22 : 1;
   const balanceGrams = grams * purity;
   const pricePerGramBDT = (await getRateOrThrow(metal)) * purity;
-  const { spreadBDT, netPayoutBDT } = feeCalc.computeSellPayout(grams, pricePerGramBDT);
+  const settings = await platformSettingsRepo.getFeeSettings();
+  const { spreadBDT, netPayoutBDT } = feeCalc.computeSellPayout(grams, pricePerGramBDT, settings);
 
   return withIdempotency(userId, idempotencyKey, () =>
     withTransaction(async (client) => {

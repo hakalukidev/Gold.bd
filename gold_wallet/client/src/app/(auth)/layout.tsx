@@ -1,12 +1,15 @@
+"use client";
+
 import Image from "next/image";
 import { COMMERCE_URL } from "@/lib/site-links";
 import { Gem, Landmark, ShieldCheck, Zap } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 const TRUST_POINTS = [
-  { icon: ShieldCheck, label: "100% 24K backed" },
-  { icon: Landmark, label: "Insured vault" },
-  { icon: Zap, label: "Instant buy & sell" },
-];
+  { icon: ShieldCheck, labelKey: "authLayout.trustPoints.backed" },
+  { icon: Landmark, labelKey: "authLayout.trustPoints.insuredVault" },
+  { icon: Zap, labelKey: "authLayout.trustPoints.instantBuySell" },
+] as const;
 
 /** Split-screen auth shell: a black brand panel carrying the gold illustration
  * on the left, the form column on the right. The panel is desktop-only — below
@@ -16,6 +19,7 @@ const TRUST_POINTS = [
  * brand panel always fills the screen; the form column scrolls on its own when
  * a taller form (register) or a short viewport needs it. */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   return (
     <main className="flex h-svh flex-1 flex-col overflow-hidden lg:grid lg:grid-cols-[1.05fr_1fr] xl:grid-cols-[1.15fr_1fr]">
       <aside className="relative hidden h-full flex-col justify-between overflow-hidden bg-ink p-10 xl:p-14 lg:flex">
@@ -23,7 +27,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             kept legible by the ink scrim gradients below. */}
         <Image
           src="/login_banner.png"
-          alt="Gold coins, bars and a savings jar"
+          alt={t("authLayout.imageAlt")}
           fill
           priority
           sizes="(min-width: 1024px) 55vw, 100vw"
@@ -56,19 +60,16 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </a>
 
         <div className="relative">
-          <p className="font-display text-[11px] tracking-[0.28em] text-gold uppercase">Trusted gold. Pure value.</p>
+          <p className="font-display text-[11px] tracking-[0.28em] text-gold uppercase">{t("authLayout.tagline")}</p>
           <h2 className="mt-3 max-w-md text-3xl leading-tight font-bold text-balance text-white xl:text-4xl">
-            Own real gold, digitally.
+            {t("authLayout.heading")}
           </h2>
-          <p className="mt-3 max-w-md text-sm text-white/75">
-            Buy, sell and hold 24K gold from your phone — every gram backed by metal in an insured vault and tracked on
-            an auditable ledger.
-          </p>
+          <p className="mt-3 max-w-md text-sm text-white/75">{t("authLayout.description")}</p>
           <ul className="mt-7 flex flex-wrap gap-x-6 gap-y-3">
-            {TRUST_POINTS.map(({ icon: Icon, label }) => (
-              <li key={label} className="flex items-center gap-2 text-xs font-medium text-white/85">
+            {TRUST_POINTS.map(({ icon: Icon, labelKey }) => (
+              <li key={labelKey} className="flex items-center gap-2 text-xs font-medium text-white/85">
                 <Icon className="size-4 text-gold" strokeWidth={1.75} />
-                {label}
+                {t(labelKey)}
               </li>
             ))}
           </ul>
