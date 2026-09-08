@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { DigitalGoldPanel } from "@/components/forms/digital-gold-panel";
 import { PhysicalGoldPanel } from "@/components/forms/physical-gold-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 type BuyTab = "digital" | "physical";
 
@@ -18,27 +19,28 @@ type BuyTab = "digital" | "physical";
  * cash wallet — see lib/trade-products.ts for the SKU catalog they share.
  */
 export function BuyGoldPanel() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<BuyTab>("digital");
 
   return (
     <div data-buy-page className="w-full min-w-0 space-y-4">
-      <PageHeader title="Buy gold & silver" />
+      <PageHeader title={t("buyGoldPanel.title")} />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as BuyTab)}>
-        <TabsList aria-label="Purchase type" className="w-full max-w-sm rounded-xl border border-border/60 bg-muted/40 p-1 group-data-horizontal/tabs:h-11">
+        <TabsList aria-label={t("buyGoldPanel.purchaseType")} className="w-full max-w-sm rounded-xl border border-border/60 bg-muted/40 p-1 group-data-horizontal/tabs:h-11">
           <TabsTrigger
             value="digital"
             className="flex-1 gap-2 rounded-xl py-2 data-active:border-gold/40 data-active:bg-gold/15 data-active:text-gold-accent dark:data-active:border-gold/40 dark:data-active:bg-gold/15 dark:data-active:text-gold-accent"
           >
             <Sparkles className="size-4" strokeWidth={1.75} />
-            Digital Gold
+            {t("buyGoldPanel.digitalGold")}
           </TabsTrigger>
           <TabsTrigger
             value="physical"
             className="flex-1 gap-2 rounded-xl py-2 data-active:border-gold/40 data-active:bg-gold/15 data-active:text-gold-accent dark:data-active:border-gold/40 dark:data-active:bg-gold/15 dark:data-active:text-gold-accent"
           >
             <Gem className="size-4" strokeWidth={1.75} />
-            Physical Gold
+            {t("buyGoldPanel.physicalGold")}
           </TabsTrigger>
         </TabsList>
 

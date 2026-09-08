@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { walletPaymentsApi, ApiError } from "@/lib/wallet-payments-api";
 import { formatBDT } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import type { PaymentStatusResponse } from "@/types";
 
 /**
@@ -36,10 +37,11 @@ export default function WalletPaymentStatusPage({ params }: { params: Promise<{ 
 }
 
 function VerifyingBody() {
+  const { t } = useTranslation();
   return (
     <>
       <Spinner className="mx-auto size-8 text-gold" />
-      <p className="mt-4 text-sm text-muted-foreground">Verifying your payment…</p>
+      <p className="mt-4 text-sm text-muted-foreground">{t("paymentStatus.verifying")}</p>
     </>
   );
 }
@@ -58,6 +60,7 @@ function PaymentStatusContent({ routeStatus }: { routeStatus: string }) {
   const searchParams = useSearchParams();
   const tranId = searchParams.get("tran_id");
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const [payment, setPayment] = useState<PaymentStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,11 +79,12 @@ function PaymentStatusContent({ routeStatus }: { routeStatus: string }) {
         if (data.status === "VALID") queryClient.invalidateQueries({ queryKey: ["wallet"] });
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "Could not verify this payment");
+        if (!cancelled) setError(err instanceof ApiError ? err.message : t("paymentStatus.couldNotVerify"));
       });
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` is stable enough per render; adding it would re-fire the fetch every render
   }, [tranId, queryClient]);
 
   if (!tranId) {
@@ -91,8 +95,8 @@ function PaymentStatusContent({ routeStatus }: { routeStatus: string }) {
             <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-destructive/15 text-destructive">
               <AlertTriangle className="size-7" />
             </span>
-            <h1 className="mt-4 text-xl font-bold">Payment failed</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Missing transaction reference</p>
+            <h1 className="mt-4 text-xl font-bold">{t("paymentStatus.failed")}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{t("paymentStatus.missingReference")}</p>
           </>
         }
       />
@@ -116,27 +120,32 @@ function PaymentStatusContent({ routeStatus }: { routeStatus: string }) {
           </span>
           <h1 className="mt-4 text-xl font-bold">
             {error
-              ? "Payment failed"
+              ? t("paymentStatus.failed")
               : display === "success"
-                ? "Payment successful"
+                ? t("paymentStatus.successful")
                 : display === "cancel"
-                  ? "Payment cancelled"
-                  : "Payment failed"}
+                  ? t("paymentStatus.cancelled")
+                  : t("paymentStatus.failed")}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {error ??
               (display === "success"
-                ? "Your SSLCommerz payment is confirmed. Balance updates land in your wallet shortly."
+                ? t("paymentStatus.successBody")
                 : display === "cancel"
-                  ? "You cancelled the payment — no money was taken."
-                  : "We couldn't complete your payment. No money was taken.")}
+                  ? t("paymentStatus.cancelBody")
+                  : t("paymentStatus.failBody"))}
           </p>
           {payment && (
             <p className="mt-4 text-xs text-muted-foreground">
               {formatBDT(payment.amountBDT)} · <span className="font-mono">{payment.tranId}</span>
             </p>
           )}
-          <Button variant="gold-solid" className="mt-6 w-full" nativeButton={false} render={<Link href="/wallet">Back to wallet</Link>} />
+          <Button
+            variant="gold-solid"
+            className="mt-6 w-full"
+            nativeButton={false}
+            render={<Link href="/wallet">{t("paymentStatus.backToWallet")}</Link>}
+          />
         </>
       }
     />

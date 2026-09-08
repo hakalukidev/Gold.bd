@@ -20,31 +20,39 @@ import { formatBDT, formatDateTime } from "@/lib/format";
 import { ANA_IN_GRAMS, BHORI_IN_GRAMS } from "@/lib/gold-fees";
 import type { Metal } from "@/lib/mock-rates";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
-import { METAL_LABEL, METALS } from "@/lib/trade-products";
-import { CREDIT_TYPES, TYPE_ICON, TYPE_LABEL } from "@/lib/transaction-labels";
+import { METAL_LABEL_KEY, METALS } from "@/lib/trade-products";
+import { CREDIT_TYPES, STATUS_LABEL_KEY, TYPE_ICON, TYPE_LABEL_KEY } from "@/lib/transaction-labels";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import type { Karat, MetalRateSummary } from "@/types";
 
 /**
  * Grades the price graph can be filtered to — the real figures BAJUS reports
- * for each, fetched with `?karat=` (see use-metal-rate.ts).
+ * for each, fetched with `?karat=` (see use-metal-rate.ts). 22K/21K/18K are
+ * universal notation kept as-is in both locales; only "Sonaton" translates.
  */
 const KARATS: { key: Karat; label: string }[] = [
   { key: "22k", label: "22K" },
   { key: "21k", label: "21K" },
   { key: "18k", label: "18K" },
-  { key: "sonaton", label: "Sonaton" },
+  { key: "sonaton", label: "market.karat.sonaton" },
 ];
 
-const KARAT_LABEL: Record<Karat, string> = Object.fromEntries(KARATS.map((k) => [k.key, k.label])) as Record<Karat, string>;
+// `KARAT_LABEL[key]` values are the same translation-dot-path-or-literal
+// strings as KARATS' `label` above — always resolve them with t() (see
+// PillToggle's note on why a plain literal is safe to pass through it).
+const KARAT_LABEL: Record<Karat, string> = Object.fromEntries(KARATS.map((k) => [k.key, k.label])) as Record<
+  Karat,
+  string
+>;
 
 /** Units the headline price can be quoted in — grams (the wallet's own unit),
  * or vori/ana, the units Bangladeshi gold buyers actually think in (16 ana
  * to a vori). */
 const PRICE_UNITS = [
-  { key: "gram", label: "Gram", grams: 1 },
-  { key: "vori", label: "Vori", grams: BHORI_IN_GRAMS },
-  { key: "ana", label: "Ana", grams: ANA_IN_GRAMS },
+  { key: "gram", label: "market.priceUnit.gram", grams: 1 },
+  { key: "vori", label: "market.priceUnit.vori", grams: BHORI_IN_GRAMS },
+  { key: "ana", label: "market.priceUnit.ana", grams: ANA_IN_GRAMS },
 ] as const;
 
 type UnitKey = (typeof PRICE_UNITS)[number]["key"];
@@ -72,11 +80,16 @@ function PillToggle<T extends string>({
   onChange,
   ariaLabel,
 }: {
+  /** `label` is either a translation dot-path or a locale-invariant literal
+   * (e.g. "22K", "1W") — useTranslation()'s t() falls back to returning an
+   * unrecognized path verbatim, so passing a plain literal through it is
+   * safe and renders unchanged in both locales. */
   options: { key: T; label: string }[];
   value: T;
   onChange: (key: T) => void;
   ariaLabel: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div role="group" aria-label={ariaLabel} className="flex rounded-md border p-0.5">
       {options.map((opt) => (
@@ -90,7 +103,7 @@ function PillToggle<T extends string>({
             value === opt.key ? "bg-gold/15 text-gold" : "text-muted-foreground hover:text-foreground"
           )}
         >
-          {opt.label}
+          {t(opt.label)}
         </button>
       ))}
     </div>
@@ -120,13 +133,15 @@ interface HoldingRow {
  * balance (or MOCK_WALLET's zero, once there's no backend to answer it)
  * arrives. */
 function HoldingsTable({ rows, totalBDT, walletLoading }: { rows: HoldingRow[]; totalBDT: number; walletLoading: boolean }) {
+  const { t } = useTranslation();
   return (
     <Card>
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle>Your holdings</CardTitle>
+          <CardTitle>{t("market.holdings.title")}</CardTitle>
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
-            Total {walletLoading ? <Skeleton className="h-3.5 w-16" /> : <span className="font-semibold text-foreground">{formatBDT(totalBDT)}</span>}
+            {t("market.holdings.total")}{" "}
+            {walletLoading ? <Skeleton className="h-3.5 w-16" /> : <span className="font-semibold text-foreground">{formatBDT(totalBDT)}</span>}
           </span>
         </div>
       </CardHeader>
@@ -134,11 +149,11 @@ function HoldingsTable({ rows, totalBDT, walletLoading }: { rows: HoldingRow[]; 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Asset</TableHead>
-              <TableHead className="text-right">24h</TableHead>
-              <TableHead className="text-right">Balance</TableHead>
-              <TableHead className="text-right">Value</TableHead>
-              <TableHead className="text-right">Share</TableHead>
+              <TableHead>{t("market.holdings.colAsset")}</TableHead>
+              <TableHead className="text-right">{t("market.holdings.col24h")}</TableHead>
+              <TableHead className="text-right">{t("market.holdings.colBalance")}</TableHead>
+              <TableHead className="text-right">{t("market.holdings.colValue")}</TableHead>
+              <TableHead className="text-right">{t("market.holdings.colShare")}</TableHead>
               <TableHead className="text-right">&nbsp;</TableHead>
             </TableRow>
           </TableHeader>
@@ -183,7 +198,12 @@ function HoldingsTable({ rows, totalBDT, walletLoading }: { rows: HoldingRow[]; 
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground tabular-nums">{share.toFixed(1)}%</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={row.href}>Manage</Link>} />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      nativeButton={false}
+                      render={<Link href={row.href}>{t("market.holdings.manage")}</Link>}
+                    />
                   </TableCell>
                 </TableRow>
               );
@@ -217,6 +237,7 @@ function HoldingsTable({ rows, totalBDT, walletLoading }: { rows: HoldingRow[]; 
  * queries are real, so nothing here reads from a mock feed anymore.
  */
 export default function MarketPage() {
+  const { t } = useTranslation();
   const [metal, setMetal] = useState<Metal>("gold");
   const [unitKey, setUnitKey] = useState<UnitKey>("gram");
   const [rangeKey, setRangeKey] = useState<RangeKey>("1M");
@@ -277,8 +298,8 @@ export default function MarketPage() {
   const holdingRows: HoldingRow[] = [
     {
       key: "cash",
-      name: "Cash wallet",
-      detail: "Spendable instantly",
+      name: t("wallet.myAccounts.cashWallet"),
+      detail: t("wallet.myAccounts.spendableInstantly"),
       icon: Banknote,
       dayChangePct: null,
       balance: formatBDT(cashBDT),
@@ -287,7 +308,7 @@ export default function MarketPage() {
     },
     {
       key: "gold",
-      name: "Gold",
+      name: t(METAL_LABEL_KEY.gold),
       detail: `${formatBDT(goldPerGram)}/g 22K`,
       icon: Gem,
       dayChangePct: dayChangePct("gold"),
@@ -297,7 +318,7 @@ export default function MarketPage() {
     },
     {
       key: "silver",
-      name: "Silver",
+      name: t(METAL_LABEL_KEY.silver),
       detail: `${formatBDT(silverPerGram)}/g 22K`,
       icon: Coins,
       dayChangePct: dayChangePct("silver"),
@@ -307,21 +328,24 @@ export default function MarketPage() {
     },
   ];
 
+  const karatLabel = t(KARAT_LABEL[karatKey]);
+  const metalLabel = t(METAL_LABEL_KEY[metal]);
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Market"
-        description="Live gold and silver prices, what you hold, and one place to trade"
+        title={t("market.header.title")}
+        description={t("market.header.description")}
         titleAdornment={
           <div className="flex items-center gap-2">
             <PillToggle
-              ariaLabel="Metal"
-              options={METALS.map((m) => ({ key: m, label: METAL_LABEL[m] }))}
+              ariaLabel={t("market.ariaMetal")}
+              options={METALS.map((m) => ({ key: m, label: METAL_LABEL_KEY[m] }))}
               value={metal}
               onChange={setMetal}
             />
             <PillToggle
-              ariaLabel="Price unit"
+              ariaLabel={t("market.ariaPriceUnit")}
               options={PRICE_UNITS.map((u) => ({ key: u.key, label: u.label }))}
               value={unitKey}
               onChange={setUnitKey}
@@ -336,10 +360,10 @@ export default function MarketPage() {
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-sm font-medium text-muted-foreground">
-                {KARAT_LABEL[karatKey]} {METAL_LABEL[metal]} price
+                {t("market.priceCard.heading", { karat: karatLabel, metal: metalLabel })}
               </span>
               <PillToggle
-                ariaLabel="Time range"
+                ariaLabel={t("market.ariaTimeRange")}
                 options={RANGES.map((r) => ({ key: r.key, label: r.label }))}
                 value={rangeKey}
                 onChange={setRangeKey}
@@ -347,7 +371,7 @@ export default function MarketPage() {
             </div>
 
             <PillToggle
-              ariaLabel="Karat grade"
+              ariaLabel={t("market.ariaKaratGrade")}
               options={KARATS.map((k) => ({ key: k.key, label: k.label }))}
               value={karatKey}
               onChange={setKaratKey}
@@ -356,7 +380,7 @@ export default function MarketPage() {
             <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
               <p className="text-3xl font-bold tracking-tight tabular-nums">{formatBDT(latestPrice * unit.grams)}</p>
               <span className="pb-1 text-sm text-muted-foreground">
-                per {unit.label.toLowerCase()} · {KARAT_LABEL[karatKey]} {METAL_LABEL[metal]}
+                {t("market.priceCard.per", { unit: t(unit.label).toLowerCase() })} · {karatLabel} {metalLabel}
               </span>
               <span className="pb-1">
                 <DeltaChip pct={rangeChangePct} />
@@ -364,19 +388,18 @@ export default function MarketPage() {
             </div>
 
             {points.length < 2 ? (
-              <EmptyState icon={TrendingUp} title="No rate history yet" />
+              <EmptyState icon={TrendingUp} title={t("market.priceCard.noHistory")} />
             ) : (
               <MarketPriceChart
                 data={points}
                 holdingGrams={0}
                 color={METAL_CHART_COLOR[metal]}
-                metalLabel={`${KARAT_LABEL[karatKey]} ${METAL_LABEL[metal]}`}
+                metalLabel={`${karatLabel} ${metalLabel}`}
               />
             )}
 
             <p className="text-[11px] text-muted-foreground">
-              The real {KARAT_LABEL[karatKey]} rate BAJUS reports — your vault is valued at the platform&apos;s 22K anchor rate,
-              shown in Holdings below.
+              {t("market.priceCard.disclaimer", { karat: karatLabel })}
             </p>
           </CardContent>
         </Card>
@@ -386,7 +409,7 @@ export default function MarketPage() {
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle>Recent activity</CardTitle>
+              <CardTitle>{t("market.recentActivity.title")}</CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
@@ -395,7 +418,7 @@ export default function MarketPage() {
                 render={
                   <Link href="/transactions">
                     <ReceiptText />
-                    Transaction History
+                    {t("nav.transactionHistory")}
                   </Link>
                 }
               />
@@ -405,22 +428,22 @@ export default function MarketPage() {
             {transactions.length === 0 ? (
               <EmptyState
                 icon={ReceiptText}
-                title="No transactions yet"
-                description="Your buys, sells, deposits, and withdrawals will show up here."
+                title={t("market.recentActivity.noTransactions")}
+                description={t("market.recentActivity.noTransactionsDescription")}
               />
             ) : (
               <ul className="divide-y">
-                {transactions.slice(0, 5).map((t) => {
-                  const Icon = TYPE_ICON[t.type];
-                  const credit = CREDIT_TYPES.includes(t.type);
+                {transactions.slice(0, 5).map((tx) => {
+                  const Icon = TYPE_ICON[tx.type];
+                  const credit = CREDIT_TYPES.includes(tx.type);
                   return (
-                    <li key={t.id} className="flex items-center gap-3 py-2.5 text-sm">
+                    <li key={tx.id} className="flex items-center gap-3 py-2.5 text-sm">
                       <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold">
                         <Icon className="size-4" strokeWidth={1.75} />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{TYPE_LABEL[t.type]}</p>
-                        <p className="text-[11px] text-muted-foreground">{formatDateTime(t.createdAt)}</p>
+                        <p className="truncate font-medium">{t(TYPE_LABEL_KEY[tx.type])}</p>
+                        <p className="text-[11px] text-muted-foreground">{formatDateTime(tx.createdAt)}</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         <span
@@ -430,10 +453,10 @@ export default function MarketPage() {
                           )}
                         >
                           {credit ? "+" : "−"}
-                          {formatBDT(t.totalAmountBDT)}
+                          {formatBDT(tx.totalAmountBDT)}
                         </span>
-                        <Badge variant={t.status === "COMPLETED" ? "default" : t.status === "FAILED" ? "destructive" : "secondary"}>
-                          {t.status}
+                        <Badge variant={tx.status === "COMPLETED" ? "default" : tx.status === "FAILED" ? "destructive" : "secondary"}>
+                          {t(STATUS_LABEL_KEY[tx.status])}
                         </Badge>
                       </div>
                     </li>

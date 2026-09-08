@@ -14,6 +14,7 @@ import { markSignedIn, setAccessToken } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { OtpInput } from "@/components/shared/otp-input";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 // Step 2 of registration/login: wallet_server checks the code it texted in
 // step 1 and, only on a match, creates the account (REGISTER) or issues the
@@ -24,6 +25,7 @@ type OtpCodeInput = z.infer<typeof otpCodeSchema>;
 function VerifyOtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const phone = searchParams.get("phone") ?? "";
   const purpose = searchParams.get("purpose") === "REGISTER" ? "REGISTER" : "LOGIN";
   // Outside production, wallet_server hands the code back in-band (see
@@ -49,7 +51,7 @@ function VerifyOtpForm() {
       router.push("/wallet");
     } catch (error) {
       form.setError("code", {
-        message: error instanceof ApiError ? error.message : "Something went wrong. Please try again.",
+        message: error instanceof ApiError ? error.message : t("common.genericError"),
       });
     }
   }
@@ -59,10 +61,11 @@ function VerifyOtpForm() {
   if (!phone) {
     return (
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Nothing to verify</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("auth.verifyOtp.nothingTitle")}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          We don&apos;t have a phone number to verify a code against. Start from{" "}
-          {purpose === "REGISTER" ? "the sign-up" : "the sign-in"} form again.
+          {t("auth.verifyOtp.nothingBody", {
+            form: purpose === "REGISTER" ? t("auth.verifyOtp.signUpForm") : t("auth.verifyOtp.signInForm"),
+          })}
         </p>
         <Button
           variant="gold-solid"
@@ -70,7 +73,7 @@ function VerifyOtpForm() {
           nativeButton={false}
           render={
             <Link href={purpose === "REGISTER" ? "/register" : "/login"}>
-              {purpose === "REGISTER" ? "Back to sign up" : "Back to sign in"}
+              {purpose === "REGISTER" ? t("auth.verifyOtp.backToSignUp") : t("auth.verifyOtp.backToSignIn")}
             </Link>
           }
         />
@@ -85,19 +88,19 @@ function VerifyOtpForm() {
         className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" strokeWidth={1.75} />
-        Back
+        {t("auth.verifyOtp.back")}
       </Link>
       <span className="mt-5 flex size-10 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold">
         <MessageSquareText className="size-5" strokeWidth={1.75} />
       </span>
-      <h1 className="mt-5 text-3xl font-bold tracking-tight">Enter the code</h1>
+      <h1 className="mt-5 text-3xl font-bold tracking-tight">{t("auth.verifyOtp.title")}</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        We sent a 6-digit code to {phone ? <span className="font-medium text-foreground">{phone}</span> : "your phone"}.
+        {t("auth.verifyOtp.subtitle", {
+          phone: phone || t("auth.verifyOtp.yourPhone"),
+        })}
       </p>
       {devCode && (
-        <p className="mt-2 text-xs font-medium text-gold">
-          Dev mode: code auto-filled ({devCode}) — no SMS is sent outside production.
-        </p>
+        <p className="mt-2 text-xs font-medium text-gold">{t("auth.verifyOtp.devMode", { code: devCode })}</p>
       )}
 
       <Form {...form}>
@@ -107,7 +110,7 @@ function VerifyOtpForm() {
             name="code"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>6-digit code</FormLabel>
+                <FormLabel>{t("auth.verifyOtp.codeLabel")}</FormLabel>
                 <FormControl>
                   <OtpInput
                     name={field.name}
@@ -126,12 +129,14 @@ function VerifyOtpForm() {
             className="h-11 w-full rounded-md text-sm"
             disabled={form.formState.isSubmitting}
           >
-            {form.formState.isSubmitting ? "Verifying…" : "Verify"}
+            {form.formState.isSubmitting ? t("auth.verifyOtp.verifying") : t("auth.verifyOtp.verify")}
           </Button>
         </form>
       </Form>
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        Didn&apos;t get a code? Go back and submit the {purpose === "REGISTER" ? "registration" : "login"} form again to request a new one.
+        {t("auth.verifyOtp.noCode", {
+          form: purpose === "REGISTER" ? t("auth.verifyOtp.registrationForm") : t("auth.verifyOtp.loginForm"),
+        })}
       </p>
     </div>
   );

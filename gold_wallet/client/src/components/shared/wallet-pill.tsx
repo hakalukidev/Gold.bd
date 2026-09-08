@@ -8,12 +8,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatBDTCompact, formatGrams, formatUSDCompact, gramsToMg } from "@/lib/format";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 /** Click cycles the balance through these views. */
 const UNITS = ["BDT", "USD", "GOLD"] as const;
 type Unit = (typeof UNITS)[number];
 
-const UNIT_LABEL: Record<Unit, string> = { BDT: "taka", USD: "US dollars", GOLD: "grams of gold" };
+const UNIT_LABEL_KEY: Record<Unit, string> = {
+  BDT: "walletPill.unitTaka",
+  USD: "walletPill.unitUsDollars",
+  GOLD: "walletPill.unitGramsOfGold",
+};
 
 /** "Wallet 4,250 BDT" chip for the dashboard top bar — click it to show the
  * same balance in USD, then as the gold it would buy at today's rate, then back
@@ -25,6 +30,7 @@ const UNIT_LABEL: Record<Unit, string> = { BDT: "taka", USD: "US dollars", GOLD:
  * tick arrives. */
 export function WalletPill({ className }: { className?: string }) {
   const [unit, setUnit] = useState<Unit>("BDT");
+  const { t } = useTranslation();
   const { data: wallet, isLoading: walletLoading } = useWallet();
   const { data: rate } = useGoldRate();
   const { ratesPerUnit } = useFxRates();
@@ -47,14 +53,14 @@ export function WalletPill({ className }: { className?: string }) {
     <button
       type="button"
       onClick={() => setUnit(next)}
-      title={`Show in ${UNIT_LABEL[next]}`}
-      aria-label={`Wallet balance ${value} — show in ${UNIT_LABEL[next]}`}
+      title={t("walletPill.showIn", { unit: t(UNIT_LABEL_KEY[next]) })}
+      aria-label={t("walletPill.ariaBalance", { value, unit: t(UNIT_LABEL_KEY[next]) })}
       className={cn(
         "flex items-center gap-1.5 rounded-full border border-gold/20 bg-gold/10 px-3 py-1.5 text-xs transition-colors hover:bg-gold/20 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
         className
       )}
     >
-      <span className="text-muted-foreground">Wallet</span>
+      <span className="text-muted-foreground">{t("walletPill.label")}</span>
       {/* Fixed min-width so cycling units doesn't shuffle the top bar around. */}
       <span className="flex min-w-18 items-center justify-end text-right font-bold text-gold tabular-nums">
         {walletLoading ? <Skeleton className="h-3.5 w-14" /> : value}

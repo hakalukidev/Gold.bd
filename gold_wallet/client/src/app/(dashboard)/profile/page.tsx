@@ -17,6 +17,7 @@ import { useMe, useLogout } from "@/hooks/use-auth";
 import { referralCode, referralLink } from "@/lib/referral";
 import { clearSession } from "@/lib/session";
 import { MOCK_USER } from "@/lib/mock-user";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import type { KycStatus } from "@/types";
 
 // Purely a local preview — there's no `/api/auth/me` upload endpoint in this
@@ -32,11 +33,11 @@ const KYC_VARIANT: Record<KycStatus, "default" | "secondary" | "destructive" | "
   REJECTED: "destructive",
 };
 
-const KYC_LABEL: Record<KycStatus, string> = {
-  NOT_SUBMITTED: "Not verified",
-  PENDING: "KYC Pending",
-  APPROVED: "KYC Verified",
-  REJECTED: "KYC Rejected",
+const KYC_LABEL_KEY: Record<KycStatus, string> = {
+  NOT_SUBMITTED: "profile.kycLabel.notSubmitted",
+  PENDING: "profile.kycLabel.pending",
+  APPROVED: "profile.kycLabel.approved",
+  REJECTED: "profile.kycLabel.rejected",
 };
 
 function initials(name: string) {
@@ -52,6 +53,7 @@ function maskPhone(phone: string) {
 // (see CLAUDE.md), so it lives here as local component state.
 export default function ProfilePage() {
   const router = useRouter();
+  const { t, locale } = useTranslation();
   const { data } = useMe();
   const user = data ?? MOCK_USER;
   const logout = useLogout();
@@ -81,7 +83,7 @@ export default function ProfilePage() {
     e.target.value = ""; // so picking the same file again still fires onChange
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Choose an image file");
+      toast.error(t("profile.chooseImageFile"));
       return;
     }
 
@@ -113,23 +115,23 @@ export default function ProfilePage() {
 
   function saveNominee() {
     if (!nomineeName || !nomineePhone) {
-      toast.error("Enter at least the nominee's name and phone number");
+      toast.error(t("profile.nominee.missingFields"));
       return;
     }
     setNomineeSaved(true);
-    toast.success("Nominee details submitted for verification");
+    toast.success(t("profile.nominee.submitted"));
   }
 
   function copyInviteLink() {
     navigator.clipboard?.writeText(referralLink(user.id)).then(
-      () => toast.success("Invite link copied"),
-      () => toast.error("Couldn't copy — try again")
+      () => toast.success(t("profile.referral.copied")),
+      () => toast.error(t("profile.referral.copyError"))
     );
   }
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <PageHeader title="Profile & settings" description="Account, security, and preferences" action={<WalletBadge />} />
+      <PageHeader title={t("profile.header.title")} description={t("profile.header.description")} action={<WalletBadge />} />
 
       <Card>
         <CardContent className="flex items-center gap-4">
@@ -143,7 +145,7 @@ export default function ProfilePage() {
               className="absolute -right-1 -bottom-1 flex size-5 cursor-pointer items-center justify-center rounded-full border-2 border-card bg-gold text-ink transition-colors hover:bg-gold-light"
             >
               <Camera className="size-3" strokeWidth={2} />
-              <span className="sr-only">Upload profile photo</span>
+              <span className="sr-only">{t("profile.uploadPhoto")}</span>
             </label>
             <input
               id="profile-avatar-upload"
@@ -160,7 +162,7 @@ export default function ProfilePage() {
               {user.email ? ` · ${user.email}` : ""}
             </p>
             <Badge variant={KYC_VARIANT[user.kycStatus]} className="mt-1.5">
-              {KYC_LABEL[user.kycStatus]}
+              {t(KYC_LABEL_KEY[user.kycStatus])}
             </Badge>
           </div>
         </CardContent>
@@ -169,20 +171,36 @@ export default function ProfilePage() {
       <Card>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="font-semibold">Nominee details</p>
-            <Badge variant={nomineeSaved ? "secondary" : "outline"}>{nomineeSaved ? "Pending Verification" : "Not set"}</Badge>
+            <p className="font-semibold">{t("profile.nominee.title")}</p>
+            <Badge variant={nomineeSaved ? "secondary" : "outline"}>
+              {nomineeSaved ? t("profile.nominee.pendingVerification") : t("profile.nominee.notSet")}
+            </Badge>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Input value={nomineeName} onChange={(e) => setNomineeName(e.target.value)} placeholder="Nominee name" />
-            <Input value={nomineeRelation} onChange={(e) => setNomineeRelation(e.target.value)} placeholder="Relationship" />
-            <Input value={nomineePhone} onChange={(e) => setNomineePhone(e.target.value)} placeholder="Nominee phone" />
-            <Input value={nomineeNid} onChange={(e) => setNomineeNid(e.target.value)} placeholder="Nominee NID" />
+            <Input
+              value={nomineeName}
+              onChange={(e) => setNomineeName(e.target.value)}
+              placeholder={t("profile.nominee.namePlaceholder")}
+            />
+            <Input
+              value={nomineeRelation}
+              onChange={(e) => setNomineeRelation(e.target.value)}
+              placeholder={t("profile.nominee.relationPlaceholder")}
+            />
+            <Input
+              value={nomineePhone}
+              onChange={(e) => setNomineePhone(e.target.value)}
+              placeholder={t("profile.nominee.phonePlaceholder")}
+            />
+            <Input
+              value={nomineeNid}
+              onChange={(e) => setNomineeNid(e.target.value)}
+              placeholder={t("profile.nominee.nidPlaceholder")}
+            />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Your nominee will inherit your gold holdings and vaulted assets. Details are verified by our team before approval.
-          </p>
+          <p className="text-xs text-muted-foreground">{t("profile.nominee.description")}</p>
           <Button variant="gold-solid" onClick={saveNominee}>
-            Save &amp; submit for verification
+            {t("profile.nominee.save")}
           </Button>
         </CardContent>
       </Card>
@@ -190,15 +208,15 @@ export default function ProfilePage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardContent className="space-y-4">
-            <p className="font-semibold">Security</p>
+            <p className="font-semibold">{t("profile.security.title")}</p>
             <div className="flex items-center justify-between">
-              <span className="text-sm">Two-factor authentication</span>
+              <span className="text-sm">{t("profile.security.twoFactor")}</span>
               <Switch checked={twoFactor} onCheckedChange={setTwoFactor} />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm">Change PIN</span>
-              <Button variant="link" className="h-auto p-0 text-gold" onClick={() => toast.info("Coming soon")}>
-                Update
+              <span className="text-sm">{t("profile.security.changePin")}</span>
+              <Button variant="link" className="h-auto p-0 text-gold" onClick={() => toast.info(t("profile.comingSoon"))}>
+                {t("profile.security.update")}
               </Button>
             </div>
           </CardContent>
@@ -206,15 +224,17 @@ export default function ProfilePage() {
 
         <Card>
           <CardContent className="space-y-4">
-            <p className="font-semibold">Preferences</p>
+            <p className="font-semibold">{t("profile.preferences.title")}</p>
             <div className="flex items-center justify-between">
-              <span className="text-sm">App language</span>
-              <span className="text-sm text-gold">English</span>
+              <span className="text-sm">{t("profile.preferences.appLanguage")}</span>
+              <span className="text-sm text-gold">
+                {locale === "en" ? t("profile.preferences.languageEnglish") : t("profile.preferences.languageBangla")}
+              </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm">Linked payment methods</span>
-              <Button variant="link" className="h-auto p-0 text-gold" onClick={() => toast.info("Coming soon")}>
-                Manage
+              <span className="text-sm">{t("profile.preferences.linkedPaymentMethods")}</span>
+              <Button variant="link" className="h-auto p-0 text-gold" onClick={() => toast.info(t("profile.comingSoon"))}>
+                {t("profile.preferences.manage")}
               </Button>
             </div>
           </CardContent>
@@ -225,21 +245,21 @@ export default function ProfilePage() {
         {/* Earnings are illustrative — no referral program/backend in this repo. */}
         <CardContent className="flex items-center justify-between gap-4">
           <div>
-            <p className="font-semibold">Referral rewards</p>
-            <p className="text-sm text-muted-foreground">0.08g earned from 4 friends · code {code}</p>
+            <p className="font-semibold">{t("profile.referral.title")}</p>
+            <p className="text-sm text-muted-foreground">{t("profile.referral.summary", { code })}</p>
           </div>
           <Button variant="gold-solid" onClick={copyInviteLink}>
             <Copy className="size-3.5" />
-            Share invite link
+            {t("profile.referral.share")}
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardContent className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Need help? Visit Support Center</span>
+          <span className="text-sm text-muted-foreground">{t("profile.support.needHelp")}</span>
           <Button variant="link" className="h-auto p-0 text-destructive" onClick={handleLogout} disabled={logout.isPending}>
-            {logout.isPending ? "Logging out…" : "Log out"}
+            {logout.isPending ? t("userMenu.loggingOut") : t("userMenu.logOut")}
           </Button>
         </CardContent>
       </Card>

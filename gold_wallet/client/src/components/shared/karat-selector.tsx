@@ -3,13 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 export type GoldKarat = 22 | 21 | 18;
 
 export function KaratSelector({ value, onChange }: { value: GoldKarat; onChange: (value: GoldKarat) => void }) {
+  const { t } = useTranslation();
   return (
     <fieldset className="space-y-1.5">
-      <legend className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Gold karat</legend>
+      <legend className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        {t("karatSelector.legend")}
+      </legend>
       <div className="grid grid-cols-3 gap-2">
         {([22, 21, 18] as const).map((karat) => (
           <Button

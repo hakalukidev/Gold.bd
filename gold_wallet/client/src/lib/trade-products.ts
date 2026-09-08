@@ -110,6 +110,13 @@ export function productPricePerGram(pricePerGram22k: number | null, product: Tra
  * there's one gold balance and one silver balance, so a sale is priced off it. */
 export const METAL_LABEL: Record<Metal, string> = { gold: "Gold", silver: "Silver" };
 
+// Translation keys for METAL_LABEL above, for UI surfaces migrated to
+// useTranslation() — resolve with t(METAL_LABEL_KEY[metal]).
+export const METAL_LABEL_KEY: Record<Metal, string> = {
+  gold: "common.metal.gold",
+  silver: "common.metal.silver",
+};
+
 export const METALS: Metal[] = ["gold", "silver"];
 
 export const AMOUNT_PRESETS = [500, 1000, 2500, 5000, 10000];

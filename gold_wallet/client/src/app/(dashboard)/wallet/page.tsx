@@ -38,6 +38,7 @@ import { REFERRAL_REWARD_GRAMS, referralCode } from "@/lib/referral";
 import { MOCK_USER } from "@/lib/mock-user";
 import { buildFlow, filterRange, formatRange, percentChange, windowTotals, type FlowFilter } from "@/lib/wallet-flow";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 type Direction = "deposit" | "withdraw";
 
@@ -68,6 +69,7 @@ function TotalBalanceCard({
   loading: boolean;
 }) {
   const positive = netBDT >= 0;
+  const { t } = useTranslation();
 
   return (
     <Card className="relative">
@@ -75,7 +77,7 @@ function TotalBalanceCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <SectionLabel>Total balance</SectionLabel>
+              <SectionLabel>{t("wallet.totalBalance.label")}</SectionLabel>
               <DeltaChip pct={netPct} />
             </div>
             {loading ? (
@@ -88,7 +90,7 @@ function TotalBalanceCard({
                 <p className="mt-2 text-3xl font-bold tracking-tight tabular-nums">{formatBDT(totalBDT)}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {"≈ "}
-                  {formatUSDCompact(totalBDT / usdRate)} · cash + metals at today&apos;s rates
+                  {formatUSDCompact(totalBDT / usdRate)} · {t("wallet.totalBalance.approxCashMetals")}
                 </p>
               </>
             )}
@@ -100,17 +102,18 @@ function TotalBalanceCard({
 
         <p className={cn("text-xs font-medium tabular-nums", positive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
           {positive ? "+" : "−"}
-          {formatBDT(Math.abs(netBDT))} <span className="font-normal text-muted-foreground">net, last 30 days</span>
+          {formatBDT(Math.abs(netBDT))}{" "}
+          <span className="font-normal text-muted-foreground">{t("wallet.totalBalance.netLast30")}</span>
         </p>
 
         <div className="flex gap-2">
           <Button variant="gold-solid" size="lg" className="flex-1" onClick={() => onManage("deposit")}>
             <ArrowDownToLine />
-            Add money
+            {t("wallet.totalBalance.addMoney")}
           </Button>
           <Button variant="outline" size="lg" className="flex-1" onClick={() => onManage("withdraw")}>
             <ArrowUpFromLine />
-            Withdraw
+            {t("wallet.totalBalance.withdraw")}
           </Button>
         </div>
       </CardContent>
@@ -205,25 +208,26 @@ function MyAccounts({
   /** True while ["wallet"] is still in flight — see TotalBalanceCard. */
   loading: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>My accounts</CardTitle>
+        <CardTitle>{t("wallet.myAccounts.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <AccountCard
           tone="cash"
           art="/wallet_assets/cash-stack.png"
-          label="Cash wallet"
+          label={t("wallet.myAccounts.cashWallet")}
           value={formatBDT(cashBDT)}
-          footLeft="Spendable instantly"
+          footLeft={t("wallet.myAccounts.spendableInstantly")}
           footRight="BDT"
           loading={loading}
         />
         <AccountCard
           tone="gold"
           art="/wallet_assets/coin-stack.png"
-          label="Gold vault"
+          label={t("wallet.myAccounts.goldVault")}
           value={formatGrams(gramsToMg(goldGrams))}
           footLeft={`≈ ${formatBDT(goldValueBDT)}`}
           footRight={MOCK_PURITY_MIX[0].label}
@@ -232,7 +236,7 @@ function MyAccounts({
         <AccountCard
           tone="silver"
           art="/wallet_assets/silver.png"
-          label="Silver vault"
+          label={t("wallet.myAccounts.silverVault")}
           value={formatGrams(gramsToMg(silverGrams))}
           footLeft={`≈ ${formatBDT(silverValueBDT)}`}
           footRight={MOCK_SILVER_PURITY_MIX[0].label}
@@ -245,7 +249,7 @@ function MyAccounts({
           render={
             <Link href="/vault">
               <ShieldCheck />
-              Manage vault
+              {t("wallet.myAccounts.manageVault")}
             </Link>
           }
         />
@@ -261,9 +265,9 @@ function MyAccounts({
 const DONUT_RADIUS = 36;
 const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 
-const METAL_TABS: { key: Metal; label: string }[] = [
-  { key: "gold", label: "Gold" },
-  { key: "silver", label: "Silver" },
+const METAL_TABS: { key: Metal; labelKey: "wallet.holdingsByPurity.gold" | "wallet.holdingsByPurity.silver" }[] = [
+  { key: "gold", labelKey: "wallet.holdingsByPurity.gold" },
+  { key: "silver", labelKey: "wallet.holdingsByPurity.silver" },
 ];
 
 /** Purity split of the vaulted metal, drawn as a donut from two-line SVG arcs —
@@ -272,6 +276,7 @@ const METAL_TABS: { key: Metal; label: string }[] = [
  * two holdings rather than mixing incomparable grades into one ring. */
 function HoldingsByPurity({ goldGrams, silverGrams }: { goldGrams: number; silverGrams: number }) {
   const [metal, setMetal] = useState<Metal>("gold");
+  const { t } = useTranslation();
 
   const mix = metal === "gold" ? MOCK_PURITY_MIX : MOCK_SILVER_PURITY_MIX;
   const grams = metal === "gold" ? goldGrams : silverGrams;
@@ -286,7 +291,7 @@ function HoldingsByPurity({ goldGrams, silverGrams }: { goldGrams: number; silve
     <Card>
       <CardContent className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <SectionLabel>Holdings by purity</SectionLabel>
+          <SectionLabel>{t("wallet.holdingsByPurity.title")}</SectionLabel>
           <div className="flex rounded-md border p-0.5">
             {METAL_TABS.map((m) => (
               <button
@@ -299,14 +304,21 @@ function HoldingsByPurity({ goldGrams, silverGrams }: { goldGrams: number; silve
                   metal === m.key ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                {m.label}
+                {t(m.labelKey)}
               </button>
             ))}
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <svg viewBox="0 0 100 100" className="size-28 shrink-0 -rotate-90" role="img" aria-label={`${metal === "gold" ? "Gold" : "Silver"} holdings split by purity`}>
+          <svg
+            viewBox="0 0 100 100"
+            className="size-28 shrink-0 -rotate-90"
+            role="img"
+            aria-label={t("wallet.holdingsByPurity.ariaSplit", {
+              metal: metal === "gold" ? t("wallet.holdingsByPurity.gold") : t("wallet.holdingsByPurity.silver"),
+            })}
+          >
             <circle cx="50" cy="50" r={DONUT_RADIUS} fill="none" className="stroke-muted" strokeWidth="13" />
             {slices.map((slice) => (
               <circle
@@ -347,13 +359,14 @@ function HoldingsByPurity({ goldGrams, silverGrams }: { goldGrams: number; silve
  * the one thing here that actually does something. */
 function ReferAndEarn() {
   const { data } = useMe();
+  const { t } = useTranslation();
   const user = data ?? MOCK_USER;
   const code = referralCode(user.id);
 
   function copyCode() {
     navigator.clipboard?.writeText(code).then(
-      () => toast.success("Referral code copied"),
-      () => toast.error("Couldn't copy — try again")
+      () => toast.success(t("wallet.referAndEarn.copied")),
+      () => toast.error(t("wallet.referAndEarn.copyError"))
     );
   }
 
@@ -361,9 +374,9 @@ function ReferAndEarn() {
     <Card className="bg-linear-to-br from-gold/10 via-card to-card">
       <CardContent className="flex h-full flex-col gap-3">
         <div>
-          <p className="font-semibold">Refer &amp; earn free gold</p>
+          <p className="font-semibold">{t("wallet.referAndEarn.title")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Invite friends to Gold.bd — you both get {REFERRAL_REWARD_GRAMS}g gold when they make their first purchase.
+            {t("wallet.referAndEarn.body", { grams: REFERRAL_REWARD_GRAMS })}
           </p>
         </div>
 
@@ -371,7 +384,7 @@ function ReferAndEarn() {
           <code className="truncate font-mono text-sm tracking-wide text-gold">{code}</code>
           <Button variant="gold-solid" size="sm" onClick={copyCode}>
             <Copy />
-            Copy
+            {t("wallet.referAndEarn.copy")}
           </Button>
         </div>
       </CardContent>
@@ -385,13 +398,13 @@ function ReferAndEarn() {
 
 // `anim` picks the hover motion the glyph plays (keyframes in globals.css) —
 // each one mimes the action it triggers.
-const QUICK_LINKS: { label: string; icon: LucideIcon; anim: string; href?: string; direction?: Direction }[] = [
-  { label: "Deposit", icon: ArrowDownToLine, anim: "quick-icon-drop", direction: "deposit" },
-  { label: "Withdraw", icon: ArrowUpFromLine, anim: "quick-icon-lift", direction: "withdraw" },
-  { label: "Buy gold", icon: Coins, anim: "quick-icon-flip", href: "/buy-gold" },
-  { label: "Sell gold", icon: ArrowUpRight, anim: "quick-icon-fly", href: "/sell-gold" },
-  { label: "Gift gold", icon: Gift, anim: "quick-icon-wiggle", href: "/gift-gold" },
-  { label: "Statement", icon: ReceiptText, anim: "quick-icon-page-turn", href: "/transactions" },
+const QUICK_LINKS: { labelKey: string; icon: LucideIcon; anim: string; href?: string; direction?: Direction }[] = [
+  { labelKey: "wallet.quickLinks.deposit", icon: ArrowDownToLine, anim: "quick-icon-drop", direction: "deposit" },
+  { labelKey: "wallet.quickLinks.withdraw", icon: ArrowUpFromLine, anim: "quick-icon-lift", direction: "withdraw" },
+  { labelKey: "wallet.quickLinks.buyGold", icon: Coins, anim: "quick-icon-flip", href: "/buy-gold" },
+  { labelKey: "wallet.quickLinks.sellGold", icon: ArrowUpRight, anim: "quick-icon-fly", href: "/sell-gold" },
+  { labelKey: "wallet.quickLinks.giftGold", icon: Gift, anim: "quick-icon-wiggle", href: "/gift-gold" },
+  { labelKey: "wallet.quickLinks.statement", icon: ReceiptText, anim: "quick-icon-page-turn", href: "/transactions" },
 ];
 
 const QUICK_LINK_CLASS =
@@ -406,23 +419,29 @@ function QuickLinkIcon({ icon: Icon, anim }: { icon: LucideIcon; anim: string })
 }
 
 function QuickLinks({ onManage }: { onManage: (direction: Direction) => void }) {
+  const { t } = useTranslation();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Quick links</CardTitle>
+        <CardTitle>{t("wallet.quickLinks.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
           {QUICK_LINKS.map((link) =>
             link.href ? (
-              <Link key={link.label} href={link.href} className={QUICK_LINK_CLASS}>
+              <Link key={link.labelKey} href={link.href} className={QUICK_LINK_CLASS}>
                 <QuickLinkIcon icon={link.icon} anim={link.anim} />
-                <span className="text-xs font-medium">{link.label}</span>
+                <span className="text-xs font-medium">{t(link.labelKey)}</span>
               </Link>
             ) : (
-              <button key={link.label} type="button" onClick={() => onManage(link.direction ?? "deposit")} className={QUICK_LINK_CLASS}>
+              <button
+                key={link.labelKey}
+                type="button"
+                onClick={() => onManage(link.direction ?? "deposit")}
+                className={QUICK_LINK_CLASS}
+              >
                 <QuickLinkIcon icon={link.icon} anim={link.anim} />
-                <span className="text-xs font-medium">{link.label}</span>
+                <span className="text-xs font-medium">{t(link.labelKey)}</span>
               </button>
             )
           )}
@@ -436,11 +455,11 @@ function QuickLinks({ onManage }: { onManage: (direction: Direction) => void }) 
 /*  Currency conversion                                                        */
 /* -------------------------------------------------------------------------- */
 
-const CURRENCY_NAME: Record<ForeignCurrency, string> = {
-  USD: "US Dollar",
-  EUR: "Euro",
-  GBP: "Pound Sterling",
-  SAR: "Saudi Riyal",
+const CURRENCY_NAME_KEY: Record<ForeignCurrency, "USD" | "EUR" | "GBP" | "SAR"> = {
+  USD: "USD",
+  EUR: "EUR",
+  GBP: "GBP",
+  SAR: "SAR",
 };
 
 // Symbol chips rather than the reference's flag icons — flag emoji don't render
@@ -452,13 +471,14 @@ function CurrencyCard({ totalBDT }: { totalBDT: number }) {
   // back to the illustrative mock-rates.ts figures until the first fetch
   // lands or if it ever fails.
   const { ratesPerUnit, isLive } = useFxRates();
+  const { t } = useTranslation();
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Image src="/wallet_assets/dollar.png" alt="" width={22} height={22} aria-hidden className="size-5.5" />
-          Currency
+          {t("wallet.currency.title")}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -468,14 +488,18 @@ function CurrencyCard({ totalBDT }: { totalBDT: number }) {
               <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">{CURRENCY_SYMBOL[code]}</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{code}</p>
-                <p className="truncate text-[11px] text-muted-foreground">{CURRENCY_NAME[code]}</p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {t(`wallet.currency.names.${CURRENCY_NAME_KEY[code]}`)}
+                </p>
               </div>
               <span className="shrink-0 text-sm font-semibold tabular-nums">{formatForeign(totalBDT / ratesPerUnit[code], code)}</span>
             </li>
           ))}
         </ul>
         <p className="mt-2 text-[11px] text-muted-foreground">
-          Your total balance at {isLive ? "today's live" : "indicative"} rates.
+          {t("wallet.currency.footer", {
+            rateType: isLive ? t("wallet.currency.liveRates") : t("wallet.currency.indicativeRates"),
+          })}
         </p>
       </CardContent>
     </Card>
@@ -494,6 +518,7 @@ export default function WalletPage() {
   // that's derived from the wallet, so a still-loading balance never reads as
   // a confirmed zero — WalletBadge/WalletPill do the same. The rate queries
   // are real too, so they just read 0 until their first tick arrives.
+  const { t } = useTranslation();
   const { data: walletData, isLoading: walletLoading } = useWallet();
   const { data: rateData } = useGoldRate();
   const { data: silverRateData } = useMetalRate("silver");
@@ -522,7 +547,7 @@ export default function WalletPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="My Wallet" description="Money in, money out, and everything your account holds" />
+      <PageHeader title={t("wallet.header.title")} description={t("wallet.header.description")} />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] lg:items-start">
         {/* ---------- Balance, accounts, currency ---------- */}
@@ -558,25 +583,28 @@ export default function WalletPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             <FlowStatTile
               icon={ArrowDownToLine}
-              label="Money in"
+              label={t("wallet.flowStats.moneyIn")}
               value={formatBDT(last30.inBDT)}
               pct={percentChange(last30.inBDT, prev30.inBDT)}
               accent={FLOW_ACCENT.in}
+              caption={t("transactions.ranges.last30Days")}
             />
             <FlowStatTile
               icon={ArrowUpFromLine}
-              label="Money out"
+              label={t("wallet.flowStats.moneyOut")}
               value={formatBDT(last30.outBDT)}
               pct={percentChange(last30.outBDT, prev30.outBDT)}
               invertColor
               accent={FLOW_ACCENT.out}
+              caption={t("transactions.ranges.last30Days")}
             />
             <FlowStatTile
               icon={PiggyBank}
-              label="Net saved"
+              label={t("wallet.flowStats.netSaved")}
               value={formatBDT(last30.netBDT)}
               pct={percentChange(last30.netBDT, prev30.netBDT)}
               accent={FLOW_ACCENT.net}
+              caption={t("transactions.ranges.last30Days")}
             />
           </div>
 
@@ -584,18 +612,18 @@ export default function WalletPage() {
             <CardHeader>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <CardTitle>Money flow</CardTitle>
+                  <CardTitle>{t("wallet.moneyFlow.title")}</CardTitle>
                   <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">{formatRange(flowRange)}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <span className="size-2 rounded-full" style={{ background: FLOW_IN_COLOR }} />
-                      In
+                      {t("wallet.moneyFlow.in")}
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="size-2 rounded-full" style={{ background: FLOW_OUT_COLOR }} />
-                      Out
+                      {t("wallet.moneyFlow.out")}
                     </span>
                   </div>
                   <DateRangeFilter value={flowFilter} onChange={setFlowFilter} />
@@ -612,7 +640,7 @@ export default function WalletPage() {
                 render={
                   <Link href="/transactions">
                     <ReceiptText />
-                    See full statement
+                    {t("wallet.moneyFlow.seeFullStatement")}
                   </Link>
                 }
               />
@@ -625,8 +653,8 @@ export default function WalletPage() {
       <Dialog open={manage !== null} onOpenChange={(open) => !open && setManage(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Manage balance</DialogTitle>
-            <DialogDescription>Top up your wallet or send funds back to your payment method.</DialogDescription>
+            <DialogTitle>{t("wallet.manageDialog.title")}</DialogTitle>
+            <DialogDescription>{t("wallet.manageDialog.description")}</DialogDescription>
           </DialogHeader>
           {manage && <MoneyMoveTabs key={manage} defaultDirection={manage} />}
         </DialogContent>

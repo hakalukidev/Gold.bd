@@ -18,11 +18,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 const DELIVERY_FEE_BDT = 150;
 const FREE_ABOVE_G = 2;
+const FORM_LABEL_KEY: Record<"bar" | "coin", string> = {
+  bar: "collectPanel.formOptions.bar",
+  coin: "collectPanel.formOptions.coin",
+};
 
 export function CollectPanel() {
+  const { t } = useTranslation();
   const { data: wallet } = useWallet();
   const available = wallet ? Number(wallet.goldBalanceGrams) : 0;
 
@@ -48,14 +54,14 @@ export function CollectPanel() {
 
   async function onSubmit(values: CollectInput) {
     if (values.weightGrams > available) {
-      form.setError("weightGrams", { message: `You only hold ${available.toFixed(3)} g` });
+      form.setError("weightGrams", { message: t("collectPanel.onlyHold", { amount: available.toFixed(3) }) });
       return;
     }
     // No /api/gold/collect endpoint in this repo (see CLAUDE.md) — same
     // "record the request, no real fulfillment backend" pattern as the
     // marketing site's checkout flow.
     await new Promise((r) => setTimeout(r, 400));
-    toast.success("Delivery request received — we'll email your tracking details");
+    toast.success(t("collectPanel.requestReceived"));
     form.reset({ weightGrams: 1, form: "coin", method: "home", fullName: "", phone: "", district: "", postalCode: "", streetAddress: "" });
   }
 
@@ -65,7 +71,9 @@ export function CollectPanel() {
         <Card>
           <CardContent className="space-y-5">
             <div className="space-y-2">
-              <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Weight to collect</Label>
+              <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                {t("collectPanel.weightToCollect")}
+              </Label>
               <div className="flex flex-wrap gap-2">
                 {COLLECT_WEIGHTS_G.map((w) => (
                   <Button
@@ -79,11 +87,15 @@ export function CollectPanel() {
                   </Button>
                 ))}
               </div>
-              {exceedsBalance && <p className="text-sm text-destructive">You only hold {available.toFixed(3)} g.</p>}
+              {exceedsBalance && (
+                <p className="text-sm text-destructive">{t("collectPanel.onlyHold", { amount: available.toFixed(3) })}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Form</Label>
+              <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                {t("collectPanel.form")}
+              </Label>
               <div className="flex gap-2">
                 {(["bar", "coin"] as const).map((f) => (
                   <Button
@@ -94,14 +106,16 @@ export function CollectPanel() {
                     onClick={() => form.setValue("form", f)}
                   >
                     <Image src={PRODUCT_IMAGES.gold[f]} alt="" width={20} height={20} className="size-5 object-contain" />
-                    {f}
+                    {t(FORM_LABEL_KEY[f])}
                   </Button>
                 ))}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Withdrawal method</Label>
+              <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                {t("collectPanel.withdrawalMethod")}
+              </Label>
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   type="button"
@@ -110,7 +124,7 @@ export function CollectPanel() {
                   onClick={() => form.setValue("method", "home")}
                 >
                   <Truck className="size-4" strokeWidth={1.75} />
-                  Home Delivery
+                  {t("collectPanel.homeDelivery")}
                 </Button>
                 <Button
                   type="button"
@@ -119,21 +133,23 @@ export function CollectPanel() {
                   onClick={() => form.setValue("method", "pickup")}
                 >
                   <MapPin className="size-4" strokeWidth={1.75} />
-                  Steadfast Pickup Point
+                  {t("collectPanel.pickupPoint")}
                 </Button>
               </div>
             </div>
 
             {method === "home" && (
               <div className="space-y-3">
-                <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Delivery address</Label>
+                <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  {t("collectPanel.deliveryAddress")}
+                </Label>
                 <FormField
                   control={form.control}
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input placeholder="Full name" {...field} />
+                        <Input placeholder={t("collectPanel.fullNamePlaceholder")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -145,7 +161,7 @@ export function CollectPanel() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input placeholder="Phone number" {...field} />
+                        <Input placeholder={t("collectPanel.phonePlaceholder")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -158,7 +174,7 @@ export function CollectPanel() {
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Input placeholder="District" {...field} />
+                          <Input placeholder={t("collectPanel.districtPlaceholder")} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -170,7 +186,7 @@ export function CollectPanel() {
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Input placeholder="Postal code" {...field} />
+                          <Input placeholder={t("collectPanel.postalCodePlaceholder")} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -183,7 +199,7 @@ export function CollectPanel() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Textarea rows={2} placeholder="Street address" {...field} />
+                        <Textarea rows={2} placeholder={t("collectPanel.streetAddressPlaceholder")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -193,28 +209,27 @@ export function CollectPanel() {
             )}
 
             <Button type="submit" variant="gold-solid" className="w-full" disabled={form.formState.isSubmitting || exceedsBalance}>
-              {form.formState.isSubmitting ? "Submitting…" : "Confirm insured delivery"}
+              {form.formState.isSubmitting ? t("collectPanel.submitting") : t("collectPanel.confirmDelivery")}
             </Button>
           </CardContent>
         </Card>
 
         <Card className="lg:sticky lg:top-6">
           <CardHeader>
-            <CardTitle>Withdrawal details</CardTitle>
+            <CardTitle>{t("collectPanel.withdrawalDetails")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Fully insured, tracked delivery anywhere in Bangladesh. Hallmarked bars and coins arrive tamper-sealed with a certificate of
-              authenticity.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("collectPanel.insuredDescription")}</p>
             <Separator />
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Estimated arrival</span>
-              <span className="font-medium">5-7 days</span>
+              <span className="text-muted-foreground">{t("collectPanel.estimatedArrival")}</span>
+              <span className="font-medium">{t("collectPanel.estimatedArrivalValue")}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Delivery fee</span>
-              <span className="font-medium">{deliveryFee === 0 ? `Free above ${FREE_ABOVE_G}g` : formatBDT(deliveryFee)}</span>
+              <span className="text-muted-foreground">{t("collectPanel.deliveryFee")}</span>
+              <span className="font-medium">
+                {deliveryFee === 0 ? t("collectPanel.freeAbove", { grams: FREE_ABOVE_G }) : formatBDT(deliveryFee)}
+              </span>
             </div>
           </CardContent>
         </Card>

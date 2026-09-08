@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 const LTV_RATE = 0.8;
 const INTEREST_RATE_PER_YEAR = 0.13;
@@ -23,6 +24,10 @@ const DISBURSE_METHODS = ["Mobile Wallet", "Bank Account"] as const;
 const DISBURSE_ICON: Record<(typeof DISBURSE_METHODS)[number], typeof Smartphone> = {
   "Mobile Wallet": Smartphone,
   "Bank Account": Building2,
+};
+const DISBURSE_LABEL_KEY: Record<(typeof DISBURSE_METHODS)[number], string> = {
+  "Mobile Wallet": "loanPanel.disburseMethods.mobileWallet",
+  "Bank Account": "loanPanel.disburseMethods.bankAccount",
 };
 
 // Illustrative existing loan — there's no /api/loans endpoint in this repo
@@ -36,6 +41,7 @@ const ACTIVE_LOAN = {
 };
 
 export function LoanPanel() {
+  const { t } = useTranslation();
   const { data: wallet } = useWallet();
   const { data: rate } = useGoldRate();
   const [tenure, setTenure] = useState<(typeof TENURES)[number]>(6);
@@ -53,7 +59,7 @@ export function LoanPanel() {
   const monthlyEmi = (clampedAmount + totalInterest) / tenure;
 
   function apply() {
-    toast.success(`Loan application for ${formatBDT(clampedAmount)} submitted`);
+    toast.success(t("loanPanel.applicationSubmitted", { amount: formatBDT(clampedAmount) }));
   }
 
   return (
@@ -62,17 +68,21 @@ export function LoanPanel() {
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between rounded-md bg-muted px-4 py-3 text-sm">
             <div>
-              <p className="text-muted-foreground">Your collateral</p>
-              <p className="font-semibold">{collateralGrams !== null ? `${collateralGrams.toFixed(2)} g gold vaulted` : "…"}</p>
+              <p className="text-muted-foreground">{t("loanPanel.yourCollateral")}</p>
+              <p className="font-semibold">
+                {collateralGrams !== null ? t("loanPanel.gGoldVaulted", { grams: collateralGrams.toFixed(2) }) : "…"}
+              </p>
             </div>
             <div className="text-right">
-              <p className="text-muted-foreground">Max eligible (80% LTV)</p>
+              <p className="text-muted-foreground">{t("loanPanel.maxEligible")}</p>
               <p className="font-semibold text-gold">{maxEligible !== null ? formatBDT(maxEligible) : "…"}</p>
             </div>
           </div>
 
           <div className="space-y-3 text-center">
-            <Label className="block text-xs font-semibold tracking-wide text-muted-foreground uppercase">Loan amount</Label>
+            <Label className="block text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              {t("loanPanel.loanAmount")}
+            </Label>
             <p className="text-4xl font-semibold">{formatBDT(clampedAmount)}</p>
             <Slider
               value={clampedAmount}
@@ -85,19 +95,29 @@ export function LoanPanel() {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Tenure</Label>
+            <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              {t("loanPanel.tenure")}
+            </Label>
             <div className="flex gap-2">
-              {TENURES.map((t) => (
-                <Button key={t} type="button" variant="outline" className={cn(tenure === t && SELECTED_GOLD)} onClick={() => setTenure(t)}>
+              {TENURES.map((months) => (
+                <Button
+                  key={months}
+                  type="button"
+                  variant="outline"
+                  className={cn(tenure === months && SELECTED_GOLD)}
+                  onClick={() => setTenure(months)}
+                >
                   <CalendarClock className="size-4" />
-                  {t} Months
+                  {t("loanPanel.months", { n: months })}
                 </Button>
               ))}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Disburse to</Label>
+            <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              {t("loanPanel.disburseTo")}
+            </Label>
             <div className="grid grid-cols-2 gap-2">
               {DISBURSE_METHODS.map((m) => {
                 const Icon = DISBURSE_ICON[m];
@@ -110,7 +130,7 @@ export function LoanPanel() {
                     onClick={() => setDisburseTo(m)}
                   >
                     <Icon className="size-4" />
-                    {m}
+                    {t(DISBURSE_LABEL_KEY[m])}
                   </Button>
                 );
               })}
@@ -119,9 +139,9 @@ export function LoanPanel() {
 
           <div className="space-y-2 text-center">
             <Button variant="gold-solid" className="w-full" disabled={!maxEligible || clampedAmount <= 0} onClick={apply}>
-              Apply for {formatBDT(clampedAmount)} loan
+              {t("loanPanel.applyForLoan", { amount: formatBDT(clampedAmount) })}
             </Button>
-            <p className="text-xs text-muted-foreground">Your gold stays insured in vault; released on full repayment</p>
+            <p className="text-xs text-muted-foreground">{t("loanPanel.insuredNote")}</p>
           </div>
         </CardContent>
       </Card>
@@ -129,14 +149,20 @@ export function LoanPanel() {
       <div className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Loan summary</CardTitle>
+            <CardTitle>{t("loanPanel.summary.title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <SummaryRow label="Principal" value={formatBDT(clampedAmount)} />
-            <SummaryRow label="Interest rate" value={`${INTEREST_RATE_PER_YEAR * 100}% p.a.`} />
-            <SummaryRow label={`Total interest (${tenure} Months)`} value={formatBDT(totalInterest)} />
+            <SummaryRow label={t("loanPanel.summary.principal")} value={formatBDT(clampedAmount)} />
+            <SummaryRow
+              label={t("loanPanel.summary.interestRate")}
+              value={t("loanPanel.summary.interestRateValue", { pct: INTEREST_RATE_PER_YEAR * 100 })}
+            />
+            <SummaryRow
+              label={t("loanPanel.summary.totalInterest", { months: tenure })}
+              value={formatBDT(totalInterest)}
+            />
             <div className="flex items-center justify-between text-base font-semibold">
-              <span>Monthly EMI</span>
+              <span>{t("loanPanel.summary.monthlyEmi")}</span>
               <span className="tabular-nums">{formatBDT(monthlyEmi)}</span>
             </div>
           </CardContent>
@@ -144,17 +170,24 @@ export function LoanPanel() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Active loan</CardTitle>
+            <CardTitle>{t("loanPanel.activeLoan.title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="font-medium">
-                {formatBDT(ACTIVE_LOAN.principalBDT)} · {ACTIVE_LOAN.tenureMonths} Months
+                {t("loanPanel.activeLoan.principalTenure", {
+                  principal: formatBDT(ACTIVE_LOAN.principalBDT),
+                  months: ACTIVE_LOAN.tenureMonths,
+                })}
               </p>
-              <Badge className="bg-emerald-500/15 text-emerald-500">On Track</Badge>
+              <Badge className="bg-emerald-500/15 text-emerald-500">{t("loanPanel.activeLoan.onTrack")}</Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              {ACTIVE_LOAN.emisPaid} of {ACTIVE_LOAN.tenureMonths} EMIs paid · Next due {ACTIVE_LOAN.nextDueLabel}
+              {t("loanPanel.activeLoan.progress", {
+                paid: ACTIVE_LOAN.emisPaid,
+                total: ACTIVE_LOAN.tenureMonths,
+                date: ACTIVE_LOAN.nextDueLabel,
+              })}
             </p>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
               <div className="h-full bg-gold" style={{ width: `${(ACTIVE_LOAN.emisPaid / ACTIVE_LOAN.tenureMonths) * 100}%` }} />

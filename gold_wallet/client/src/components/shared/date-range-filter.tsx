@@ -15,11 +15,12 @@ import {
   type FlowPreset,
 } from "@/lib/wallet-flow";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
-const PRESETS: { key: FlowPreset; label: string }[] = [
-  { key: "week", label: "Week" },
-  { key: "month", label: "Month" },
-  { key: "year", label: "Year" },
+const PRESETS: { key: FlowPreset; labelKey: string }[] = [
+  { key: "week", labelKey: "dateRangeFilter.week" },
+  { key: "month", labelKey: "dateRangeFilter.month" },
+  { key: "year", labelKey: "dateRangeFilter.year" },
 ];
 
 /**
@@ -37,6 +38,7 @@ export function DateRangeFilter({
   onChange: (filter: FlowFilter) => void;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const range = filterRange(value);
   const custom = value.kind === "custom";
@@ -44,7 +46,7 @@ export function DateRangeFilter({
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <div className="flex rounded-md border p-0.5">
-        {PRESETS.map(({ key, label }) => {
+        {PRESETS.map(({ key, labelKey }) => {
           const active = value.kind === "preset" && value.preset === key;
           return (
             <button
@@ -59,7 +61,7 @@ export function DateRangeFilter({
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {label}
+              {t(labelKey)}
             </button>
           );
         })}
@@ -75,7 +77,7 @@ export function DateRangeFilter({
           )}
         >
           <CalendarDays className="size-3.5" />
-          {custom ? formatRange(range) : "Calendar"}
+          {custom ? formatRange(range) : t("dateRangeFilter.calendar")}
         </PopoverTrigger>
         <PopoverContent align="end" className="w-auto p-3">
           <RangeCalendar

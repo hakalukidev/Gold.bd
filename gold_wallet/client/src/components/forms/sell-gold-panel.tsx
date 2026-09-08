@@ -16,7 +16,7 @@ import { computeSellPayout, SELL_SPREAD_RATE } from "@/lib/gold-fees";
 import { formatBDT } from "@/lib/format";
 import type { Metal } from "@/lib/mock-rates";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
-import { METAL_LABEL, METALS, PAYOUT_METHODS } from "@/lib/trade-products";
+import { METAL_LABEL_KEY, METALS, PAYOUT_METHODS } from "@/lib/trade-products";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
@@ -27,6 +27,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { SELECTED_GOLD, SELECTED_SILVER } from "@/components/shared/payment-method-button";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 /**
  * Selling quotes the metal's real 22K anchor rate rather than a minted SKU
@@ -39,6 +40,7 @@ import { cn } from "@/lib/utils";
  */
 export function SellGoldPanel() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [karat, setKarat] = useState<GoldKarat>(22);
   const { data: walletData } = useWallet();
 
@@ -68,10 +70,11 @@ export function SellGoldPanel() {
   // payout chip, the sell button, etc. to match.
   const isSilver = metal === "silver";
   const selectedAccent = isSilver ? SELECTED_SILVER : SELECTED_GOLD;
+  const metalLabel = t(METAL_LABEL_KEY[metal]);
 
   function selectPayoutMethod(key: string, enabled: boolean) {
     if (!enabled) {
-      toast.info("Coming soon — payouts go to your Gold.bd Wallet for now.");
+      toast.info(t("trade.sell.comingSoon"));
       return;
     }
     setPayoutKey(key);
@@ -80,21 +83,21 @@ export function SellGoldPanel() {
   async function onSubmit(values: { value: number }) {
     const parsed = tradeGramsSchema(metal, "sell").safeParse(values.value);
     if (!parsed.success) {
-      form.setError("value", { message: parsed.error.issues[0]?.message ?? "Enter a valid weight" });
+      form.setError("value", { message: parsed.error.issues[0]?.message ?? t("trade.sell.enterValidWeight") });
       return;
     }
     if (values.value > available) {
-      form.setError("value", { message: `You only hold ${available.toFixed(3)} g` });
+      form.setError("value", { message: t("trade.sell.onlyHold", { amount: available.toFixed(3) }) });
       return;
     }
 
     try {
       await sell.mutateAsync(values.value);
-      toast.success("Sale completed");
+      toast.success(t("trade.sell.saleCompleted"));
       form.reset({ value: 0.5 });
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Sale failed");
+      toast.error(error instanceof ApiError ? error.message : t("trade.sell.saleFailed"));
     }
   }
 
@@ -113,8 +116,8 @@ export function SellGoldPanel() {
                 <ArrowDownRight className="size-4" strokeWidth={1.75} />
               </span>
               <div>
-                <CardTitle>Sell {METAL_LABEL[metal]}</CardTitle>
-                <p className="text-xs text-muted-foreground">Priced at the live rate, paid out instantly</p>
+                <CardTitle>{t("sellGoldPanel.sellMetal", { metal: metalLabel })}</CardTitle>
+                <p className="text-xs text-muted-foreground">{t("sellGoldPanel.priceLiveNote")}</p>
               </div>
             </div>
           </div>
@@ -130,7 +133,7 @@ export function SellGoldPanel() {
                 <MetalStockButton
                   key={m}
                   metal={m}
-                  label={METAL_LABEL[m]}
+                  label={t(METAL_LABEL_KEY[m])}
                   available={m === "gold" ? goldAvailable : silverAvailable}
                   selected={metal === m}
                   onSelect={setMetal}
@@ -145,7 +148,9 @@ export function SellGoldPanel() {
               name="value"
               render={({ field }) => (
                 <FormItem className="gap-3 text-center">
-                  <Label className="block text-xs font-semibold tracking-wide text-muted-foreground uppercase">You are selling</Label>
+                  <Label className="block text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                    {t("trade.sell.youAreSelling")}
+                  </Label>
                   <div className="flex items-center justify-center gap-1.5">
                     <FormControl>
                       <Input
@@ -163,7 +168,7 @@ export function SellGoldPanel() {
                     <FormMessage className="text-sm" />
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      of {available.toFixed(3)}g available · {METAL_LABEL[metal]}
+                      {t("trade.sell.ofAvailable", { available: available.toFixed(3), metal: metalLabel })}
                     </p>
                   )}
 
@@ -180,12 +185,14 @@ export function SellGoldPanel() {
             />
 
             {exceedsBalance && !form.formState.errors.value && (
-              <p className="text-sm text-destructive">You only hold {available.toFixed(3)} g.</p>
+              <p className="text-sm text-destructive">{t("trade.sell.onlyHold", { amount: available.toFixed(3) })}.</p>
             )}
 
             {/* Payout method */}
             <div className="space-y-2">
-              <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Receive payout via</Label>
+              <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                {t("trade.sell.receivePayoutVia")}
+              </Label>
               <div className="grid grid-cols-2 gap-2">
                 {PAYOUT_METHODS.slice(0, 2).map((m) => (
                   <PayoutButton
@@ -211,10 +218,16 @@ export function SellGoldPanel() {
             {/* Payout summary — folded into the same card now that there's
                 no chart alongside it to justify a separate sidebar card. */}
             <div className="space-y-1.5">
-              <SummaryRow label={`Sell price (${METAL_LABEL[metal]})`} value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "…"} />
-              <SummaryRow label="Weight" value={`${grams.toFixed(3)} g`} />
-              <SummaryRow label={`Spread (${(SELL_SPREAD_RATE * 100).toFixed(0)}%)`} value={`-${formatBDT(payout.spreadBDT)}`} />
-              <SummaryRow label="You get" value={formatBDT(payout.netPayoutBDT)} strong />
+              <SummaryRow
+                label={t("trade.sell.sellPrice", { metal: metalLabel })}
+                value={pricePerGram !== null ? `${formatBDT(pricePerGram)}/g` : "…"}
+              />
+              <SummaryRow label={t("trade.sell.weight")} value={`${grams.toFixed(3)} g`} />
+              <SummaryRow
+                label={t("trade.sell.spread", { pct: (SELL_SPREAD_RATE * 100).toFixed(0) })}
+                value={`-${formatBDT(payout.spreadBDT)}`}
+              />
+              <SummaryRow label={t("trade.sell.youGet")} value={formatBDT(payout.netPayoutBDT)} strong />
             </div>
 
             <div className="space-y-2 text-center">
@@ -225,7 +238,9 @@ export function SellGoldPanel() {
                 disabled={form.formState.isSubmitting || grams <= 0 || exceedsBalance || pricePerGram === null}
               >
                 <ArrowDownRight />
-                {form.formState.isSubmitting ? "Processing…" : `Sell ${METAL_LABEL[metal]} · ${formatBDT(payout.netPayoutBDT)}`}
+                {form.formState.isSubmitting
+                  ? t("trade.buy.processing")
+                  : t("trade.sell.sellMetalAmount", { metal: metalLabel, amount: formatBDT(payout.netPayoutBDT) })}
               </Button>
               {activePayout && <p className="text-xs text-muted-foreground">{activePayout.note}</p>}
             </div>
@@ -250,6 +265,7 @@ function MetalStockButton({
   selected: boolean;
   onSelect: (metal: Metal) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Button
       type="button"
@@ -266,7 +282,7 @@ function MetalStockButton({
     >
       <span className="font-semibold">{label}</span>
       <span className={cn("text-xs font-normal", selected ? "text-ink/70" : "text-muted-foreground")}>
-        {available.toFixed(3)} g in stock
+        {t("sellGoldPanel.inStock", { available: available.toFixed(3) })}
       </span>
     </Button>
   );
@@ -288,6 +304,7 @@ function PayoutButton({
   className?: string;
 }) {
   const Icon = method.icon;
+  const { t } = useTranslation();
   return (
     <Button
       type="button"
@@ -306,7 +323,7 @@ function PayoutButton({
       {method.label}
       {!method.enabled && (
         <Badge variant="secondary" className="text-[10px]">
-          Soon
+          {t("trade.sell.soon")}
         </Badge>
       )}
     </Button>

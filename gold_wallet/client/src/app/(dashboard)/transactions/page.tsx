@@ -12,34 +12,35 @@ import { WalletBadge } from "@/components/shared/wallet-badge";
 import { FLOW_ACCENT, FlowStatTile } from "@/components/shared/flow-stat-tile";
 import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { formatBDT, formatDateTime } from "@/lib/format";
-import { CREDIT_TYPES, TYPE_LABEL } from "@/lib/transaction-labels";
+import { CREDIT_TYPES, STATUS_LABEL_KEY, TYPE_LABEL_KEY } from "@/lib/transaction-labels";
 import { downloadCsv, toTransactionCsv } from "@/lib/transaction-export";
 import { percentChange, windowTotals } from "@/lib/wallet-flow";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 import type { TransactionSummary, TransactionType } from "@/types";
 
 // "Gift" and "Auto-Save" mirror the reference design's filter pills, but
 // TransactionType only has BUY/SELL/DEPOSIT/WITHDRAW (see types/index.ts) —
 // there's no gift/auto-save transaction record in this repo's API contract,
 // so those two filters always come up empty instead of showing fake rows.
-const TYPE_FILTERS: { key: string; label: string; types: TransactionType[] | null }[] = [
-  { key: "all", label: "All", types: null },
-  { key: "buy", label: "Buy", types: ["BUY"] },
-  { key: "sell", label: "Sell", types: ["SELL"] },
-  { key: "money-in", label: "Money in", types: ["DEPOSIT"] },
-  { key: "money-out", label: "Money out", types: ["WITHDRAW"] },
-  { key: "gift", label: "Gift", types: [] },
-  { key: "auto-save", label: "Auto-Save", types: [] },
+const TYPE_FILTERS: { key: string; labelKey: string; types: TransactionType[] | null }[] = [
+  { key: "all", labelKey: "transactions.filters.all", types: null },
+  { key: "buy", labelKey: "transactions.filters.buy", types: ["BUY"] },
+  { key: "sell", labelKey: "transactions.filters.sell", types: ["SELL"] },
+  { key: "money-in", labelKey: "transactions.filters.moneyIn", types: ["DEPOSIT"] },
+  { key: "money-out", labelKey: "transactions.filters.moneyOut", types: ["WITHDRAW"] },
+  { key: "gift", labelKey: "transactions.filters.gift", types: [] },
+  { key: "auto-save", labelKey: "transactions.filters.autoSave", types: [] },
 ];
 
 // `days` doubles as the comparison window for the stat tiles' delta chips —
 // "last 30 days vs. the 30 before it". A number rather than null for "All
 // time" so one code path covers every range; nothing predates the account.
 const RANGES = [
-  { key: "30d", label: "30 days", days: 30, caption: "Last 30 days" },
-  { key: "90d", label: "90 days", days: 90, caption: "Last 90 days" },
-  { key: "1y", label: "1 year", days: 365, caption: "Last 12 months" },
-  { key: "all", label: "All time", days: 36_500, caption: "All time" },
+  { key: "30d", labelKey: "transactions.ranges.days30", days: 30, captionKey: "transactions.ranges.last30Days" },
+  { key: "90d", labelKey: "transactions.ranges.days90", days: 90, captionKey: "transactions.ranges.last90Days" },
+  { key: "1y", labelKey: "transactions.ranges.year1", days: 365, captionKey: "transactions.ranges.last12Months" },
+  { key: "all", labelKey: "transactions.ranges.allTime", days: 36_500, captionKey: "transactions.ranges.allTime" },
 ] as const;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -53,6 +54,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * it settles to an empty ledger rather than demo rows.
  */
 export default function TransactionsPage() {
+  const { t } = useTranslation();
   const { data, isLoading } = useTransactions();
   const transactions = data ?? [];
 
@@ -86,36 +88,36 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Transaction History"
-        description="Every buy, sell, and taka in or out of your wallet"
+        title={t("nav.transactionHistory")}
+        description={t("transactions.header.description")}
         action={<WalletBadge />}
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <FlowStatTile
           icon={ArrowDownToLine}
-          label="Money in"
+          label={t("wallet.flowStats.moneyIn")}
           value={formatBDT(current.inBDT)}
           pct={percentChange(current.inBDT, previous.inBDT)}
           accent={FLOW_ACCENT.in}
-          caption={range.caption}
+          caption={t(range.captionKey)}
         />
         <FlowStatTile
           icon={ArrowUpFromLine}
-          label="Money out"
+          label={t("wallet.flowStats.moneyOut")}
           value={formatBDT(current.outBDT)}
           pct={percentChange(current.outBDT, previous.outBDT)}
           invertColor
           accent={FLOW_ACCENT.out}
-          caption={range.caption}
+          caption={t(range.captionKey)}
         />
         <FlowStatTile
           icon={PiggyBank}
-          label="Net saved"
+          label={t("wallet.flowStats.netSaved")}
           value={formatBDT(current.netBDT)}
           pct={percentChange(current.netBDT, previous.netBDT)}
           accent={FLOW_ACCENT.net}
-          caption={range.caption}
+          caption={t(range.captionKey)}
         />
       </div>
 
@@ -131,7 +133,7 @@ export default function TransactionsPage() {
               className={cn(typeKey === f.key && SELECTED_GOLD)}
               onClick={() => setTypeKey(f.key)}
             >
-              {f.label}
+              {t(f.labelKey)}
             </Button>
           ))}
         </div>
@@ -147,7 +149,7 @@ export default function TransactionsPage() {
               className={cn("text-muted-foreground", rangeKey === r.key && "bg-muted text-foreground")}
               onClick={() => setRangeKey(r.key)}
             >
-              {r.label}
+              {t(r.labelKey)}
             </Button>
           ))}
           <Button
@@ -159,7 +161,7 @@ export default function TransactionsPage() {
             onClick={handleDownload}
           >
             <Download />
-            Download CSV
+            {t("transactions.downloadCsv")}
           </Button>
         </div>
       </div>
@@ -173,21 +175,19 @@ export default function TransactionsPage() {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <EmptyState
-              icon={HistoryIcon}
-              title="Nothing in this view"
-              description="No transactions match this filter and date range yet."
-            />
+            <EmptyState icon={HistoryIcon} title={t("transactions.emptyTitle")} description={t("transactions.emptyDescription")} />
           ) : (
             <>
               <ul className="divide-y">
-                {filtered.map((t) => (
-                  <TransactionRow key={t.id} transaction={t} />
+                {filtered.map((tx) => (
+                  <TransactionRow key={tx.id} transaction={tx} />
                 ))}
               </ul>
               <p className="pt-4 text-xs text-muted-foreground">
-                Showing {filtered.length} {filtered.length === 1 ? "entry" : "entries"} · deposits and sell payouts
-                count as money in, buys and withdrawals as money out.
+                {t("transactions.footer", {
+                  count: filtered.length,
+                  entries: filtered.length === 1 ? t("transactions.entry") : t("transactions.entriesPlural"),
+                })}
               </p>
             </>
           )}
@@ -197,37 +197,44 @@ export default function TransactionsPage() {
   );
 }
 
-function TransactionRow({ transaction: t }: { transaction: TransactionSummary }) {
-  const credit = CREDIT_TYPES.includes(t.type);
+function TransactionRow({ transaction: tx }: { transaction: TransactionSummary }) {
+  const { t } = useTranslation();
+  const credit = CREDIT_TYPES.includes(tx.type);
   // metal-agnostic: a BUY/SELL row carries whichever of goldGrams/silverGrams
   // its own `metal` set, never both.
-  const grams = t.metal === "silver" ? t.silverGrams : t.goldGrams;
-  const unit = t.metal === "silver" ? "g Ag" : "g";
+  const grams = tx.metal === "silver" ? tx.silverGrams : tx.goldGrams;
+  const unit = tx.metal === "silver" ? "g Ag" : "g";
+  const TYPE_SHORT_KEY: Record<TransactionType, string> = {
+    BUY: "common.transactionTypeShort.buy",
+    SELL: "common.transactionTypeShort.sell",
+    DEPOSIT: "common.transactionTypeShort.deposit",
+    WITHDRAW: "common.transactionTypeShort.withdraw",
+  };
 
   return (
     <li className="flex items-center justify-between gap-3 py-4">
       <div className="min-w-0">
-        <p className="font-medium">{TYPE_LABEL[t.type]}</p>
+        <p className="font-medium">{t(TYPE_LABEL_KEY[tx.type])}</p>
         <p className="text-xs text-muted-foreground">
-          {formatDateTime(t.createdAt)} · {t.type.charAt(0) + t.type.slice(1).toLowerCase()}
+          {formatDateTime(tx.createdAt)} · {t(TYPE_SHORT_KEY[tx.type])}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <div className="text-right">
           {grams && (
-            <p className={cn("font-semibold tabular-nums", t.type === "BUY" ? "text-emerald-500" : "text-foreground")}>
-              {t.type === "BUY" ? "+" : "-"}
+            <p className={cn("font-semibold tabular-nums", tx.type === "BUY" ? "text-emerald-500" : "text-foreground")}>
+              {tx.type === "BUY" ? "+" : "-"}
               {Number(grams).toFixed(3)}
               {unit}
             </p>
           )}
           <p className={cn("text-xs tabular-nums", credit ? "text-emerald-500" : "text-muted-foreground")}>
             {credit ? "+" : "-"}
-            {formatBDT(t.totalAmountBDT)}
+            {formatBDT(tx.totalAmountBDT)}
           </p>
         </div>
-        <Badge variant={t.status === "COMPLETED" ? "default" : t.status === "FAILED" ? "destructive" : "secondary"}>
-          {t.status}
+        <Badge variant={tx.status === "COMPLETED" ? "default" : tx.status === "FAILED" ? "destructive" : "secondary"}>
+          {t(STATUS_LABEL_KEY[tx.status])}
         </Badge>
       </div>
     </li>

@@ -3,6 +3,7 @@ import { Landmark, Wallet as WalletIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 // Selected-state look for the product / preset / payment toggle rows used
 // on the buy-gold, sell-gold, and wallet pages — a solid gold fill, matching
@@ -59,6 +60,7 @@ export function PaymentMethodButton({
   onSelect: (key: string, enabled: boolean) => void;
   className?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <Button
       type="button"
@@ -80,7 +82,7 @@ export function PaymentMethodButton({
       </span>
       {!method.enabled && (
         <Badge variant="secondary" className="text-[10px]">
-          Soon
+          {t("trade.sell.soon")}
         </Badge>
       )}
     </Button>

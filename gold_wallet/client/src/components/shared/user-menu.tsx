@@ -16,6 +16,7 @@ import {
 import { useMe, useLogout } from "@/hooks/use-auth";
 import { MOCK_USER } from "@/lib/mock-user";
 import { clearSession } from "@/lib/session";
+import { useTranslation } from "@/lib/i18n/use-translation";
 
 /** First letter of the name — "Robiul Islam Robin" → "R". */
 function initial(name: string) {
@@ -23,10 +24,10 @@ function initial(name: string) {
 }
 
 const MENU_LINKS = [
-  { href: "/profile", label: "Profile", icon: User },
-  { href: "/wallet", label: "Wallet", icon: Wallet },
-  { href: "/kyc", label: "Verify Account", icon: IdCard },
-];
+  { href: "/profile", labelKey: "nav.profile", icon: User },
+  { href: "/wallet", labelKey: "nav.wallet", icon: Wallet },
+  { href: "/kyc", labelKey: "nav.verifyAccount", icon: IdCard },
+] as const;
 
 /** Avatar + account dropdown in the dashboard top bar. `useMe()` has no
  * backend behind this app, so it falls back to MOCK_USER rather than rendering
@@ -35,6 +36,7 @@ export function UserMenu() {
   const router = useRouter();
   const { data } = useMe();
   const logout = useLogout();
+  const { t } = useTranslation();
   const user = data ?? MOCK_USER;
 
   async function handleLogout() {
@@ -71,16 +73,16 @@ export function UserMenu() {
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        {MENU_LINKS.map(({ href, label, icon: Icon }) => (
+        {MENU_LINKS.map(({ href, labelKey, icon: Icon }) => (
           <DropdownMenuItem key={href} render={<Link href={href} />}>
             <Icon strokeWidth={1.75} />
-            {label}
+            {t(labelKey)}
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={handleLogout} disabled={logout.isPending}>
           <LogOut strokeWidth={1.75} />
-          {logout.isPending ? "Logging out…" : "Log out"}
+          {logout.isPending ? t("userMenu.loggingOut") : t("userMenu.logOut")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
