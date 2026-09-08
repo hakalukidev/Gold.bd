@@ -1,53 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import { useGoldRate } from "@/hooks/use-gold-rate";
 import { useWallet } from "@/hooks/use-wallet";
 import { useFxRates } from "@/hooks/use-fx-rates";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatBDTCompact, formatGrams, formatUSDCompact, gramsToMg } from "@/lib/format";
+import { formatBDTCompact, formatUSDCompact } from "@/lib/format";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/use-translation";
 
 /** Click cycles the balance through these views. */
-const UNITS = ["BDT", "USD", "GOLD"] as const;
+const UNITS = ["BDT", "USD"] as const;
 type Unit = (typeof UNITS)[number];
 
 const UNIT_LABEL_KEY: Record<Unit, string> = {
   BDT: "walletPill.unitTaka",
   USD: "walletPill.unitUsDollars",
-  GOLD: "walletPill.unitGramsOfGold",
 };
 
 /** "Wallet 4,250 BDT" chip for the dashboard top bar — click it to show the
- * same balance in USD, then as the gold it would buy at today's rate, then back
- * to taka. Reads the same ["wallet"] / ["gold-rate"] queries the trade forms
- * use, so it stays in sync with them. The wallet query shows a skeleton bar
- * while in flight, then the real cash balance from wallet_server's wallet
- * module once it settles (MOCK_WALLET's zero while signed out); the rate
- * query is real too, so it just reads "…" for the gold view until its first
- * tick arrives. */
+ * same balance in USD, then back to taka. Reads the same ["wallet"] query the
+ * trade forms use, so it stays in sync with them. Shows a skeleton bar while
+ * in flight, then the real cash balance from wallet_server's wallet module
+ * once it settles (MOCK_WALLET's zero while signed out). */
 export function WalletPill({ className }: { className?: string }) {
   const [unit, setUnit] = useState<Unit>("BDT");
   const { t } = useTranslation();
   const { data: wallet, isLoading: walletLoading } = useWallet();
-  const { data: rate } = useGoldRate();
   const { ratesPerUnit } = useFxRates();
 
   const balanceBDT = Number((wallet ?? MOCK_WALLET).cashBalanceBDT);
-  const pricePerGram = Number(rate?.pricePerGramBDT ?? 0);
   const next = UNITS[(UNITS.indexOf(unit) + 1) % UNITS.length];
 
-  // Gold view: what the cash balance is worth in metal at today's rate.
-  const value =
-    unit === "BDT"
-      ? formatBDTCompact(balanceBDT)
-      : unit === "USD"
-        ? formatUSDCompact(balanceBDT / ratesPerUnit.USD)
-        : pricePerGram > 0
-          ? formatGrams(gramsToMg(balanceBDT / pricePerGram))
-          : "…";
+  const value = unit === "BDT" ? formatBDTCompact(balanceBDT) : formatUSDCompact(balanceBDT / ratesPerUnit.USD);
 
   return (
     <button

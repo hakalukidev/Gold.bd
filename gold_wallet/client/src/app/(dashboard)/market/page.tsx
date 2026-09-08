@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Banknote, Coins, Gem, ReceiptText, TrendingDown, TrendingUp } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Banknote, Coins, Gem, TrendingDown, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,13 +14,11 @@ import { TradeCard } from "@/components/market/trade-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWallet } from "@/hooks/use-wallet";
 import { useMetalRate, useMetalRateHistory } from "@/hooks/use-metal-rate";
-import { useTransactions } from "@/hooks/use-transactions";
-import { formatBDT, formatDateTime } from "@/lib/format";
+import { formatBDT } from "@/lib/format";
 import { ANA_IN_GRAMS, BHORI_IN_GRAMS } from "@/lib/gold-fees";
 import type { Metal } from "@/lib/mock-rates";
 import { MOCK_WALLET } from "@/lib/mock-wallet";
 import { METAL_LABEL_KEY, METALS } from "@/lib/trade-products";
-import { CREDIT_TYPES, STATUS_LABEL_KEY, TYPE_ICON, TYPE_LABEL_KEY } from "@/lib/transaction-labels";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import type { Karat, MetalRateSummary } from "@/types";
@@ -245,7 +242,6 @@ export default function MarketPage() {
   const unit = PRICE_UNITS.find((u) => u.key === unitKey)!;
 
   const { data: walletData, isLoading: walletLoading } = useWallet();
-  const { data: transactionsData } = useTransactions();
   const { data: goldRateData } = useMetalRate("gold");
   const { data: silverRateData } = useMetalRate("silver");
   const { data: dailyData } = useMetalRateHistory(metal, karatKey);
@@ -256,7 +252,6 @@ export default function MarketPage() {
   const { data: silverHistoryData } = useMetalRateHistory("silver");
 
   const wallet = walletData ?? MOCK_WALLET;
-  const transactions = transactionsData ?? [];
   const range = RANGES.find((r) => r.key === rangeKey)!;
 
   const goldPerGram = Number(goldRateData?.pricePerGramBDT ?? 0);
@@ -405,67 +400,6 @@ export default function MarketPage() {
         </Card>
 
         <HoldingsTable rows={holdingRows} totalBDT={totalBDT} walletLoading={walletLoading} />
-
-        <Card>
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle>{t("market.recentActivity.title")}</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground"
-                nativeButton={false}
-                render={
-                  <Link href="/transactions">
-                    <ReceiptText />
-                    {t("nav.transactionHistory")}
-                  </Link>
-                }
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
-            {transactions.length === 0 ? (
-              <EmptyState
-                icon={ReceiptText}
-                title={t("market.recentActivity.noTransactions")}
-                description={t("market.recentActivity.noTransactionsDescription")}
-              />
-            ) : (
-              <ul className="divide-y">
-                {transactions.slice(0, 5).map((tx) => {
-                  const Icon = TYPE_ICON[tx.type];
-                  const credit = CREDIT_TYPES.includes(tx.type);
-                  return (
-                    <li key={tx.id} className="flex items-center gap-3 py-2.5 text-sm">
-                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold">
-                        <Icon className="size-4" strokeWidth={1.75} />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{t(TYPE_LABEL_KEY[tx.type])}</p>
-                        <p className="text-[11px] text-muted-foreground">{formatDateTime(tx.createdAt)}</p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <span
-                          className={cn(
-                            "font-medium tabular-nums",
-                            credit ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
-                          )}
-                        >
-                          {credit ? "+" : "−"}
-                          {formatBDT(tx.totalAmountBDT)}
-                        </span>
-                        <Badge variant={tx.status === "COMPLETED" ? "default" : tx.status === "FAILED" ? "destructive" : "secondary"}>
-                          {t(STATUS_LABEL_KEY[tx.status])}
-                        </Badge>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

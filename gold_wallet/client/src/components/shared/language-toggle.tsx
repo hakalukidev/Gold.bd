@@ -3,7 +3,7 @@
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setLocale } from "@/store/slices/ui-slice";
 import { cn } from "@/lib/utils";
-import { BdFlagIcon, UsFlagIcon } from "@/components/shared/flag-icons";
+import { BdFlagIcon, UkFlagIcon } from "@/components/shared/flag-icons";
 import { useTranslation } from "@/lib/i18n/use-translation";
 
 /** Flag chip for the dashboard chrome — shows the currently active language's
@@ -17,7 +17,7 @@ export function LanguageToggle({ className }: { className?: string }) {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const isEnglish = locale === "en";
-  const Flag = isEnglish ? UsFlagIcon : BdFlagIcon;
+  const Flag = isEnglish ? UkFlagIcon : BdFlagIcon;
 
   return (
     <button
