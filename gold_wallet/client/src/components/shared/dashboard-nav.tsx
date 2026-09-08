@@ -11,7 +11,18 @@ import {
   User,
   Vault,
   Wallet,
+  type LucideIcon,
 } from "lucide-react";
+
+/** Shape shared by every sidebar-style nav entry, including ones that live
+ * outside DASHBOARD_NAV_LINKS below (e.g. dashboard-sidebar.tsx's
+ * role-gated Admin link) — kept separate from the `as const` array's own
+ * inferred literal-union type, which only fits its own fixed entries. */
+export interface NavLinkEntry {
+  href: string;
+  labelKey: string;
+  icon: LucideIcon;
+}
 
 // Single source of truth for the dashboard sidebar (dashboard-sidebar.tsx) and
 // the top bar's current-page label (dashboard-topbar.tsx), so the two can't

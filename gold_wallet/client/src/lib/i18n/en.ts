@@ -695,6 +695,34 @@ export const en = {
       description: "Borrow cash using your vaulted gold as collateral",
     },
   },
+  admin: {
+    nav: "Admin",
+    header: {
+      title: "Admin Settings",
+      description: "Control trade fees and taxes platform-wide",
+    },
+    notAuthorized: {
+      title: "Not authorized",
+      description: "This page is only available to admin accounts.",
+    },
+    form: {
+      title: "Trade fees & tax",
+      transactionChargeRate: "Transaction charge",
+      transactionChargeHint: "Charged on every buy, on top of the trade amount.",
+      sellSpreadRate: "Sell spread",
+      sellSpreadHint: "Held back from every sell payout, below the live rate.",
+      govtGoldTaxPerBhoriBdt: "Govt. gold tax (per bhori)",
+      govtGoldTaxHint: "Gold buys only — charged per bhori (11.664g) bought.",
+      save: "Save changes",
+      saving: "Saving…",
+      lastUpdated: "Last updated {{date}}",
+      neverUpdated: "Using defaults — never changed",
+      loadErrorTitle: "Couldn't load settings",
+      loadErrorDescription: "Try reloading the page.",
+    },
+    saved: "Settings updated",
+    saveFailed: "Couldn't save — try again",
+  },
 };
 
 export type Messages = typeof en;

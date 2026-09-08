@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Gem } from "lucide-react";
+import { Gem, ShieldCheck } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -18,11 +18,12 @@ import {
 import { cn } from "@/lib/utils";
 import { COMMERCE_URL } from "@/lib/site-links";
 import { useTranslation } from "@/lib/i18n/use-translation";
-import { DASHBOARD_ACCOUNT_LINKS, DASHBOARD_MAIN_LINKS } from "./dashboard-nav";
+import { useMe } from "@/hooks/use-auth";
+import { DASHBOARD_ACCOUNT_LINKS, DASHBOARD_MAIN_LINKS, type NavLinkEntry } from "./dashboard-nav";
 
-type NavLink = (typeof DASHBOARD_MAIN_LINKS)[number];
+const ADMIN_LINKS: NavLinkEntry[] = [{ href: "/admin", labelKey: "admin.nav", icon: ShieldCheck }];
 
-function NavMenu({ links, pathname }: { links: NavLink[]; pathname: string }) {
+function NavMenu({ links, pathname }: { links: NavLinkEntry[]; pathname: string }) {
   const { t } = useTranslation();
   return (
     <SidebarMenu className="gap-1">
@@ -61,6 +62,7 @@ function NavMenu({ links, pathname }: { links: NavLink[]; pathname: string }) {
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { t } = useTranslation();
+  const { data: user } = useMe();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -98,6 +100,17 @@ export function DashboardSidebar() {
             <NavMenu links={DASHBOARD_ACCOUNT_LINKS} pathname={pathname} />
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {user?.role === "ADMIN" && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="mb-1 px-2.5 text-[11px] font-semibold tracking-[0.12em] text-sidebar-foreground/50 uppercase">
+              {t("admin.nav")}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <NavMenu links={ADMIN_LINKS} pathname={pathname} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarRail />
