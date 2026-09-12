@@ -35,4 +35,9 @@ export const walletAuthApi = {
     api
       .get<{ user: PublicUser }>(`${WALLET_API_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } })
       .then((r) => r.user),
+  /** Revokes the refresh-token cookie server-side. Needs its own absolute
+   * origin same as every other call here — a bare relative `/api/auth/logout`
+   * (as this used to be) hits Next.js itself, which has no such route, and
+   * 404s instead of actually ending the session. */
+  logout: () => api.post<null>(`${WALLET_API_URL}/api/auth/logout`),
 };

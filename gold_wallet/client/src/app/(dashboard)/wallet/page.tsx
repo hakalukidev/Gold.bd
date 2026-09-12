@@ -35,7 +35,6 @@ import { formatBDT, formatForeign, formatGrams, formatUSDCompact, gramsToMg } fr
 import type { ForeignCurrency } from "@/lib/mock-rates";
 import { MOCK_PURITY_MIX, MOCK_SILVER_PURITY_MIX, MOCK_WALLET } from "@/lib/mock-wallet";
 import { REFERRAL_REWARD_GRAMS, referralCode } from "@/lib/referral";
-import { MOCK_USER } from "@/lib/mock-user";
 import { buildFlow, filterRange, formatRange, percentChange, windowTotals, type FlowFilter } from "@/lib/wallet-flow";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/use-translation";
@@ -360,8 +359,9 @@ function HoldingsByPurity({ goldGrams, silverGrams }: { goldGrams: number; silve
 function ReferAndEarn() {
   const { data } = useMe();
   const { t } = useTranslation();
-  const user = data ?? MOCK_USER;
-  const code = referralCode(user.id);
+
+  if (!data) return null;
+  const code = referralCode(data.id);
 
   function copyCode() {
     navigator.clipboard?.writeText(code).then(
