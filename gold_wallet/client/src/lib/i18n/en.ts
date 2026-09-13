@@ -11,6 +11,7 @@ export const en = {
       withdraw: "Withdrawn from wallet",
       giftSent: "Gift sent",
       giftReceived: "Gift received",
+      collect: "Physical delivery requested",
     },
     status: {
       pending: "PENDING",
@@ -28,6 +29,7 @@ export const en = {
       withdraw: "Withdraw",
       giftSent: "Gift sent",
       giftReceived: "Gift received",
+      collect: "Delivery",
     },
   },
   auth: {
@@ -555,6 +557,7 @@ export const en = {
     submitting: "Submitting…",
     confirmDelivery: "Confirm insured delivery",
     requestReceived: "Delivery request received — we'll email your tracking details",
+    requestFailed: "Couldn't submit your request — try again",
     withdrawalDetails: "Withdrawal details",
     insuredDescription:
       "Fully insured, tracked delivery anywhere in Bangladesh. Hallmarked bars and coins arrive tamper-sealed with a certificate of authenticity.",
@@ -718,6 +721,8 @@ export const en = {
   },
   admin: {
     nav: "Admin",
+    panelName: "Admin Panel",
+    backToApp: "Back to app",
     header: {
       title: "Admin Settings",
       description: "Control trade fees and taxes platform-wide",
@@ -773,6 +778,49 @@ export const en = {
       fulfilled: "Marked as sent",
       actionFailed: "Couldn't update this order — try again",
     },
+    collect: {
+      title: "Physical delivery requests",
+      emptyTitle: "Nothing pending",
+      emptyDescription: "New delivery/pickup requests will show up here.",
+      loadErrorTitle: "Couldn't load the queue",
+      loadErrorDescription: "Try reloading the page.",
+      approve: "Approve",
+      approved: "Order approved",
+      actionFailed: "Couldn't update this order — try again",
+    },
+    users: {
+      description: "Every registered account",
+      searchPlaceholder: "Search by name…",
+      emptyTitle: "No users found",
+      emptyDescription: "Try a different search.",
+      columns: { name: "Name", phone: "Phone", role: "Role", kyc: "KYC", joined: "Joined" },
+    },
+    reports: {
+      description: "Daily buy/sell totals across every account, last 90 days",
+      emptyTitle: "No trades yet",
+      emptyDescription: "Buy/sell activity will show up here.",
+      columns: { date: "Date", buyGold: "Gold bought", sellGold: "Gold sold", buySilver: "Silver bought", sellSilver: "Silver sold" },
+    },
+    dashboard: {
+      description: "Platform overview",
+      loadErrorTitle: "Couldn't load the dashboard",
+      loadErrorDescription: "Try reloading the page.",
+      totalUsers: "Total users",
+      pendingKyc: "Pending KYC",
+      pendingGiftCoins: "Pending coin prints",
+      pendingCollect: "Pending deliveries",
+      last30Days: "Last 30 days",
+      viewFullReport: "View full report →",
+    },
+  },
+  adminNav: {
+    dashboard: "Dashboard",
+    users: "Users",
+    kyc: "KYC Review",
+    giftCoins: "Gift Coins",
+    collect: "Collect",
+    reports: "Reports",
+    settings: "Settings",
   },
 };
 

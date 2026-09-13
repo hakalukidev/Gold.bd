@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { MapPin, Truck } from "lucide-react";
 import { collectSchema, COLLECT_WEIGHTS_G, type CollectForm, type CollectInput, type CollectMethod } from "@/lib/validations/collect";
 import { useWallet } from "@/hooks/use-wallet";
+import { useRequestCollect } from "@/hooks/use-collect";
+import { ApiError } from "@/lib/api-client";
 import { formatBDT } from "@/lib/format";
 import { PRODUCT_IMAGES } from "@/lib/products";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,7 @@ export function CollectPanel() {
   const { t } = useTranslation();
   const { data: wallet } = useWallet();
   const available = wallet ? Number(wallet.goldBalanceGrams) : 0;
+  const requestCollect = useRequestCollect();
 
   const form = useForm<CollectInput>({
     resolver: zodResolver(collectSchema),
@@ -57,12 +60,13 @@ export function CollectPanel() {
       form.setError("weightGrams", { message: t("collectPanel.onlyHold", { amount: available.toFixed(3) }) });
       return;
     }
-    // No /api/gold/collect endpoint in this repo (see CLAUDE.md) — same
-    // "record the request, no real fulfillment backend" pattern as the
-    // marketing site's checkout flow.
-    await new Promise((r) => setTimeout(r, 400));
-    toast.success(t("collectPanel.requestReceived"));
-    form.reset({ weightGrams: 1, form: "coin", method: "home", fullName: "", phone: "", district: "", postalCode: "", streetAddress: "" });
+    try {
+      await requestCollect.mutateAsync(values);
+      toast.success(t("collectPanel.requestReceived"));
+      form.reset({ weightGrams: 1, form: "coin", method: "home", fullName: "", phone: "", district: "", postalCode: "", streetAddress: "" });
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : t("collectPanel.requestFailed"));
+    }
   }
 
   return (

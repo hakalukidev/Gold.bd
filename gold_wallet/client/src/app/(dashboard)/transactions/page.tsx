@@ -211,11 +211,14 @@ function TransactionRow({ transaction: tx }: { transaction: TransactionSummary }
     WITHDRAW: "common.transactionTypeShort.withdraw",
     GIFT_SENT: "common.transactionTypeShort.giftSent",
     GIFT_RECEIVED: "common.transactionTypeShort.giftReceived",
+    COLLECT: "common.transactionTypeShort.collect",
   };
-  // Gifts move metal only — totalAmountBDT is always "0.00" for them (no
-  // cashDelta on either leg, see gift.service.js), so the BDT line below
-  // would just show a meaningless "+0.00"/"-0.00".
-  const showCashAmount = tx.type !== "GIFT_SENT" && tx.type !== "GIFT_RECEIVED";
+  // Gifts and physical collections move metal only — totalAmountBDT is
+  // always "0.00" for them (no cashDelta on any leg, see
+  // gift.service.js/collect.service.js), so the BDT line below would just
+  // show a meaningless "+0.00"/"-0.00".
+  const NO_CASH_TYPES: TransactionType[] = ["GIFT_SENT", "GIFT_RECEIVED", "COLLECT"];
+  const showCashAmount = !NO_CASH_TYPES.includes(tx.type);
 
   return (
     <li className="flex items-center justify-between gap-3 py-4">

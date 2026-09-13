@@ -10,5 +10,8 @@ const router = Router();
 // PATCH either.
 router.get("/admin/settings", requireAuth, requireAdmin, controller.getSettings);
 router.post("/admin/settings", requireAuth, requireAdmin, controller.updateSettings);
+router.get("/admin/dashboard", requireAuth, requireAdmin, controller.getDashboard);
+router.get("/admin/users", requireAuth, requireAdmin, controller.getUsers);
+router.get("/admin/reports/trades", requireAuth, requireAdmin, controller.getTradeReport);
 
 module.exports = router;

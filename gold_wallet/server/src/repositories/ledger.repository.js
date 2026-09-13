@@ -153,6 +153,30 @@ async function listByUser(userId, { type, metal, from, to, page = 1, limit = 50 
   return { items: rows.map(toSummary), total, page: safePage, limit: safeLimit };
 }
 
+/** Admin trade report — every BUY/SELL row (any user) in a date range, for
+ * GET /api/admin/reports/trades to bucket into daily totals. Capped at 5000
+ * rows: this decrypts each one in JS (amounts_enc isn't SQL-aggregatable —
+ * see security/crypto.js), so an unbounded range could otherwise mean
+ * decrypting an unbounded number of rows on one request. */
+async function adminListTrades({ from, to, limit = 5000 } = {}) {
+  const conditions = ["type IN ('BUY', 'SELL')"];
+  const params = [];
+  if (from) {
+    params.push(from);
+    conditions.push(`created_at >= $${params.length}`);
+  }
+  if (to) {
+    params.push(to);
+    conditions.push(`created_at <= $${params.length}`);
+  }
+  params.push(Math.min(Math.max(1, limit), 5000));
+  const { rows } = await pool.query(
+    `SELECT * FROM ledger_entries WHERE ${conditions.join(" AND ")} ORDER BY created_at ASC LIMIT $${params.length}`,
+    params
+  );
+  return rows.map((row) => ({ ...toSummary(row), userId: row.user_id }));
+}
+
 /**
  * Walks a user's chain in insertion order, recomputing each row's hash from
  * its stored fields and checking it both matches the stored row_hash and
@@ -200,4 +224,4 @@ async function sumDeltas(userId, db = pool) {
   return { cashBalanceBDT: cash.toFixed(2), goldBalanceGrams: gold.toFixed(4), silverBalanceGrams: silver.toFixed(4) };
 }
 
-module.exports = { insert, findById, findByIdempotencyKey, listByUser, verifyChain, sumDeltas };
+module.exports = { insert, findById, findByIdempotencyKey, listByUser, adminListTrades, verifyChain, sumDeltas };

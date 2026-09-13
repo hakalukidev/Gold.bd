@@ -20,6 +20,7 @@ const ACCESS_TOKEN_KEY = "gb_access_token";
 
 export function markSignedIn() {
   document.cookie = `${SESSION_COOKIE}=1; path=/; max-age=${ONE_MONTH_SECONDS}; samesite=lax`;
+  sessionExpiredNotified = false;
 }
 
 export function setAccessToken(token: string) {
@@ -46,8 +47,19 @@ export function clearSession() {
  * way instead of each caller having to notice its own 401 and log out. */
 export const SESSION_EXPIRED_EVENT = "gb:session-expired";
 
+// A dashboard page fires several authenticated queries in parallel (wallet,
+// transactions, KYC status, ...), so an expired token makes more than one of
+// them 401 back-to-back — each would call this. Without this guard, every
+// one of those dispatches its own event and SessionExpiredHandler
+// (providers.tsx) pushes to /login again for each, which is what surfaced as
+// the same "session expired" toast appearing 2-3 times. Reset on the next
+// successful sign-in (markSignedIn) so a later real expiry still notifies.
+let sessionExpiredNotified = false;
+
 export function notifySessionExpired() {
   if (typeof window === "undefined") return;
+  if (sessionExpiredNotified) return;
+  sessionExpiredNotified = true;
   clearSession();
   window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
 }

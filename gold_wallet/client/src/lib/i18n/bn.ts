@@ -13,6 +13,7 @@ export const bn: Messages = {
       withdraw: "ওয়ালেট থেকে উত্তোলন",
       giftSent: "উপহার পাঠানো হয়েছে",
       giftReceived: "উপহার পাওয়া গেছে",
+      collect: "ফিজিক্যাল ডেলিভারির অনুরোধ",
     },
     status: {
       pending: "মুলতুবি",
@@ -30,6 +31,7 @@ export const bn: Messages = {
       withdraw: "উত্তোলন",
       giftSent: "উপহার পাঠানো",
       giftReceived: "উপহার পাওয়া",
+      collect: "ডেলিভারি",
     },
   },
   auth: {
@@ -557,6 +559,7 @@ export const bn: Messages = {
     submitting: "জমা হচ্ছে…",
     confirmDelivery: "বীমাকৃত ডেলিভারি নিশ্চিত করুন",
     requestReceived: "ডেলিভারি অনুরোধ গৃহীত হয়েছে — আমরা ইমেইলে ট্র্যাকিং তথ্য পাঠাবো",
+    requestFailed: "আপনার অনুরোধ জমা দেওয়া যায়নি — আবার চেষ্টা করুন",
     withdrawalDetails: "উত্তোলনের বিবরণ",
     insuredDescription:
       "বাংলাদেশের যেকোনো জায়গায় সম্পূর্ণ বীমাকৃত, ট্র্যাক করা ডেলিভারি। হলমার্কযুক্ত বার ও কয়েন সিলগালা অবস্থায় সত্যতা সনদসহ পৌঁছাবে।",
@@ -720,6 +723,8 @@ export const bn: Messages = {
   },
   admin: {
     nav: "অ্যাডমিন",
+    panelName: "অ্যাডমিন প্যানেল",
+    backToApp: "অ্যাপে ফিরে যান",
     header: {
       title: "অ্যাডমিন সেটিংস",
       description: "প্ল্যাটফর্ম-জুড়ে ট্রেড ফি ও ট্যাক্স নিয়ন্ত্রণ করুন",
@@ -775,5 +780,48 @@ export const bn: Messages = {
       fulfilled: "পাঠানো হয়েছে বলে চিহ্নিত করা হলো",
       actionFailed: "এই অর্ডার আপডেট করা যায়নি — আবার চেষ্টা করুন",
     },
+    collect: {
+      title: "ফিজিক্যাল ডেলিভারি রিকোয়েস্ট",
+      emptyTitle: "মুলতুবি কিছু নেই",
+      emptyDescription: "নতুন ডেলিভারি/পিকআপ রিকোয়েস্ট এখানে দেখানো হবে।",
+      loadErrorTitle: "তালিকা লোড করা যায়নি",
+      loadErrorDescription: "পেজটি আবার লোড করার চেষ্টা করুন।",
+      approve: "অনুমোদন করুন",
+      approved: "অর্ডার অনুমোদিত হয়েছে",
+      actionFailed: "এই অর্ডার আপডেট করা যায়নি — আবার চেষ্টা করুন",
+    },
+    users: {
+      description: "সব রেজিস্টার্ড অ্যাকাউন্ট",
+      searchPlaceholder: "নাম দিয়ে খুঁজুন…",
+      emptyTitle: "কোনো ইউজার পাওয়া যায়নি",
+      emptyDescription: "ভিন্ন কিছু দিয়ে খুঁজে দেখুন।",
+      columns: { name: "নাম", phone: "ফোন", role: "রোল", kyc: "KYC", joined: "যোগদানের তারিখ" },
+    },
+    reports: {
+      description: "প্রতিদিনের কেনাবেচার মোট হিসাব, সব অ্যাকাউন্ট মিলিয়ে, গত ৯০ দিন",
+      emptyTitle: "এখনো কোনো লেনদেন নেই",
+      emptyDescription: "কেনাবেচার কার্যক্রম এখানে দেখানো হবে।",
+      columns: { date: "তারিখ", buyGold: "সোনা কেনা", sellGold: "সোনা বিক্রি", buySilver: "রূপা কেনা", sellSilver: "রূপা বিক্রি" },
+    },
+    dashboard: {
+      description: "প্ল্যাটফর্ম ওভারভিউ",
+      loadErrorTitle: "ড্যাশবোর্ড লোড করা যায়নি",
+      loadErrorDescription: "পেজটি আবার লোড করার চেষ্টা করুন।",
+      totalUsers: "মোট ইউজার",
+      pendingKyc: "মুলতুবি KYC",
+      pendingGiftCoins: "মুলতুবি কয়েন প্রিন্ট",
+      pendingCollect: "মুলতুবি ডেলিভারি",
+      last30Days: "গত ৩০ দিন",
+      viewFullReport: "সম্পূর্ণ রিপোর্ট দেখুন →",
+    },
+  },
+  adminNav: {
+    dashboard: "ড্যাশবোর্ড",
+    users: "ইউজার",
+    kyc: "KYC পর্যালোচনা",
+    giftCoins: "গিফট কয়েন",
+    collect: "সংগ্রহ",
+    reports: "রিপোর্ট",
+    settings: "সেটিংস",
   },
 };

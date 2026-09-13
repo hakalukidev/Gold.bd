@@ -18,7 +18,7 @@ export interface WalletSummary {
   silverBalanceGrams: string; // the vault holds both metals; same string-decimal contract as gold
 }
 
-export type TransactionType = "BUY" | "SELL" | "DEPOSIT" | "WITHDRAW" | "GIFT_SENT" | "GIFT_RECEIVED";
+export type TransactionType = "BUY" | "SELL" | "DEPOSIT" | "WITHDRAW" | "GIFT_SENT" | "GIFT_RECEIVED" | "COLLECT";
 export type TransactionStatus = "PENDING" | "COMPLETED" | "FAILED";
 
 export interface TransactionSummary {
