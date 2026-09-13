@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { normalizeBdPhone } from "@/lib/format";
 import { useGoldRate } from "@/hooks/use-gold-rate";
+import { useSendGift } from "@/hooks/use-gift";
+import { ApiError } from "@/lib/api-client";
 import { formatBDT } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,6 +46,7 @@ const AMOUNT_PRESETS = [1000, 2000, 5000, 10000];
 export function GiftGoldPanel() {
   const { t } = useTranslation();
   const { data: rate } = useGoldRate();
+  const sendGift = useSendGift();
   const [occasionKey, setOccasionKey] = useState<(typeof OCCASIONS)[number]["key"]>("eid");
   const [amount, setAmount] = useState(2000);
   const [customPhoto, setCustomPhoto] = useState(false);
@@ -61,11 +64,18 @@ export function GiftGoldPanel() {
       form.setError("recipientPhone", { message: t("giftGoldPanel.invalidPhone") });
       return;
     }
-    // No /api/gold/gift endpoint in this repo (see CLAUDE.md) — recorded
-    // locally only, same "no fulfillment backend" pattern as checkout.
-    await new Promise((r) => setTimeout(r, 400));
-    toast.success(t("giftGoldPanel.giftSent", { phone }));
-    form.reset({ recipientPhone: "", message: "" });
+    if (!grams) {
+      toast.error(t("giftGoldPanel.rateUnavailable"));
+      return;
+    }
+
+    try {
+      await sendGift.mutateAsync({ recipientPhone: phone, metal: "gold", grams });
+      toast.success(t("giftGoldPanel.giftSent", { phone }));
+      form.reset({ recipientPhone: "", message: "" });
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : t("giftGoldPanel.sendFailed"));
+    }
   }
 
   return (

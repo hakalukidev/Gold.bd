@@ -14,6 +14,9 @@ const AMOUNT_KEYS = [
   "cashBalanceAfter",
   "goldBalanceAfter",
   "silverBalanceAfter",
+  // GIFT_SENT/GIFT_RECEIVED only — the other party's phone, so the activity
+  // feed can show "Gift to/from 017…" without a second lookup call.
+  "counterpartyPhone",
 ];
 
 function amountsAad(id) {
@@ -41,6 +44,7 @@ function toSummary(row) {
     taxBDT: amounts.taxBDT ?? "0.00",
     totalAmountBDT: Math.abs(Number(amounts.cashDelta ?? 0)).toFixed(2),
     paymentTranId: row.payment_tran_id,
+    counterpartyPhone: amounts.counterpartyPhone ?? null,
     createdAt: row.created_at.toISOString(),
   };
 }

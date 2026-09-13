@@ -9,6 +9,8 @@ export const en = {
       sell: "Sold Gold",
       deposit: "Added to wallet",
       withdraw: "Withdrawn from wallet",
+      giftSent: "Gift sent",
+      giftReceived: "Gift received",
     },
     status: {
       pending: "PENDING",
@@ -24,6 +26,8 @@ export const en = {
       sell: "Sell",
       deposit: "Deposit",
       withdraw: "Withdraw",
+      giftSent: "Gift sent",
+      giftReceived: "Gift received",
     },
   },
   auth: {
@@ -648,6 +652,8 @@ export const en = {
     sending: "Sending…",
     sendGift: "Send gift · {{amount}}",
     giftSent: "Gift sent to {{phone}}",
+    sendFailed: "Couldn't send the gift — try again",
+    rateUnavailable: "Gold rate isn't available yet — try again shortly",
     previewDescription: "{{amount}} {{grams}} of 22K certified gold, delivered instantly to their Gold.bd vault.",
   },
   vaultPanel: {

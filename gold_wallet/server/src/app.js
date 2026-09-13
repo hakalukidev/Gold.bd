@@ -17,6 +17,7 @@ const tradeRoutes = require("./modules/trade/trade.routes");
 const transactionRoutes = require("./modules/transactions/transaction.routes");
 const adminRoutes = require("./modules/admin/admin.routes");
 const kycRoutes = require("./modules/kyc/kyc.routes");
+const giftRoutes = require("./modules/gift/gift.routes");
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use("/api", walletRoutes);
 app.use("/api", transactionRoutes);
 app.use("/api", adminRoutes);
 app.use("/api", kycRoutes);
+app.use("/api", giftRoutes);
 // Mounted last: /:metal/buy|sell is a wildcard-first path, so anything more
 // specific above (e.g. /payments/:tranId) should get first refusal.
 app.use("/api", tradeRoutes);

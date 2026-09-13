@@ -11,6 +11,8 @@ export const bn: Messages = {
       sell: "সোনা বিক্রি হয়েছে",
       deposit: "ওয়ালেটে যোগ হয়েছে",
       withdraw: "ওয়ালেট থেকে উত্তোলন",
+      giftSent: "উপহার পাঠানো হয়েছে",
+      giftReceived: "উপহার পাওয়া গেছে",
     },
     status: {
       pending: "মুলতুবি",
@@ -26,6 +28,8 @@ export const bn: Messages = {
       sell: "বিক্রি",
       deposit: "জমা",
       withdraw: "উত্তোলন",
+      giftSent: "উপহার পাঠানো",
+      giftReceived: "উপহার পাওয়া",
     },
   },
   auth: {
@@ -650,6 +654,8 @@ export const bn: Messages = {
     sending: "পাঠানো হচ্ছে…",
     sendGift: "উপহার পাঠান · {{amount}}",
     giftSent: "{{phone}}-এ উপহার পাঠানো হয়েছে",
+    sendFailed: "উপহার পাঠানো যায়নি — আবার চেষ্টা করুন",
+    rateUnavailable: "সোনার রেট এখনো পাওয়া যায়নি — একটু পর আবার চেষ্টা করুন",
     previewDescription: "{{amount}} {{grams}} ২২ ক্যারেট সার্টিফাইড সোনা, তাদের Gold.bd ভল্টে সাথে সাথে পৌঁছে যাবে।",
   },
   vaultPanel: {
