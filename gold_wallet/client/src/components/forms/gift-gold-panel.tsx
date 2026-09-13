@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { normalizeBdPhone } from "@/lib/format";
 import { useGoldRate } from "@/hooks/use-gold-rate";
 import { useSendGift } from "@/hooks/use-gift";
+import { useCreateGiftCoinOrder } from "@/hooks/use-gift-coin";
 import { ApiError } from "@/lib/api-client";
 import { formatBDT } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { SELECTED_GOLD } from "@/components/shared/payment-method-button";
 import { AnniversaryIcon, BirthdayIcon, EidIcon, WeddingIcon } from "@/components/forms/occasion-icons";
+import { CoinPhotoUpload } from "@/components/forms/coin-photo-upload";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/use-translation";
 
@@ -47,9 +49,11 @@ export function GiftGoldPanel() {
   const { t } = useTranslation();
   const { data: rate } = useGoldRate();
   const sendGift = useSendGift();
+  const createGiftCoinOrder = useCreateGiftCoinOrder();
   const [occasionKey, setOccasionKey] = useState<(typeof OCCASIONS)[number]["key"]>("eid");
   const [amount, setAmount] = useState(2000);
   const [customPhoto, setCustomPhoto] = useState(false);
+  const [coinPhoto, setCoinPhoto] = useState<File | null>(null);
   const form = useForm<{ recipientPhone: string; message: string }>({
     defaultValues: { recipientPhone: "", message: "" },
   });
@@ -69,13 +73,30 @@ export function GiftGoldPanel() {
       return;
     }
 
+    let sent;
     try {
-      await sendGift.mutateAsync({ recipientPhone: phone, metal: "gold", grams });
-      toast.success(t("giftGoldPanel.giftSent", { phone }));
-      form.reset({ recipientPhone: "", message: "" });
+      sent = await sendGift.mutateAsync({ recipientPhone: phone, metal: "gold", grams });
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : t("giftGoldPanel.sendFailed"));
+      return;
     }
+
+    toast.success(t("giftGoldPanel.giftSent", { phone }));
+
+    // The gold transfer already succeeded at this point — a failure here only
+    // means the print request didn't go through, not that the gift itself
+    // needs retrying, so it gets its own toast rather than the generic one above.
+    if (customPhoto && coinPhoto) {
+      try {
+        await createGiftCoinOrder.mutateAsync({ ledgerEntryId: sent.id, occasion: occasionKey, photo: coinPhoto });
+      } catch (error) {
+        toast.error(error instanceof ApiError ? error.message : t("giftGoldPanel.customPhoto.orderFailed"));
+      }
+    }
+
+    form.reset({ recipientPhone: "", message: "" });
+    setCoinPhoto(null);
+    setCustomPhoto(false);
   }
 
   return (
@@ -138,12 +159,19 @@ export function GiftGoldPanel() {
 
           <Textarea placeholder={t("giftGoldPanel.messagePlaceholder")} rows={3} {...form.register("message")} />
 
-          <div className="flex items-center justify-between gap-4 rounded-md border p-3">
-            <div>
-              <p className="text-sm font-medium">{t("giftGoldPanel.customPhoto.title")}</p>
-              <p className="text-xs text-muted-foreground">{t("giftGoldPanel.customPhoto.description")}</p>
+          <div className="rounded-md border p-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium">{t("giftGoldPanel.customPhoto.title")}</p>
+                <p className="text-xs text-muted-foreground">{t("giftGoldPanel.customPhoto.description")}</p>
+              </div>
+              <Switch checked={customPhoto} onCheckedChange={setCustomPhoto} />
             </div>
-            <Switch checked={customPhoto} onCheckedChange={setCustomPhoto} />
+            {customPhoto && (
+              <div className="mt-3">
+                <CoinPhotoUpload file={coinPhoto} onChange={setCoinPhoto} />
+              </div>
+            )}
           </div>
 
           <Button type="submit" variant="gold-solid" className="w-full" disabled={form.formState.isSubmitting}>

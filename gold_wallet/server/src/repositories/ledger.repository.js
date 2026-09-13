@@ -100,6 +100,11 @@ async function insert(entry, client) {
   return toSummary(rows[0]);
 }
 
+async function findById(id, db = pool) {
+  const { rows } = await db.query(`SELECT * FROM ledger_entries WHERE id = $1`, [id]);
+  return rows[0] ? { ...toSummary(rows[0]), userId: rows[0].user_id } : null;
+}
+
 async function findByIdempotencyKey(userId, idempotencyKey, db = pool) {
   if (!idempotencyKey) return null;
   const { rows } = await db.query(`SELECT * FROM ledger_entries WHERE user_id = $1 AND idempotency_key = $2`, [
@@ -195,4 +200,4 @@ async function sumDeltas(userId, db = pool) {
   return { cashBalanceBDT: cash.toFixed(2), goldBalanceGrams: gold.toFixed(4), silverBalanceGrams: silver.toFixed(4) };
 }
 
-module.exports = { insert, findByIdempotencyKey, listByUser, verifyChain, sumDeltas };
+module.exports = { insert, findById, findByIdempotencyKey, listByUser, verifyChain, sumDeltas };
