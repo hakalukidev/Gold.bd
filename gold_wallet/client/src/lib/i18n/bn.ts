@@ -344,6 +344,7 @@ export const bn: Messages = {
       fullName: "পুরো নাম",
       dob: "জন্ম তারিখ",
       nidNumber: "এনআইডি নম্বর",
+      nidNumberHint: "ঠিক ১০, ১৩ অথবা ১৭ সংখ্যার হতে হবে",
     },
     nidStep: {
       title: "আপনার এনআইডি আপলোড করুন",

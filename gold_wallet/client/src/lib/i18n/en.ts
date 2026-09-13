@@ -342,6 +342,7 @@ export const en = {
       fullName: "Full name",
       dob: "Date of birth",
       nidNumber: "NID number",
+      nidNumberHint: "Must be exactly 10, 13 or 17 digits",
     },
     nidStep: {
       title: "Upload your NID",

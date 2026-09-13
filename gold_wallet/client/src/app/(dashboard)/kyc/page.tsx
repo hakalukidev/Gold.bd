@@ -220,7 +220,11 @@ function VerifyWizard({ prefillReason }: { prefillReason?: string }) {
                     onChange={(e) => setNidNumber(e.target.value.replace(/\D/g, ""))}
                     placeholder="1234567890"
                     inputMode="numeric"
+                    aria-invalid={nidNumber.length > 0 && !nidNumberValid}
                   />
+                  <p className={cn("text-xs", nidNumber.length > 0 && !nidNumberValid ? "text-destructive" : "text-muted-foreground")}>
+                    {t("kyc.detailsStep.nidNumberHint")}
+                  </p>
                 </div>
               </div>
             </div>
