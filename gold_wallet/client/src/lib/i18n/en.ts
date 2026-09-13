@@ -129,6 +129,10 @@ export const en = {
     enLabel: "En",
     bnLabel: "বাং",
   },
+  themeToggle: {
+    switchToLight: "Switch to light mode",
+    switchToDark: "Switch to dark mode",
+  },
   wallet: {
     header: {
       title: "My Wallet",

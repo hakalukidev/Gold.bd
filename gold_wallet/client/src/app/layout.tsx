@@ -40,13 +40,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${notoSerifBengali.variable} ${geistMono.variable} ${playfairDisplay.variable} dark h-full antialiased`}
-      // Browser extensions (grammar/translation tools, etc.) inject their own
-      // attributes into <html> — e.g. `data-qb-installed` — before React
-      // hydrates. Without this, React treats that as a real mismatch and
-      // discards + re-renders the whole tree, which is what was surfacing as
-      // an unrelated-looking hydration diff/"state update before mount"
-      // warning deep inside DashboardLayout's Sidebar.
+      className={`${manrope.variable} ${notoSerifBengali.variable} ${geistMono.variable} ${playfairDisplay.variable} h-full antialiased`}
+      // Two independent reasons this must stay: (1) browser extensions
+      // (grammar/translation tools, etc.) inject their own attributes into
+      // <html> — e.g. `data-qb-installed` — before React hydrates, which
+      // React would otherwise treat as a real mismatch and discard + re-render
+      // the whole tree; (2) next-themes' ThemeProvider (see providers.tsx)
+      // adds the `dark` class to this element from an inline script that runs
+      // before hydration, which would also mismatch the server-rendered
+      // (theme-less) markup without this.
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground" suppressHydrationWarning>

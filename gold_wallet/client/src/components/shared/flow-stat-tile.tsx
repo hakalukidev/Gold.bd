@@ -48,7 +48,7 @@ export function FlowStatTile({
   caption?: string;
 }) {
   return (
-    <Card size="sm">
+    <Card size="sm" className="transition-all duration-150 hover:-translate-y-0.5 hover:bg-gold/5 hover:ring-gold/20">
       <CardContent className="space-y-2">
         <div className="flex items-center gap-2">
           <span className={cn("flex size-7 items-center justify-center rounded-md", accent)}>

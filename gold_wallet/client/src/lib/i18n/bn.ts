@@ -131,6 +131,10 @@ export const bn: Messages = {
     enLabel: "En",
     bnLabel: "বাং",
   },
+  themeToggle: {
+    switchToLight: "লাইট মোডে পরিবর্তন করুন",
+    switchToDark: "ডার্ক মোডে পরিবর্তন করুন",
+  },
   wallet: {
     header: {
       title: "আমার ওয়ালেট",

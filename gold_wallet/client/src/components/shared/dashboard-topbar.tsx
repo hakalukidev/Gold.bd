@@ -7,6 +7,7 @@ import { useTranslation } from "@/lib/i18n/use-translation";
 import { DASHBOARD_NAV_LINKS } from "./dashboard-nav";
 import { GoldRatePill } from "./gold-rate-pill";
 import { LanguageToggle } from "./language-toggle";
+import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 import { WalletPill } from "./wallet-pill";
 
@@ -28,6 +29,7 @@ export function DashboardTopbar() {
       <GoldRatePill className="ml-2 hidden lg:flex" />
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
         <WalletPill className="hidden sm:flex" />
+        <ThemeToggle />
         <LanguageToggle />
         <UserMenu />
       </div>
