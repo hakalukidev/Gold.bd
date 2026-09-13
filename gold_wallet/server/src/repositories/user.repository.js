@@ -98,6 +98,13 @@ async function resetFailedLogins(userId) {
   );
 }
 
+/** Keeps users.kyc_status (the summary flag /api/auth/me returns) in sync
+ * with the detailed record in kyc_profiles (see kyc.repository.js) — set on
+ * every submit/approve/reject rather than derived on read. */
+async function updateKycStatus(userId, kycStatus) {
+  await pool.query(`UPDATE users SET kyc_status = $2, updated_at = now() WHERE id = $1`, [userId, kycStatus]);
+}
+
 module.exports = {
   toPublicUser,
   findByPhone,
@@ -106,4 +113,5 @@ module.exports = {
   create,
   registerFailedLogin,
   resetFailedLogins,
+  updateKycStatus,
 };
