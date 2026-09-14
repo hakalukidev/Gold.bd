@@ -19,17 +19,17 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import type { TransactionSummary, TransactionType } from "@/types";
 
-// "Gift" and "Auto-Save" mirror the reference design's filter pills, but
-// TransactionType only has BUY/SELL/DEPOSIT/WITHDRAW (see types/index.ts) —
-// there's no gift/auto-save transaction record in this repo's API contract,
-// so those two filters always come up empty instead of showing fake rows.
+// "Auto-Save" mirrors the reference design's filter pill, but there's no
+// auto-save transaction record in this repo's API contract (see
+// types/index.ts) — that filter always comes up empty instead of showing
+// fake rows. "Gift" is real (see modules/gift on the server).
 const TYPE_FILTERS: { key: string; labelKey: string; types: TransactionType[] | null }[] = [
   { key: "all", labelKey: "transactions.filters.all", types: null },
   { key: "buy", labelKey: "transactions.filters.buy", types: ["BUY"] },
   { key: "sell", labelKey: "transactions.filters.sell", types: ["SELL"] },
   { key: "money-in", labelKey: "transactions.filters.moneyIn", types: ["DEPOSIT"] },
   { key: "money-out", labelKey: "transactions.filters.moneyOut", types: ["WITHDRAW"] },
-  { key: "gift", labelKey: "transactions.filters.gift", types: [] },
+  { key: "gift", labelKey: "transactions.filters.gift", types: ["GIFT_SENT", "GIFT_RECEIVED"] },
   { key: "auto-save", labelKey: "transactions.filters.autoSave", types: [] },
 ];
 
@@ -46,12 +46,12 @@ const RANGES = [
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Buys, sells and wallet movement in one ledger — the money-in/out totals that
- * used to live on a separate Statement page are folded in above the filters,
- * so Transaction History is the single place to review and export activity. Same
- * ["transactions"] query as the rest of the app; the skeleton below covers the
- * loading gap and this repo has no backend behind it yet (see CLAUDE.md), so
- * it settles to an empty ledger rather than demo rows.
+ * Buys, sells, gifts and wallet movement in one ledger — the money-in/out
+ * totals that used to live on a separate Statement page are folded in above
+ * the filters, so Transaction History is the single place to review and
+ * export activity. Same ["transactions"] query as the rest of the app; the
+ * skeleton below covers the loading gap, and a genuinely empty ledger (a
+ * brand-new account) just settles to zero rows rather than demo data.
  */
 export default function TransactionsPage() {
   const { t } = useTranslation();
@@ -209,7 +209,16 @@ function TransactionRow({ transaction: tx }: { transaction: TransactionSummary }
     SELL: "common.transactionTypeShort.sell",
     DEPOSIT: "common.transactionTypeShort.deposit",
     WITHDRAW: "common.transactionTypeShort.withdraw",
+    GIFT_SENT: "common.transactionTypeShort.giftSent",
+    GIFT_RECEIVED: "common.transactionTypeShort.giftReceived",
+    COLLECT: "common.transactionTypeShort.collect",
   };
+  // Gifts and physical collections move metal only — totalAmountBDT is
+  // always "0.00" for them (no cashDelta on any leg, see
+  // gift.service.js/collect.service.js), so the BDT line below would just
+  // show a meaningless "+0.00"/"-0.00".
+  const NO_CASH_TYPES: TransactionType[] = ["GIFT_SENT", "GIFT_RECEIVED", "COLLECT"];
+  const showCashAmount = !NO_CASH_TYPES.includes(tx.type);
 
   return (
     <li className="flex items-center justify-between gap-3 py-4">
@@ -222,16 +231,18 @@ function TransactionRow({ transaction: tx }: { transaction: TransactionSummary }
       <div className="flex shrink-0 items-center gap-3">
         <div className="text-right">
           {grams && (
-            <p className={cn("font-semibold tabular-nums", tx.type === "BUY" ? "text-emerald-500" : "text-foreground")}>
-              {tx.type === "BUY" ? "+" : "-"}
+            <p className={cn("font-semibold tabular-nums", credit ? "text-emerald-500" : "text-foreground")}>
+              {credit ? "+" : "-"}
               {Number(grams).toFixed(3)}
               {unit}
             </p>
           )}
-          <p className={cn("text-xs tabular-nums", credit ? "text-emerald-500" : "text-muted-foreground")}>
-            {credit ? "+" : "-"}
-            {formatBDT(tx.totalAmountBDT)}
-          </p>
+          {showCashAmount && (
+            <p className={cn("text-xs tabular-nums", credit ? "text-emerald-500" : "text-muted-foreground")}>
+              {credit ? "+" : "-"}
+              {formatBDT(tx.totalAmountBDT)}
+            </p>
+          )}
         </div>
         <Badge variant={tx.status === "COMPLETED" ? "default" : tx.status === "FAILED" ? "destructive" : "secondary"}>
           {t(STATUS_LABEL_KEY[tx.status])}

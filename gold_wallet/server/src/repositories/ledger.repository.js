@@ -14,6 +14,9 @@ const AMOUNT_KEYS = [
   "cashBalanceAfter",
   "goldBalanceAfter",
   "silverBalanceAfter",
+  // GIFT_SENT/GIFT_RECEIVED only — the other party's phone, so the activity
+  // feed can show "Gift to/from 017…" without a second lookup call.
+  "counterpartyPhone",
 ];
 
 function amountsAad(id) {
@@ -41,6 +44,7 @@ function toSummary(row) {
     taxBDT: amounts.taxBDT ?? "0.00",
     totalAmountBDT: Math.abs(Number(amounts.cashDelta ?? 0)).toFixed(2),
     paymentTranId: row.payment_tran_id,
+    counterpartyPhone: amounts.counterpartyPhone ?? null,
     createdAt: row.created_at.toISOString(),
   };
 }
@@ -96,6 +100,11 @@ async function insert(entry, client) {
   return toSummary(rows[0]);
 }
 
+async function findById(id, db = pool) {
+  const { rows } = await db.query(`SELECT * FROM ledger_entries WHERE id = $1`, [id]);
+  return rows[0] ? { ...toSummary(rows[0]), userId: rows[0].user_id } : null;
+}
+
 async function findByIdempotencyKey(userId, idempotencyKey, db = pool) {
   if (!idempotencyKey) return null;
   const { rows } = await db.query(`SELECT * FROM ledger_entries WHERE user_id = $1 AND idempotency_key = $2`, [
@@ -142,6 +151,30 @@ async function listByUser(userId, { type, metal, from, to, page = 1, limit = 50 
   );
 
   return { items: rows.map(toSummary), total, page: safePage, limit: safeLimit };
+}
+
+/** Admin trade report — every BUY/SELL row (any user) in a date range, for
+ * GET /api/admin/reports/trades to bucket into daily totals. Capped at 5000
+ * rows: this decrypts each one in JS (amounts_enc isn't SQL-aggregatable —
+ * see security/crypto.js), so an unbounded range could otherwise mean
+ * decrypting an unbounded number of rows on one request. */
+async function adminListTrades({ from, to, limit = 5000 } = {}) {
+  const conditions = ["type IN ('BUY', 'SELL')"];
+  const params = [];
+  if (from) {
+    params.push(from);
+    conditions.push(`created_at >= $${params.length}`);
+  }
+  if (to) {
+    params.push(to);
+    conditions.push(`created_at <= $${params.length}`);
+  }
+  params.push(Math.min(Math.max(1, limit), 5000));
+  const { rows } = await pool.query(
+    `SELECT * FROM ledger_entries WHERE ${conditions.join(" AND ")} ORDER BY created_at ASC LIMIT $${params.length}`,
+    params
+  );
+  return rows.map((row) => ({ ...toSummary(row), userId: row.user_id }));
 }
 
 /**
@@ -191,4 +224,4 @@ async function sumDeltas(userId, db = pool) {
   return { cashBalanceBDT: cash.toFixed(2), goldBalanceGrams: gold.toFixed(4), silverBalanceGrams: silver.toFixed(4) };
 }
 
-module.exports = { insert, findByIdempotencyKey, listByUser, verifyChain, sumDeltas };
+module.exports = { insert, findById, findByIdempotencyKey, listByUser, adminListTrades, verifyChain, sumDeltas };

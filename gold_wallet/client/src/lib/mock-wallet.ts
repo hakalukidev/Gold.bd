@@ -2,9 +2,9 @@ import type { WalletSummary } from "@/types";
 
 /**
  * Stand-in for the signed-in user's wallet until a backend exists (this app
- * is the frontend on its own — there is no `/api/wallet` behind it), mirroring
- * mock-user.ts. A fresh account, not illustrative demo figures — every
- * balance starts at zero rather than a placeholder holding.
+ * is the frontend on its own — there is no `/api/wallet` behind it). A fresh
+ * account, not illustrative demo figures — every balance starts at zero
+ * rather than a placeholder holding.
  */
 export const MOCK_WALLET: WalletSummary = {
   cashBalanceBDT: "0.00",

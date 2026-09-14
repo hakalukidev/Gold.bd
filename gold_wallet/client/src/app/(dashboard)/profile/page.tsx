@@ -16,7 +16,6 @@ import { WalletBadge } from "@/components/shared/wallet-badge";
 import { useMe, useLogout } from "@/hooks/use-auth";
 import { referralCode, referralLink } from "@/lib/referral";
 import { clearSession } from "@/lib/session";
-import { MOCK_USER } from "@/lib/mock-user";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import type { KycStatus } from "@/types";
 
@@ -55,7 +54,6 @@ export default function ProfilePage() {
   const router = useRouter();
   const { t, locale } = useTranslation();
   const { data } = useMe();
-  const user = data ?? MOCK_USER;
   const logout = useLogout();
 
   const [nomineeName, setNomineeName] = useState("");
@@ -66,7 +64,7 @@ export default function ProfilePage() {
   const [twoFactor, setTwoFactor] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  const code = referralCode(user.id);
+  const code = data ? referralCode(data.id) : "";
 
   useEffect(() => {
     try {
@@ -77,6 +75,12 @@ export default function ProfilePage() {
       // localStorage unavailable (private browsing etc.) — just show the fallback initials
     }
   }, []);
+
+  // No real session (or still loading) — UserMenu (mounted alongside every
+  // dashboard page) owns the redirect-to-login for the "signed out" case, so
+  // just render nothing here rather than a stale demo profile.
+  if (!data) return null;
+  const user = data;
 
   function handleAvatarChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -101,9 +105,6 @@ export default function ProfilePage() {
   }
 
   async function handleLogout() {
-    // No auth backend sits behind this app yet (see login/page.tsx), so the
-    // logout request 404s — but the user should still be sent to /login rather
-    // than getting stuck on a dead click.
     try {
       await logout.mutateAsync();
     } finally {

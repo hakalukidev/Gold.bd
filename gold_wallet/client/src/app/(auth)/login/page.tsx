@@ -41,6 +41,10 @@ function LoginForm() {
   useEffect(() => {
     if (searchParams.get("reason") === "expired") {
       toast.error(t("auth.login.sessionExpired"));
+      // Strips the param so a later re-render of this page (e.g. a fast
+      // refresh in dev, or React re-rendering this component for an
+      // unrelated reason) can't show the same toast again.
+      router.replace("/login");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);

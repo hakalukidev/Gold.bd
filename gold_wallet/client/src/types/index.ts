@@ -18,19 +18,21 @@ export interface WalletSummary {
   silverBalanceGrams: string; // the vault holds both metals; same string-decimal contract as gold
 }
 
-export type TransactionType = "BUY" | "SELL" | "DEPOSIT" | "WITHDRAW";
+export type TransactionType = "BUY" | "SELL" | "DEPOSIT" | "WITHDRAW" | "GIFT_SENT" | "GIFT_RECEIVED" | "COLLECT";
 export type TransactionStatus = "PENDING" | "COMPLETED" | "FAILED";
 
 export interface TransactionSummary {
   id: string;
   type: TransactionType;
-  /** Which metal a BUY/SELL moved — null for a cash-only DEPOSIT/WITHDRAW. */
+  /** Which metal moved — null for a cash-only DEPOSIT/WITHDRAW. */
   metal: "gold" | "silver" | null;
   status: TransactionStatus;
   goldGrams: string | null;
   silverGrams: string | null;
   pricePerGramBDT: string | null;
   totalAmountBDT: string;
+  /** GIFT_SENT/GIFT_RECEIVED only — the other party's phone number. */
+  counterpartyPhone: string | null;
   createdAt: string;
 }
 

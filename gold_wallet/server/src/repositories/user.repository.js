@@ -98,12 +98,51 @@ async function resetFailedLogins(userId) {
   );
 }
 
+/** Keeps users.kyc_status (the summary flag /api/auth/me returns) in sync
+ * with the detailed record in kyc_profiles (see kyc.repository.js) — set on
+ * every submit/approve/reject rather than derived on read. */
+async function updateKycStatus(userId, kycStatus) {
+  await pool.query(`UPDATE users SET kyc_status = $2, updated_at = now() WHERE id = $1`, [userId, kycStatus]);
+}
+
+/** Admin user directory — GET /api/admin/users. Optionally filters on a
+ * case-insensitive full_name substring (phone/email stay encrypted, so
+ * they can't be searched this way without a dedicated blind index). */
+async function listAll({ search, limit = 50, offset = 0 } = {}) {
+  const params = [];
+  let where = "";
+  if (search) {
+    params.push(`%${search}%`);
+    where = `WHERE full_name ILIKE $${params.length}`;
+  }
+  params.push(limit, offset);
+  const { rows } = await pool.query(
+    `SELECT * FROM users ${where} ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
+  );
+  return rows.map((row) => toPublicUser(decryptContact(row)));
+}
+
+async function countAll({ search } = {}) {
+  const params = [];
+  let where = "";
+  if (search) {
+    params.push(`%${search}%`);
+    where = `WHERE full_name ILIKE $${params.length}`;
+  }
+  const { rows } = await pool.query(`SELECT count(*)::int AS count FROM users ${where}`, params);
+  return rows[0].count;
+}
+
 module.exports = {
   toPublicUser,
   findByPhone,
   findByEmail,
   findById,
+  listAll,
+  countAll,
   create,
   registerFailedLogin,
   resetFailedLogins,
+  updateKycStatus,
 };

@@ -3,6 +3,7 @@ const HttpError = require("../../utils/http-error");
 const logger = require("../../utils/logger");
 const paymentRepo = require("../../repositories/payment.repository");
 const walletRepo = require("../../repositories/wallet.repository");
+const ledgerRepo = require("../../repositories/ledger.repository");
 const withTransaction = require("../../db/with-transaction");
 const sslcommerz = require("./sslcommerz.service");
 
@@ -102,7 +103,23 @@ async function confirmTransaction(tranId, valId) {
       // own success redirect) already moved this row out of PENDING first —
       // that caller is the one crediting the wallet, so skip it here.
       if (settled && settled.purpose === "deposit" && settled.userId) {
-        await walletRepo.creditCash(settled.userId, settled.amountBDT, client);
+        const wallet = await walletRepo.creditCash(settled.userId, settled.amountBDT, client);
+        // Without this, a deposit moved money into the wallet balance but left
+        // no ledger row behind it — invisible to /api/transactions and every
+        // Money In/statement view derived from it, even though the cash was
+        // really credited.
+        await ledgerRepo.insert(
+          {
+            userId: settled.userId,
+            type: "DEPOSIT",
+            cashDelta: Number(settled.amountBDT).toFixed(2),
+            cashBalanceAfter: wallet.cashBalanceBDT,
+            goldBalanceAfter: wallet.goldBalanceGrams,
+            silverBalanceAfter: wallet.silverBalanceGrams,
+            paymentTranId: settled.tranId,
+          },
+          client
+        );
       }
       return settled;
     });

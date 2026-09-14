@@ -20,12 +20,16 @@ function isAuthenticatedCall(headers: HeadersInit | undefined) {
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  // A FormData body (KYC document upload) needs the browser to set its own
+  // multipart boundary in Content-Type — forcing application/json here would
+  // send the multipart bytes under the wrong content type and 400 server-side.
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
   const res = await fetch(url, {
     // Needed for calls to wallet_server (a different origin in dev): it sets
     // an httpOnly refresh-token cookie that must round-trip with the request.
     credentials: "include",
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    headers: { ...(isFormData ? {} : { "Content-Type": "application/json" }), ...init?.headers },
   });
   const body = (await res.json()) as ApiResponse<T>;
   if (!body.success) {
@@ -47,4 +51,6 @@ export const api = {
     request<T>(url, { method: "POST", body: data ? JSON.stringify(data) : undefined, ...init }),
   patch: <T>(url: string, data?: unknown, init?: RequestInit) =>
     request<T>(url, { method: "PATCH", body: data ? JSON.stringify(data) : undefined, ...init }),
+  postForm: <T>(url: string, formData: FormData, init?: RequestInit) =>
+    request<T>(url, { method: "POST", body: formData, ...init }),
 };

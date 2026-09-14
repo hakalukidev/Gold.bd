@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { IdCard, LogOut, User, Wallet } from "lucide-react";
@@ -14,11 +15,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useMe, useLogout } from "@/hooks/use-auth";
-import { MOCK_USER } from "@/lib/mock-user";
 import { clearSession } from "@/lib/session";
 import { useTranslation } from "@/lib/i18n/use-translation";
 
-/** First letter of the name — "Robiul Islam Robin" → "R". */
 function initial(name: string) {
   return (name.trim()[0] ?? "?").toUpperCase();
 }
@@ -29,20 +28,28 @@ const MENU_LINKS = [
   { href: "/kyc", labelKey: "nav.verifyAccount", icon: IdCard },
 ] as const;
 
-/** Avatar + account dropdown in the dashboard top bar. `useMe()` has no
- * backend behind this app, so it falls back to MOCK_USER rather than rendering
- * an empty shell. */
+/** Avatar + account dropdown in the dashboard top bar. Always mounted on
+ * every dashboard page (via DashboardTopbar), so it also acts as this app's
+ * auth guard: middleware only checks the long-lived `gb_session` cookie, not
+ * whether a real access token/session still exists (see use-auth.ts), so a
+ * stale cookie can otherwise leave a signed-out visitor sitting on a
+ * dashboard page. Once the token check has run, no token (or a rejected one)
+ * means "not really signed in" — clear the stale cookie and bounce to
+ * /login instead of rendering anything. */
 export function UserMenu() {
   const router = useRouter();
-  const { data } = useMe();
+  const { data, isError, tokenChecked, hasToken } = useMe();
   const logout = useLogout();
   const { t } = useTranslation();
-  const user = data ?? MOCK_USER;
+
+  useEffect(() => {
+    if (tokenChecked && (!hasToken || isError)) {
+      clearSession();
+      router.replace("/login");
+    }
+  }, [tokenChecked, hasToken, isError, router]);
 
   async function handleLogout() {
-    // No auth backend sits behind this app yet (see login/page.tsx), so the
-    // logout request 404s — but the user should still be sent to /login rather
-    // than getting stuck on a dead click.
     try {
       await logout.mutateAsync();
     } finally {
@@ -51,6 +58,9 @@ export function UserMenu() {
       router.refresh();
     }
   }
+
+  if (!data) return null;
+  const user = data;
 
   return (
     <DropdownMenu>

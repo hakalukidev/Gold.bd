@@ -68,4 +68,5 @@ module.exports = {
   verifyRegisterSchema,
   verifyLoginSchema,
   normalizePhone,
+  bdPhone,
 };

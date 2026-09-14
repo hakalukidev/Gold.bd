@@ -35,7 +35,6 @@ import { formatBDT, formatForeign, formatGrams, formatUSDCompact, gramsToMg } fr
 import type { ForeignCurrency } from "@/lib/mock-rates";
 import { MOCK_PURITY_MIX, MOCK_SILVER_PURITY_MIX, MOCK_WALLET } from "@/lib/mock-wallet";
 import { REFERRAL_REWARD_GRAMS, referralCode } from "@/lib/referral";
-import { MOCK_USER } from "@/lib/mock-user";
 import { buildFlow, filterRange, formatRange, percentChange, windowTotals, type FlowFilter } from "@/lib/wallet-flow";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/use-translation";
@@ -360,8 +359,9 @@ function HoldingsByPurity({ goldGrams, silverGrams }: { goldGrams: number; silve
 function ReferAndEarn() {
   const { data } = useMe();
   const { t } = useTranslation();
-  const user = data ?? MOCK_USER;
-  const code = referralCode(user.id);
+
+  if (!data) return null;
+  const code = referralCode(data.id);
 
   function copyCode() {
     navigator.clipboard?.writeText(code).then(
@@ -408,11 +408,11 @@ const QUICK_LINKS: { labelKey: string; icon: LucideIcon; anim: string; href?: st
 ];
 
 const QUICK_LINK_CLASS =
-  "quick-link group flex flex-col items-center gap-2 rounded-md px-2 py-3 text-center transition-colors hover:text-gold focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
+  "quick-link group flex flex-col items-center gap-2 rounded-md px-2 py-3 text-center transition-all duration-150 hover:-translate-y-0.5 hover:bg-gold/5 hover:text-gold focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
 
 function QuickLinkIcon({ icon: Icon, anim }: { icon: LucideIcon; anim: string }) {
   return (
-    <span className="flex size-10 items-center justify-center text-white transition-colors group-hover:text-gold">
+    <span className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors group-hover:bg-gold/10 group-hover:text-gold">
       <Icon className={cn("size-5", anim)} strokeWidth={1.75} />
     </span>
   );
@@ -511,13 +511,14 @@ function CurrencyCard({ totalBDT }: { totalBDT: number }) {
 /* -------------------------------------------------------------------------- */
 
 export default function WalletPage() {
-  // `/api/wallet` is real now (wallet_server's wallet module — cash comes from
-  // confirmed SSLCommerz deposits; gold/silver stay 0 until a trading module
-  // exists). `/api/transactions` still doesn't, so that query falls back to
-  // an empty list. walletLoading drives a spinner for every figure below
-  // that's derived from the wallet, so a still-loading balance never reads as
-  // a confirmed zero — WalletBadge/WalletPill do the same. The rate queries
-  // are real too, so they just read 0 until their first tick arrives.
+  // `/api/wallet` and `/api/transactions` are both real (wallet_server's
+  // wallet and transactions modules — see use-wallet.ts/use-transactions.ts).
+  // `transactions` falls back to an empty list only while the query is still
+  // loading or genuinely has none. walletLoading drives a spinner for every
+  // figure below that's derived from the wallet, so a still-loading balance
+  // never reads as a confirmed zero — WalletBadge/WalletPill do the same. The
+  // rate queries are real too, so they just read 0 until their first tick
+  // arrives.
   const { t } = useTranslation();
   const { data: walletData, isLoading: walletLoading } = useWallet();
   const { data: rateData } = useGoldRate();

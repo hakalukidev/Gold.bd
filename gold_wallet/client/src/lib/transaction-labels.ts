@@ -1,16 +1,20 @@
-import { ArrowDownRight, ArrowDownToLine, ArrowUpFromLine, ArrowUpRight, type LucideIcon } from "lucide-react";
+import { ArrowDownRight, ArrowDownToLine, ArrowUpFromLine, ArrowUpRight, Gift, Package, type LucideIcon } from "lucide-react";
 import type { TransactionStatus, TransactionType } from "@/types";
 
-// Cash-flow direction per transaction type — deposits and sell payouts add
-// to the wallet, buys and withdrawals draw it down. Shared by the wallet
-// activity feed and the History page so the two can't drift apart.
-export const CREDIT_TYPES: TransactionType[] = ["DEPOSIT", "SELL"];
+// Cash-flow direction per transaction type — deposits, sell payouts and
+// received gifts add to the wallet, buys, withdrawals, sent gifts and
+// physical collections draw it down. Shared by the wallet activity feed and
+// the History page so the two can't drift apart.
+export const CREDIT_TYPES: TransactionType[] = ["DEPOSIT", "SELL", "GIFT_RECEIVED"];
 
 export const TYPE_ICON: Record<TransactionType, LucideIcon> = {
   BUY: ArrowUpRight,
   SELL: ArrowDownRight,
   DEPOSIT: ArrowDownToLine,
   WITHDRAW: ArrowUpFromLine,
+  GIFT_SENT: Gift,
+  GIFT_RECEIVED: Gift,
+  COLLECT: Package,
 };
 
 export const TYPE_LABEL: Record<TransactionType, string> = {
@@ -18,6 +22,9 @@ export const TYPE_LABEL: Record<TransactionType, string> = {
   SELL: "Sold Gold",
   DEPOSIT: "Added to wallet",
   WITHDRAW: "Withdrawn from wallet",
+  GIFT_SENT: "Gift sent",
+  GIFT_RECEIVED: "Gift received",
+  COLLECT: "Physical delivery requested",
 };
 
 // Dictionary keys for TYPE_LABEL above — for UI surfaces that render through
@@ -28,6 +35,9 @@ export const TYPE_LABEL_KEY: Record<TransactionType, string> = {
   SELL: "common.transactionType.sell",
   DEPOSIT: "common.transactionType.deposit",
   WITHDRAW: "common.transactionType.withdraw",
+  GIFT_SENT: "common.transactionType.giftSent",
+  GIFT_RECEIVED: "common.transactionType.giftReceived",
+  COLLECT: "common.transactionType.collect",
 };
 
 export const STATUS_LABEL_KEY: Record<TransactionStatus, string> = {
