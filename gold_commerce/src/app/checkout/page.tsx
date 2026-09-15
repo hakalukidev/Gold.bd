@@ -7,28 +7,30 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { ArrowLeft, Minus, Plus, Store, Trash2, Truck, Wallet } from "lucide-react";
+import { ArrowLeft, Landmark, Minus, Plus, Store, Trash2, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { removeFromCart, updateQuantity } from "@/store/slices/cart-slice";
+import { removeFromCart, updateQuantity, clearCart } from "@/store/slices/cart-slice";
 import { checkoutSchema, DELIVERY_METHODS, PAYMENT_METHODS, type CheckoutInput, type DeliveryMethod, type PaymentMethod } from "@/lib/validations/checkout";
 import { BD_DIVISIONS, districtsOf } from "@/lib/bd-geo";
 import { useT } from "@/lib/i18n/use-t";
 import { formatBDT } from "@/lib/format";
 import { api, ApiError } from "@/lib/api-client";
-import type { PaymentInitResponse } from "@/types";
+import type { ManualPaymentInitResponse, PaymentInitResponse } from "@/types";
 import { cn } from "@/lib/utils";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { GoldPriceTicker } from "@/components/landing/gold-price-ticker";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import { BkashNagadModal } from "@/components/checkout/bkash-nagad-modal";
+import { BankTransferModal } from "@/components/checkout/bank-transfer-modal";
 
 const inputClass =
-  "h-10 w-full rounded-md border border-white/15 bg-ink px-3 text-sm text-white outline-none focus:border-gold/60 disabled:cursor-not-allowed disabled:opacity-50";
+  "h-10 w-full rounded-md border border-black/15 bg-white px-3 text-sm text-neutral-900 outline-none focus:border-gold/60 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/15 dark:bg-ink dark:text-white";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-md border border-white/10 bg-white/5 p-5 sm:p-6">
-      <h2 className="text-base font-bold text-white">{title}</h2>
+    <section className="rounded-md border border-black/10 bg-black/5 p-5 sm:p-6 dark:border-white/10 dark:bg-white/5">
+      <h2 className="text-base font-bold text-neutral-900 dark:text-white">{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -36,7 +38,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor: string }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1 block text-xs text-neutral-400">
+    <label htmlFor={htmlFor} className="mb-1 block text-xs text-neutral-500 dark:text-neutral-400">
       {children}
     </label>
   );
@@ -44,7 +46,7 @@ function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor:
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="mt-1 text-xs text-red-400">{message}</p>;
+  return <p className="mt-1 text-xs text-red-600 dark:text-red-400">{message}</p>;
 }
 
 function OptionCard({
@@ -67,42 +69,37 @@ function OptionCard({
       aria-pressed={selected}
       className={cn(
         "flex flex-col items-start gap-2 rounded-md border p-4 text-left transition-colors",
-        selected ? "border-gold bg-gold/5" : "border-white/10 hover:border-white/25"
+        selected ? "border-gold bg-gold/5" : "border-black/10 hover:border-black/25 dark:border-white/10 dark:hover:border-white/25"
       )}
     >
       <div className="flex w-full items-center justify-between">
-        <span className="flex items-center gap-2 text-sm font-bold text-white">
+        <span className="flex items-center gap-2 text-sm font-bold text-neutral-900 dark:text-white">
           <Icon className="size-4 text-gold" />
           {title}
         </span>
         <span
           className={cn(
             "flex size-4 shrink-0 items-center justify-center rounded-full border-2",
-            selected ? "border-gold" : "border-white/30"
+            selected ? "border-gold" : "border-black/30 dark:border-white/30"
           )}
         >
           {selected && <span className="size-2 rounded-full bg-gold" />}
         </span>
       </div>
-      <p className="text-xs text-neutral-400">{description}</p>
+      <p className="text-xs text-neutral-600 dark:text-neutral-400">{description}</p>
     </button>
   );
 }
 
 /** Payment-method badges — real logos where we have one (bKash's official
- *  mark, plus Visa/Mastercard/Nagad recreations), a generic wallet icon for
- *  "other" since that option isn't tied to one brand. */
+ *  mark, a Nagad recreation, and the SSLCommerz badge for "other"), and
+ *  a bank icon for the manual bank-transfer tile (not Visa/Mastercard —
+ *  this collects a deposit slip, not a card charge). */
 function PaymentLogo({ method }: { method: PaymentMethod }) {
   if (method === "bkash") return <Image src="/payment-logos/bkash.svg" alt="bKash" width={48} height={32} className="h-6 w-auto" />;
   if (method === "nagad") return <Image src="/payment-logos/nagad.svg" alt="Nagad" width={48} height={32} className="h-6 w-auto" />;
-  if (method === "card")
-    return (
-      <span className="flex items-center gap-1.5">
-        <Image src="/payment-logos/visa.svg" alt="Visa" width={40} height={24} className="h-5 w-auto" />
-        <Image src="/payment-logos/mastercard.svg" alt="Mastercard" width={28} height={17} className="h-5 w-auto" />
-      </span>
-    );
-  return <Wallet className="size-4 text-gold" />;
+  if (method === "card") return <Landmark className="size-4 text-gold" />;
+  return <Image src="/sslcommerce.png" alt="SSLCommerz" width={80} height={20} className="h-5 w-auto" />;
 }
 
 export default function CheckoutPage() {
@@ -114,6 +111,12 @@ export default function CheckoutPage() {
 
   const [promoCode, setPromoCode] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [manualDraft, setManualDraft] = useState<{
+    method: "bkash" | "nagad" | "card";
+    orderId: string;
+    customer: { name: string; email?: string; phone: string };
+    metadata: Record<string, unknown>;
+  } | null>(null);
 
   const form = useForm<CheckoutInput>({
     resolver: zodResolver(checkoutSchema),
@@ -151,20 +154,46 @@ export default function CheckoutPage() {
     toast.info(c.promoComingSoon);
   }
 
-  // Places an order and starts an SSLCommerz sandbox session for it via
-  // wallet_server's payments module (see /api/payments/init) — this app
-  // holds no gateway credentials and never sees card/bKash details itself,
-  // it only gets back a hosted checkout URL to send the browser to. The cart
-  // stays intact until the shopper actually returns from the gateway having
-  // paid (checkout/success clears it), so a cancelled/failed attempt doesn't
-  // lose their order.
+  function buildOrderId() {
+    return `GB-${Date.now().toString(36).toUpperCase()}`;
+  }
+
+  function buildMetadata(values: CheckoutInput, orderId: string) {
+    return {
+      orderId,
+      deliveryMethod: values.deliveryMethod,
+      division: values.division,
+      district: values.district,
+      note: values.note,
+      address: values.deliveryMethod === "home" ? values.address : undefined,
+      items: items.map((item) => ({ id: item.id, name: item.name, quantity: item.quantity, unitPriceBDT: item.unitPriceBDT })),
+    };
+  }
+
+  // "other" starts an SSLCommerz sandbox session (this app's own independent
+  // integration, see /api/payments/init) and redirects the browser to it —
+  // the cart stays intact until the shopper actually returns having paid
+  // (checkout/success clears it), so a cancelled/failed attempt doesn't lose
+  // their order. bKash/Nagad/bank transfer instead open a modal to collect
+  // the manual-payment details (see the dialogs rendered below); the actual
+  // submission happens from there, not here.
   async function onSubmit(values: CheckoutInput) {
-    const orderId = `GB-${Date.now().toString(36).toUpperCase()}`;
+    if (values.paymentMethod !== "other") {
+      const manualOrderId = buildOrderId();
+      setManualDraft({
+        method: values.paymentMethod,
+        orderId: manualOrderId,
+        customer: { name: values.recipientName, email: values.recipientEmail, phone: values.recipientPhone },
+        metadata: buildMetadata(values, manualOrderId),
+      });
+      return;
+    }
+
+    const orderId = buildOrderId();
     try {
       setIsRedirecting(true);
       const { gatewayUrl } = await api.post<PaymentInitResponse>("/api/payments/init", {
-        source: "commerce",
-        purpose: "order",
+        orderId,
         amount: total,
         currency: "BDT",
         customer: {
@@ -174,14 +203,7 @@ export default function CheckoutPage() {
           address: values.deliveryMethod === "home" ? values.address : undefined,
         },
         returnBaseUrl: `${window.location.origin}/checkout`,
-        metadata: {
-          orderId,
-          deliveryMethod: values.deliveryMethod,
-          division: values.division,
-          district: values.district,
-          note: values.note,
-          items: items.map((item) => ({ id: item.id, name: item.name, quantity: item.quantity, unitPriceBDT: item.unitPriceBDT })),
-        },
+        metadata: buildMetadata(values, orderId),
       });
       window.location.href = gatewayUrl;
     } catch (error) {
@@ -190,29 +212,35 @@ export default function CheckoutPage() {
     }
   }
 
+  function handleManualPaymentSuccess(result: ManualPaymentInitResponse) {
+    setManualDraft(null);
+    dispatch(clearCart());
+    router.push(`/checkout/pending?ref=${encodeURIComponent(result.id)}`);
+  }
+
   return (
     <main className="flex flex-1 flex-col">
       <GoldPriceTicker />
       <LandingHeader />
 
-      <div className="bg-ink py-10 sm:py-14">
+      <div className="bg-background py-10 sm:py-14">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => router.back()}
               aria-label="Back"
-              className="flex size-9 items-center justify-center rounded-full text-neutral-300 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex size-9 items-center justify-center rounded-full text-neutral-600 transition-colors hover:bg-black/10 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-white/10 dark:hover:text-white"
             >
               <ArrowLeft className="size-5" />
             </button>
-            <h1 className="text-2xl font-bold text-white sm:text-3xl">{c.heading}</h1>
+            <h1 className="text-2xl font-bold text-neutral-900 sm:text-3xl dark:text-white">{c.heading}</h1>
           </div>
 
           {items.length === 0 ? (
-            <div className="mx-auto mt-10 max-w-md rounded-md border border-white/10 bg-white/5 p-8 text-center">
-              <h2 className="text-lg font-bold text-white">{c.emptyTitle}</h2>
-              <p className="mt-2 text-sm text-neutral-400">{c.emptyDescription}</p>
+            <div className="mx-auto mt-10 max-w-md rounded-md border border-black/10 bg-black/5 p-8 text-center dark:border-white/10 dark:bg-white/5">
+              <h2 className="text-lg font-bold text-neutral-900 dark:text-white">{c.emptyTitle}</h2>
+              <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">{c.emptyDescription}</p>
               <Button variant="gold-solid" className="mt-6 w-full" nativeButton={false} render={<Link href="/products/gold">{c.emptyCta}</Link>} />
             </div>
           ) : (
@@ -296,7 +324,7 @@ export default function CheckoutPage() {
                         id="note"
                         rows={3}
                         placeholder={c.notePlaceholder}
-                        className="w-full rounded-md border border-white/15 bg-ink px-3 py-2 text-sm text-white outline-none focus:border-gold/60"
+                        className="w-full rounded-md border border-black/15 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-gold/60 dark:border-white/15 dark:bg-ink dark:text-white"
                         {...form.register("note")}
                       />
                     </div>
@@ -305,9 +333,9 @@ export default function CheckoutPage() {
               </div>
 
               {/* ---------- Right: order summary + payment ---------- */}
-              <div className="rounded-md border border-white/10 bg-white/5 p-5 lg:sticky lg:top-24">
+              <div className="rounded-md border border-black/10 bg-black/5 p-5 lg:sticky lg:top-24 dark:border-white/10 dark:bg-white/5">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-base font-bold text-white">{c.orderHeading}</h2>
+                  <h2 className="text-base font-bold text-neutral-900 dark:text-white">{c.orderHeading}</h2>
                   <Link href="/products/gold" className="flex items-center gap-1 text-xs font-semibold text-gold hover:text-gold-light">
                     <Plus className="size-3.5" />
                     {c.addMore}
@@ -317,26 +345,26 @@ export default function CheckoutPage() {
                 <div className="mt-4 flex flex-col gap-3">
                   {items.map((item) => (
                     <div key={item.id} className="flex items-center gap-3">
-                      <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-black">
+                      <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white dark:bg-black">
                         <Image src={item.image} alt={item.name} width={56} height={56} className="size-full object-contain p-1.5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-semibold text-white">{item.name}</p>
+                        <p className="truncate text-xs font-semibold text-neutral-900 dark:text-white">{item.name}</p>
                         <div className="mt-1 flex items-center gap-1.5">
                           <button
                             type="button"
                             aria-label={t.featured.decreaseQty}
                             onClick={() => dispatch(updateQuantity({ id: item.id, quantity: item.quantity - 1 }))}
-                            className="flex size-5 items-center justify-center rounded-full border border-white/15 text-neutral-300 hover:bg-white/10 hover:text-white"
+                            className="flex size-5 items-center justify-center rounded-full border border-black/15 text-neutral-600 hover:bg-black/10 hover:text-neutral-900 dark:border-white/15 dark:text-neutral-300 dark:hover:bg-white/10 dark:hover:text-white"
                           >
                             <Minus className="size-3" />
                           </button>
-                          <span className="w-4 text-center text-[11px] font-semibold text-white tabular-nums">{item.quantity}</span>
+                          <span className="w-4 text-center text-[11px] font-semibold text-neutral-900 tabular-nums dark:text-white">{item.quantity}</span>
                           <button
                             type="button"
                             aria-label={t.featured.increaseQty}
                             onClick={() => dispatch(updateQuantity({ id: item.id, quantity: item.quantity + 1 }))}
-                            className="flex size-5 items-center justify-center rounded-full border border-white/15 text-neutral-300 hover:bg-white/10 hover:text-white"
+                            className="flex size-5 items-center justify-center rounded-full border border-black/15 text-neutral-600 hover:bg-black/10 hover:text-neutral-900 dark:border-white/15 dark:text-neutral-300 dark:hover:bg-white/10 dark:hover:text-white"
                           >
                             <Plus className="size-3" />
                           </button>
@@ -348,7 +376,7 @@ export default function CheckoutPage() {
                           type="button"
                           aria-label={t.nav.cartRemove}
                           onClick={() => dispatch(removeFromCart(item.id))}
-                          className="text-neutral-500 hover:text-red-400"
+                          className="text-neutral-400 hover:text-red-600 dark:text-neutral-500 dark:hover:text-red-400"
                         >
                           <Trash2 className="size-3.5" />
                         </button>
@@ -357,12 +385,12 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
-                <div className="mt-4 flex items-center gap-2 border-t border-white/10 pt-4">
+                <div className="mt-4 flex items-center gap-2 border-t border-black/10 pt-4 dark:border-white/10">
                   <input
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value)}
                     placeholder={c.promoPlaceholder}
-                    className="h-8 flex-1 rounded-md border border-white/15 bg-ink px-2.5 text-xs text-white outline-none focus:border-gold/60"
+                    className="h-8 flex-1 rounded-md border border-black/15 bg-white px-2.5 text-xs text-neutral-900 outline-none focus:border-gold/60 dark:border-white/15 dark:bg-ink dark:text-white"
                   />
                   <button
                     type="button"
@@ -373,24 +401,24 @@ export default function CheckoutPage() {
                   </button>
                 </div>
 
-                <div className="mt-4 flex flex-col gap-1.5 border-t border-white/10 pt-4 text-sm">
-                  <div className="flex items-center justify-between text-neutral-300">
+                <div className="mt-4 flex flex-col gap-1.5 border-t border-black/10 pt-4 text-sm dark:border-white/10">
+                  <div className="flex items-center justify-between text-neutral-600 dark:text-neutral-300">
                     <span>{c.subtotal}</span>
                     <span className="tabular-nums">{formatBDT(subtotal)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-neutral-300">
+                  <div className="flex items-center justify-between text-neutral-600 dark:text-neutral-300">
                     <span>{c.deliveryCharge}</span>
                     <span className="tabular-nums">{formatBDT(deliveryCharge)}</span>
                   </div>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
-                  <span className="text-sm font-semibold text-white">{c.total}</span>
+                <div className="mt-3 flex items-center justify-between border-t border-black/10 pt-3 dark:border-white/10">
+                  <span className="text-sm font-semibold text-neutral-900 dark:text-white">{c.total}</span>
                   <span className="text-lg font-extrabold text-gold tabular-nums">{formatBDT(total)}</span>
                 </div>
 
-                <div className="mt-5 border-t border-white/10 pt-4">
-                  <p className="text-xs font-semibold text-neutral-300">{c.paymentHeading}</p>
+                <div className="mt-5 border-t border-black/10 pt-4 dark:border-white/10">
+                  <p className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">{c.paymentHeading}</p>
                   <div className="mt-3 flex flex-col gap-2">
                     {PAYMENT_METHODS.map((method: PaymentMethod) => {
                       const label =
@@ -404,17 +432,17 @@ export default function CheckoutPage() {
                           aria-pressed={selected}
                           className={cn(
                             "flex items-center justify-between gap-2 rounded-md border px-3 py-2.5 text-left transition-colors",
-                            selected ? "border-gold bg-gold/5" : "border-white/10 hover:border-white/25"
+                            selected ? "border-gold bg-gold/5" : "border-black/10 hover:border-black/25 dark:border-white/10 dark:hover:border-white/25"
                           )}
                         >
-                          <span className="flex items-center gap-2.5 text-sm font-semibold text-white">
+                          <span className="flex items-center gap-2.5 text-sm font-semibold text-neutral-900 dark:text-white">
                             <PaymentLogo method={method} />
                             {label}
                           </span>
                           <span
                             className={cn(
                               "flex size-4 shrink-0 items-center justify-center rounded-full border-2",
-                              selected ? "border-gold" : "border-white/30"
+                              selected ? "border-gold" : "border-black/30 dark:border-white/30"
                             )}
                           >
                             {selected && <span className="size-2 rounded-full bg-gold" />}
@@ -435,6 +463,30 @@ export default function CheckoutPage() {
       </div>
 
       <LandingFooter />
+
+      {manualDraft && manualDraft.method !== "card" && (
+        <BkashNagadModal
+          open={Boolean(manualDraft)}
+          onOpenChange={(open) => !open && setManualDraft(null)}
+          method={manualDraft.method}
+          orderId={manualDraft.orderId}
+          amount={total}
+          customer={manualDraft.customer}
+          metadata={manualDraft.metadata}
+          onSuccess={handleManualPaymentSuccess}
+        />
+      )}
+      {manualDraft && manualDraft.method === "card" && (
+        <BankTransferModal
+          open={Boolean(manualDraft)}
+          onOpenChange={(open) => !open && setManualDraft(null)}
+          orderId={manualDraft.orderId}
+          amount={total}
+          customer={manualDraft.customer}
+          metadata={manualDraft.metadata}
+          onSuccess={handleManualPaymentSuccess}
+        />
+      )}
     </main>
   );
 }

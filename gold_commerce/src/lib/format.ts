@@ -68,6 +68,11 @@ export function formatForeign(amount: number, currency: string): string {
   }).format(amount);
 }
 
+/** "300K" / "1.2M" — compact plain-number formatting for counts like the About section's stats. */
+export function formatCompactCount(n: number): string {
+  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+}
+
 /** "৳56.2k" / "৳1.2L" — short taka for tight spots like chart axis labels. */
 export function formatBDTShort(amount: number | string): string {
   const n = typeof amount === "string" ? Number(amount) : amount;

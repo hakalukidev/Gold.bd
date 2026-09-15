@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# uploaded payment-proof screenshots (src/lib/payments/proof-storage.ts) —
+# admin-only, never served publicly, and shouldn't land in version control
+/uploads/
+
 # vercel
 .vercel
 

@@ -16,6 +16,7 @@ import { setMobileMenuOpen, toggleMobileMenu, setLocale, type Locale } from "@/s
 import { useT } from "@/lib/i18n/use-t";
 import { cn } from "@/lib/utils";
 import { WALLET_SIGN_IN_URL } from "@/lib/site-links";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { CartButton } from "./cart-button";
 
 type NavLink = { href: string; label: string };
@@ -31,7 +32,12 @@ function LanguageToggle({ className }: { className?: string }) {
   ];
 
   return (
-    <div className={cn("flex items-center gap-0.5 rounded-full border border-white/15 bg-white/5 p-0.5", className)}>
+    <div
+      className={cn(
+        "flex items-center gap-0.5 rounded-full border border-black/15 bg-black/5 p-0.5 dark:border-white/15 dark:bg-white/5",
+        className
+      )}
+    >
       {options.map((opt) => (
         <button
           key={opt.id}
@@ -40,7 +46,9 @@ function LanguageToggle({ className }: { className?: string }) {
           aria-pressed={locale === opt.id}
           className={cn(
             "rounded-full px-2.5 py-1 text-xs font-bold transition-colors",
-            locale === opt.id ? "bg-gold text-ink" : "text-neutral-400 hover:text-white"
+            locale === opt.id
+              ? "bg-gold text-ink"
+              : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
           )}
         >
           {opt.label}
@@ -60,7 +68,7 @@ export function LandingHeader() {
   const navLinks: NavLink[] = [
     { href: "/", label: t.nav.home },
     { href: "/products/gold", label: t.nav.buyGold },
-    { href: "/#rate-history", label: t.nav.prices },
+    { href: "/price", label: t.nav.prices },
   ];
 
   const navGroups: NavGroup[] = [
@@ -128,10 +136,16 @@ export function LandingHeader() {
                   key={label}
                   href={href}
                   className={cn(
-                    "group relative py-1.5 text-sm font-bold text-neutral-200 transition-colors duration-300 hover:text-gold",
+                    "group relative flex items-center gap-1.5 py-1.5 text-sm font-bold text-neutral-200 transition-colors duration-300 hover:text-gold",
                     active && "text-gold"
                   )}
                 >
+                  {href === "/price" && (
+                    <span className="relative flex size-1.5">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                      <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+                    </span>
+                  )}
                   {label}
                   <span
                     className={cn(
@@ -159,12 +173,12 @@ export function LandingHeader() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="start"
-                    className="min-w-48 border border-white/10 bg-ink-light p-1.5"
+                    className="min-w-48 border border-black/10 bg-white p-1.5 dark:border-white/10 dark:bg-ink-light"
                   >
                     {group.items.map((item) => (
                       <DropdownMenuItem
                         key={item.href}
-                        className="rounded-md px-2 py-1.5 text-sm font-semibold text-neutral-200 focus:text-gold"
+                        className="rounded-md px-2 py-1.5 text-sm font-semibold text-neutral-700 focus:text-gold dark:text-neutral-200"
                         render={<Link href={item.href}>{item.label}</Link>}
                       />
                     ))}
@@ -177,6 +191,7 @@ export function LandingHeader() {
           <div className="hidden items-center gap-3 lg:flex">
             <CartButton />
             <LanguageToggle />
+            <ThemeToggle className="text-white hover:bg-white/10 hover:text-gold" />
             <Button
               variant="gold-outline"
               size="default"
@@ -201,6 +216,7 @@ export function LandingHeader() {
           <div className="flex items-center gap-1 lg:hidden">
             <CartButton />
             <LanguageToggle />
+            <ThemeToggle className="text-white hover:bg-white/10 hover:text-gold" />
             <button
               type="button"
               aria-label={mobileMenuOpen ? t.nav.closeMenu : t.nav.openMenu}
@@ -224,10 +240,18 @@ export function LandingHeader() {
                   href={href}
                   onClick={closeMobileMenu}
                   className={cn(
-                    "rounded-md px-3 py-2 text-sm font-bold transition-colors",
-                    active ? "text-gold" : "text-neutral-200 hover:bg-white/10 hover:text-white"
+                    "flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-bold transition-colors",
+                    active
+                      ? "text-gold"
+                      : "text-neutral-200 hover:bg-white/10 hover:text-white"
                   )}
                 >
+                  {href === "/price" && (
+                    <span className="relative flex size-1.5">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                      <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+                    </span>
+                  )}
                   {label}
                 </Link>
               );
@@ -244,7 +268,9 @@ export function LandingHeader() {
                     aria-expanded={expanded}
                     className={cn(
                       "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-bold transition-colors",
-                      active ? "text-gold" : "text-neutral-200 hover:bg-white/10 hover:text-white"
+                      active
+                        ? "text-gold"
+                        : "text-neutral-200 hover:bg-white/10 hover:text-white"
                     )}
                   >
                     {group.label}

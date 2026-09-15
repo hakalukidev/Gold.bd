@@ -62,9 +62,9 @@ function ProductCard({
   }
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-md border border-white/10 bg-white/[0.03] transition-all duration-300 hover:-translate-y-1 hover:border-gold/40 hover:bg-white/[0.05] hover:shadow-[0_20px_45px_-20px_rgba(212,166,42,0.35)]">
+    <div className="group relative flex flex-col overflow-hidden rounded-md border border-black/10 bg-black/3 transition-all duration-300 hover:-translate-y-1 hover:border-gold/40 hover:bg-black/5 hover:shadow-[0_20px_45px_-20px_rgba(212,166,42,0.35)] dark:border-white/10 dark:bg-white/3 dark:hover:bg-white/5">
       {/* ---------- Image ---------- */}
-      <div className="relative aspect-4/3 shrink-0 overflow-hidden bg-black">
+      <div className="relative aspect-4/3 shrink-0 overflow-hidden bg-white dark:bg-black">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(212,166,42,0.25),transparent_65%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
         <Image
           src={image}
@@ -82,11 +82,13 @@ function ProductCard({
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div>
           <p className="text-[11px] font-medium tracking-wide text-gold/80 uppercase">{kicker}</p>
-          <h3 className="mt-0.5 text-sm font-bold text-white">{title}</h3>
+          <h3 className="mt-0.5 text-sm font-bold text-neutral-900 dark:text-white">{title}</h3>
         </div>
 
         <div>
-          <p className="text-lg font-extrabold text-white tabular-nums">{totalPrice !== null ? formatBDT(totalPrice) : "—"}</p>
+          <p className="text-lg font-extrabold text-neutral-900 tabular-nums dark:text-white">
+            {totalPrice !== null ? formatBDT(totalPrice) : "—"}
+          </p>
           <p className="mt-0.5 text-[11px] text-muted-white">
             {effectivePerGram !== null ? formatBDT(effectivePerGram) : "—"}
             {t.featured.perGram} · {premiumPct}% {t.featured.withPremium}
@@ -95,21 +97,21 @@ function ProductCard({
         </div>
 
         <div className="mt-auto flex items-center gap-2">
-          <div className="flex shrink-0 items-center rounded-full border border-white/15">
+          <div className="flex shrink-0 items-center rounded-full border border-black/15 dark:border-white/15">
             <button
               type="button"
               aria-label={t.featured.decreaseQty}
               onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="flex size-8 items-center justify-center rounded-full text-neutral-300 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex size-8 items-center justify-center rounded-full text-neutral-600 transition-colors hover:bg-black/10 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-white/10 dark:hover:text-white"
             >
               <Minus className="size-3.5" />
             </button>
-            <span className="w-5 text-center text-sm font-semibold text-white tabular-nums">{qty}</span>
+            <span className="w-5 text-center text-sm font-semibold text-neutral-900 tabular-nums dark:text-white">{qty}</span>
             <button
               type="button"
               aria-label={t.featured.increaseQty}
               onClick={() => setQty((q) => q + 1)}
-              className="flex size-8 items-center justify-center rounded-full text-neutral-300 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex size-8 items-center justify-center rounded-full text-neutral-600 transition-colors hover:bg-black/10 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-white/10 dark:hover:text-white"
             >
               <Plus className="size-3.5" />
             </button>
@@ -152,7 +154,7 @@ function MetalRow({ metal, form }: { metal: Metal; form: Form }) {
         <h3 className="text-sm font-bold tracking-wide text-gold uppercase">
           {t.featured[metal === "gold" ? "metalGold" : "metalSilver"]}
         </h3>
-        <span className="h-px flex-1 bg-white/10" />
+        <span className="h-px flex-1 bg-black/10 dark:bg-white/10" />
       </div>
       <div className="mt-4 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
         {PRODUCT_WEIGHTS.map((weight) => (
@@ -168,14 +170,14 @@ export function ProductsSection() {
   const [form, setForm] = useState<Form>("bar");
 
   return (
-    <section id="products" className="scroll-mt-24 bg-black py-20">
+    <section id="products" className="scroll-mt-24 bg-background py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         {/* ---------- Header ---------- */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold tracking-[0.2em] text-gold uppercase">{t.featured.kicker}</p>
-            <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">{t.featured.heading}</h2>
-            <p className="mt-2 max-w-xl text-sm text-neutral-400">{t.featured.subheading}</p>
+            <h2 className="mt-2 text-2xl font-bold text-neutral-900 sm:text-3xl dark:text-white">{t.featured.heading}</h2>
+            <p className="mt-2 max-w-xl text-sm text-neutral-600 dark:text-neutral-400">{t.featured.subheading}</p>
           </div>
           <Link
             href="/products/gold"
@@ -188,7 +190,7 @@ export function ProductsSection() {
 
         {/* ---------- Form toggle (gold and silver are shown as separate rows) ---------- */}
         <div className="mt-8 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1 rounded-full border border-white/15 bg-white/5 p-1">
+          <div className="flex items-center gap-1 rounded-full border border-black/15 bg-black/5 p-1 dark:border-white/15 dark:bg-white/5">
             {(["bar", "coin"] as const).map((f) => (
               <button
                 key={f}
@@ -196,7 +198,9 @@ export function ProductsSection() {
                 onClick={() => setForm(f)}
                 className={cn(
                   "rounded-full px-4 py-1.5 text-xs font-bold tracking-wide uppercase transition-colors",
-                  form === f ? "bg-gold text-ink" : "text-neutral-300 hover:text-white"
+                  form === f
+                    ? "bg-gold text-ink"
+                    : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
                 )}
               >
                 {t.featured[f === "bar" ? "formBar" : "formCoin"]}

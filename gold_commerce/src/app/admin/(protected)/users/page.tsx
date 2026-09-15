@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Eye, ShieldAlert, Users, type LucideIcon } from "lucide-react";
+import { Eye, Search, ShieldAlert, Users, type LucideIcon } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -32,9 +33,9 @@ function PeriodStatsRow({
   counts: Record<(typeof PERIODS)[number]["key"], number> | undefined;
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
       {PERIODS.map((p) => (
-        <StatCard key={p.key} icon={icon} label={p.label} value={counts ? counts[p.key] : "…"} />
+        <StatCard className="admin-stat" key={p.key} icon={icon} label={p.label} value={counts?.[p.key] ?? 0} />
       ))}
     </div>
   );
@@ -91,7 +92,7 @@ function PendingKycReview() {
         {pending.map((p) => (
           <div key={p.id} className="flex items-center justify-between rounded-md border p-3">
             <div>
-              <p className="font-medium">{p.user.fullName} · {p.user.phone}</p>
+              <p className="font-medium">{p.user.fullName} Â· {p.user.phone}</p>
               <p className="text-sm text-muted-foreground">NID: {p.nidNumber}</p>
             </div>
             <div className="flex gap-2">
@@ -119,13 +120,15 @@ function PendingKycReview() {
 }
 
 export default function AdminUsersPage() {
-  const { data: users, isLoading } = useQuery({
+  const [search, setSearch] = useState("");
+  const { data: users, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => api.get<AdminUser[]>("/api/admin/users"),
   });
   const { data: visitorStats } = useVisitorStats();
+  const filteredUsers = users?.filter((user) => `${user.fullName} ${user.phone} ${user.email ?? ""}`.toLowerCase().includes(search.toLowerCase()));
 
-  // Real counts bucketed from each user's actual createdAt — currently all
+  // Real counts bucketed from each user's actual createdAt â€” currently all
   // zero because /api/admin/users has no backend behind it yet (see
   // CLAUDE.md), not because this is fake data. Once that endpoint returns
   // real users, these numbers are correct without any further change here.
@@ -145,10 +148,10 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Users" description="Everyone with a Gold BD account." />
+      <PageHeader title="Users" description="Understand your audience and manage customer accounts." action={<span className="rounded-full border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">Customer management</span>} />
 
       <div className="space-y-3">
-        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+        <h2 className="admin-section-heading flex items-center font-semibold">
           <Eye className="size-3.5" strokeWidth={1.75} />
           Site visitors (unique)
         </h2>
@@ -156,7 +159,7 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="space-y-3">
-        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+        <h2 className="admin-section-heading flex items-center font-semibold">
           <Users className="size-3.5" strokeWidth={1.75} />
           New accounts
         </h2>
@@ -166,7 +169,10 @@ export default function AdminUsersPage() {
       <PendingKycReview />
       <Card>
         <CardHeader>
-          <CardTitle>All users</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div><CardTitle>Customer directory {users && <Badge variant="secondary" className="ml-2">{users.length}</Badge>}</CardTitle><p className="mt-1.5 text-xs text-muted-foreground">Account details, verification, and balances.</p></div>
+            <div className="relative w-full sm:w-64"><Search className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" /><Input aria-label="Search customers" placeholder="Search name, phone or email" value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" /></div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -175,8 +181,10 @@ export default function AdminUsersPage() {
                 <div key={i} className="h-10 animate-pulse rounded-md bg-muted" />
               ))}
             </div>
-          ) : !users || users.length === 0 ? (
-            <EmptyState icon={Users} title="No users yet" />
+          ) : isError ? (
+            <div className="admin-directory-empty text-center"><EmptyState icon={ShieldAlert} title="Customer accounts are unavailable" description="We couldn't load the customer directory. Please try again." /><Button variant="outline" onClick={() => refetch()}>Try again</Button></div>
+          ) : !filteredUsers || filteredUsers.length === 0 ? (
+            <div className="admin-directory-empty"><EmptyState icon={Users} title={search ? "No matching customers" : "No customers yet"} description={search ? "Try another name, phone number, or email." : "Customer accounts will appear here when they become available."} /></div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -192,7 +200,7 @@ export default function AdminUsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((u) => (
+                  {filteredUsers.map((u) => (
                     <TableRow key={u.id}>
                       <TableCell className="font-medium">{u.fullName}</TableCell>
                       <TableCell className="text-muted-foreground">{u.phone}</TableCell>

@@ -26,18 +26,18 @@ export function GoldRateCard() {
   const price21k = rate21k ? Number(rate21k.pricePerGramBDT) : null;
 
   return (
-    <div className="rounded-md border border-gold/25 bg-white/3 px-5 py-4 backdrop-blur-sm">
+    <div className="rounded-md border border-gold/25 bg-black/3 px-5 py-4 backdrop-blur-sm dark:bg-white/3">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <p className="text-[10px] tracking-wide text-muted-white uppercase">{t.hero.rateCard.label22k}</p>
-          <p className="mt-0.5 text-lg font-semibold text-white">
+          <p className="mt-0.5 text-lg font-semibold text-neutral-900 dark:text-white">
             {isLoading ? "…" : price22k !== null ? formatBDT(price22k) : "—"}
             <span className="ml-1 text-[10px] font-normal text-muted-white">{t.hero.rateCard.perGram}</span>
           </p>
         </div>
         <div>
           <p className="text-[10px] tracking-wide text-muted-white uppercase">{t.hero.rateCard.label21k}</p>
-          <p className="mt-0.5 text-lg font-semibold text-white">
+          <p className="mt-0.5 text-lg font-semibold text-neutral-900 dark:text-white">
             {isLoading21k ? "…" : price21k !== null ? formatBDT(price21k) : "—"}
             <span className="ml-1 text-[10px] font-normal text-muted-white">{t.hero.rateCard.perGram}</span>
           </p>

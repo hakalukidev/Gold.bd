@@ -39,7 +39,3 @@ export const sellGoldSchema = z.object({
 });
 export type SellGoldInput = z.infer<typeof sellGoldSchema>;
 
-export const setGoldRateSchema = z.object({
-  pricePerGramBDT: z.number().positive("Enter a valid price"),
-});
-export type SetGoldRateInput = z.infer<typeof setGoldRateSchema>;

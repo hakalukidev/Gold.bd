@@ -40,12 +40,12 @@ function StoreBadge({ href, eyebrow, store, children }: StoreBadgeProps & { chil
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`${eyebrow} ${store}`}
-      className="flex items-center gap-2.5 rounded-md border border-white/15 bg-white/5 px-3 py-2 transition-colors hover:border-gold/40 hover:bg-white/10"
+      className="flex items-center gap-2.5 rounded-md border border-black/15 bg-black/5 px-3 py-2 transition-colors hover:border-gold/40 hover:bg-black/10 dark:border-white/15 dark:bg-white/5 dark:hover:bg-white/10"
     >
       {children}
       <span className="flex flex-col leading-tight">
-        <span className="text-[10px] text-neutral-400">{eyebrow}</span>
-        <span className="text-sm font-semibold text-white">{store}</span>
+        <span className="text-[10px] text-neutral-500 dark:text-neutral-400">{eyebrow}</span>
+        <span className="text-sm font-semibold text-neutral-900 dark:text-white">{store}</span>
       </span>
     </a>
   );
@@ -54,7 +54,7 @@ function StoreBadge({ href, eyebrow, store, children }: StoreBadgeProps & { chil
 export function AppStoreBadge(props: StoreBadgeProps) {
   return (
     <StoreBadge {...props}>
-      <AppleGlyph className="size-6 shrink-0 text-white" />
+      <AppleGlyph className="size-6 shrink-0 text-neutral-900 dark:text-white" />
     </StoreBadge>
   );
 }

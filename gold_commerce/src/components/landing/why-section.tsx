@@ -16,6 +16,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setActiveWhyTab, type WhyTab } from "@/store/slices/ui-slice";
 import { useT } from "@/lib/i18n/use-t";
 import { cn } from "@/lib/utils";
+import { GoldTitle } from "@/components/shared/gold-title";
 
 // Icons are matched to each slide's points by index (both slides carry
 // exactly three points) rather than by title text, since the dictionary is
@@ -52,10 +53,12 @@ function WhySlide({ tab, active }: { tab: WhyTab; active: boolean }) {
   const icons = POINT_ICONS[tab];
 
   return (
-    <div className="w-full shrink-0 px-1 pb-6" aria-hidden={!active}>
+    <div className="w-full shrink-0 px-1 pb-12" aria-hidden={!active}>
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-balance text-white sm:text-3xl">{content.heading}</h2>
-        <p className="mx-auto mt-3 max-w-xl text-neutral-300">{content.intro}</p>
+        <h2 className="text-2xl font-bold text-balance sm:text-3xl">
+          <GoldTitle text={content.heading} />
+        </h2>
+        <p className="mx-auto mt-3 max-w-xl text-neutral-600 dark:text-neutral-300">{content.intro}</p>
       </div>
 
       <div className="mt-16 grid gap-6 sm:grid-cols-3 sm:gap-5">
@@ -65,15 +68,16 @@ function WhySlide({ tab, active }: { tab: WhyTab; active: boolean }) {
             <div
               key={point.title}
               className={cn(
-                "group relative rounded-md border border-white/10 bg-white/5 p-6 shadow-xl shadow-black/40 backdrop-blur-md transition-transform duration-500 ease-out sm:hover:z-20",
+                "card-gold-premium group relative rounded-md p-6 transition-transform duration-500 ease-out sm:hover:z-20",
+                i === 1 ? "shine-delay-1" : i === 2 ? "shine-delay-2" : undefined,
                 CARD_TRANSFORMS[i]
               )}
             >
-              <span className="flex text-gold">
-                <Icon className="size-14" strokeWidth={1.25} />
+              <span className="flex size-16 items-center justify-center rounded-full bg-black/10 text-[#3a2405] ring-1 ring-black/10">
+                <Icon className="size-8" strokeWidth={1.5} />
               </span>
-              <p className="mt-4 font-medium text-gold">{point.title}</p>
-              <p className="mt-2 text-sm text-neutral-300">{point.description}</p>
+              <p className="mt-4 font-semibold text-[#3a2405]">{point.title}</p>
+              <p className="mt-2 text-sm text-[#4a2f08]/80">{point.description}</p>
             </div>
           );
         })}
@@ -103,17 +107,15 @@ export function WhySection() {
   }, [index, dispatch]);
 
   return (
-    <section id="why" className="relative isolate scroll-mt-24 overflow-hidden bg-ink py-20">
-      {/* Blurred gold coin backdrop. Oversized (-inset-24) so the blur's soft
-          edges fall outside the section's clipped bounds instead of fading
-          to nothing right at the boundary. */}
+    <section id="why" className="relative isolate scroll-mt-24 overflow-hidden bg-background py-20">
+      {/* Gold coin backdrop, kept sharp (no blur) and light. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -inset-24 -z-20 bg-[url('/gold_coin.png')] bg-cover bg-center opacity-50 blur-3xl saturate-150"
+        className="pointer-events-none absolute inset-0 -z-20 bg-[url('/gold_coin.png')] bg-cover bg-center opacity-20"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-linear-to-b from-ink via-ink/60 to-ink-light"
+        className="pointer-events-none absolute inset-0 -z-10 bg-linear-to-b from-background via-background/60 to-neutral-100 dark:from-ink dark:via-ink/60 dark:to-ink-light"
       />
 
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
@@ -130,12 +132,12 @@ export function WhySection() {
         </div>
 
         {/* ---------- Carousel controls ---------- */}
-        <div className="mt-8 flex items-center justify-center gap-4">
+        <div className="mt-2 flex items-center justify-center gap-4">
           <button
             type="button"
             onClick={() => goTo(index - 1)}
             aria-label={t.why.prevSlide}
-            className="flex size-9 items-center justify-center rounded-full border border-white/15 text-neutral-300 transition-colors hover:border-gold/60 hover:text-gold"
+            className="flex size-9 items-center justify-center rounded-full border border-black/15 text-neutral-600 transition-colors hover:border-gold/60 hover:text-gold dark:border-white/15 dark:text-neutral-300"
           >
             <ChevronLeft className="size-4" />
           </button>
@@ -150,7 +152,7 @@ export function WhySection() {
                 aria-current={i === index}
                 className={cn(
                   "h-1.5 rounded-full transition-all duration-300",
-                  i === index ? "w-8 bg-gold" : "w-3 bg-white/25 hover:bg-white/40"
+                  i === index ? "w-8 bg-gold" : "w-3 bg-black/25 hover:bg-black/40 dark:bg-white/25 dark:hover:bg-white/40"
                 )}
               />
             ))}
@@ -160,7 +162,7 @@ export function WhySection() {
             type="button"
             onClick={() => goTo(index + 1)}
             aria-label={t.why.nextSlide}
-            className="flex size-9 items-center justify-center rounded-full border border-white/15 text-neutral-300 transition-colors hover:border-gold/60 hover:text-gold"
+            className="flex size-9 items-center justify-center rounded-full border border-black/15 text-neutral-600 transition-colors hover:border-gold/60 hover:text-gold dark:border-white/15 dark:text-neutral-300"
           >
             <ChevronRight className="size-4" />
           </button>

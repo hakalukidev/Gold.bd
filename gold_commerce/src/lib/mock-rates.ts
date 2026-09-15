@@ -3,7 +3,7 @@ export type Metal = "gold" | "silver";
 /**
  * USD/BDT used to show prices in dollars. Same dummy interbank figure
  * gold-price-ticker.tsx displays — not a live feed, since BAJUS (see
- * /api/gold/rate, proxied to wallet_server) only quotes BDT.
+ * /api/gold/rate, backed by src/lib/rate-store.ts) only quotes BDT.
  */
 export const USD_BDT_RATE = 121.9;
 

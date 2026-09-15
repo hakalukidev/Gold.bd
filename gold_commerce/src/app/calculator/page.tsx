@@ -8,9 +8,11 @@ import { useT } from "@/lib/i18n/use-t";
 import { formatBDT } from "@/lib/format";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { GoldPriceTicker } from "@/components/landing/gold-price-ticker";
+import { StatusStrip } from "@/components/landing/status-strip";
 import { LiveBadge } from "@/components/landing/today-price-section";
 import { GoldCoinIcon, SilverCoinIcon } from "@/components/landing/dollar-coin-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GoldTitle } from "@/components/shared/gold-title";
 import { cn } from "@/lib/utils";
 
 // 1 bhori (also spelled vori/tola), the standard South Asian gold-trading
@@ -38,7 +40,11 @@ const SECTIONS = [
 // scanner (which reads source text, not runtime values) can always see them.
 const CARD_ACCENT_CLASSES = {
   gold: { hoverBorder: "hover:border-gold/30", badge: "bg-gold/15 text-gold", index: "text-gold/70" },
-  silver: { hoverBorder: "hover:border-neutral-300/40", badge: "bg-neutral-300/15 text-neutral-200", index: "text-neutral-300/80" },
+  silver: {
+    hoverBorder: "hover:border-neutral-300/40",
+    badge: "bg-neutral-300/15 text-neutral-700 dark:text-neutral-200",
+    index: "text-neutral-600/80 dark:text-neutral-300/80",
+  },
 } as const;
 
 function CalcCard({
@@ -60,7 +66,10 @@ function CalcCard({
 }) {
   const a = CARD_ACCENT_CLASSES[accent];
   return (
-    <section id={id} className={`rounded-md border border-white/10 bg-white/5 p-4 transition-colors sm:p-5 ${a.hoverBorder}`}>
+    <section
+      id={id}
+      className={`rounded-md border border-black/10 bg-black/5 p-4 transition-colors sm:p-5 dark:border-white/10 dark:bg-white/5 ${a.hoverBorder}`}
+    >
       <div className="flex items-start gap-3">
         <span className={`flex size-8 shrink-0 items-center justify-center rounded-md ${a.badge}`}>
           <Icon className="size-4" />
@@ -68,9 +77,9 @@ function CalcCard({
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             <span className={`text-xs font-semibold ${a.index}`}>{String(index).padStart(2, "0")}</span>
-            <h2 className="text-lg font-bold text-white sm:text-xl">{title}</h2>
+            <h2 className="text-lg font-bold text-neutral-900 sm:text-xl dark:text-white">{title}</h2>
           </div>
-          <p className="mt-0.5 hidden text-sm text-neutral-400 sm:block">{description}</p>
+          <p className="mt-0.5 hidden text-sm text-neutral-600 sm:block dark:text-neutral-400">{description}</p>
         </div>
       </div>
       <div className="mt-3">{children}</div>
@@ -81,7 +90,7 @@ function CalcCard({
 function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs text-neutral-400" htmlFor={htmlFor}>
+      <label className="block text-xs text-neutral-600 dark:text-neutral-400" htmlFor={htmlFor}>
         {label}
       </label>
       <div className="mt-1">{children}</div>
@@ -98,14 +107,14 @@ function NumberInput({ id, value, onChange }: { id?: string; value: string; onCh
       inputMode="decimal"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-10 w-full rounded-md border border-white/15 bg-ink px-3 text-sm text-white outline-none focus:border-gold/60"
+      className="h-10 w-full rounded-md border border-black/15 bg-white px-3 text-sm text-neutral-900 outline-none focus:border-gold/60 dark:border-white/15 dark:bg-ink dark:text-white"
     />
   );
 }
 
 function ReadonlyField({ value }: { value: string }) {
   return (
-    <div className="flex h-10 w-full items-center rounded-md border border-white/10 bg-ink px-3 text-sm text-white">
+    <div className="flex h-10 w-full items-center rounded-md border border-black/10 bg-white px-3 text-sm text-neutral-900 dark:border-white/10 dark:bg-ink dark:text-white">
       {value}
     </div>
   );
@@ -476,7 +485,7 @@ function MoneyAmountField({
           inputMode="decimal"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`h-10 w-full rounded-md border border-white/15 bg-ink pr-3 pl-8 text-sm text-white outline-none ${FIELD_ACCENT_CLASSES[accent]}`}
+          className={`h-10 w-full rounded-md border border-black/15 bg-white pr-3 pl-8 text-sm text-neutral-900 outline-none dark:border-white/15 dark:bg-ink dark:text-white ${FIELD_ACCENT_CLASSES[accent]}`}
         />
       </div>
     </Field>
@@ -502,7 +511,7 @@ function GoldCalculator() {
     <CalcCard id="gold" icon={GoldCoinIcon} index={1} title={c.title} description={c.description}>
       {/* Current rate sits above the scale, like a ticker over the beam. */}
       <div className="text-center">
-        <p className="text-xs text-neutral-400">{c.rateLabel}</p>
+        <p className="text-xs text-neutral-600 dark:text-neutral-400">{c.rateLabel}</p>
         <p className="mt-1 text-lg font-bold text-gold">{rate ? formatBDT(rate.pricePerGramBDT) : "…"}</p>
       </div>
 
@@ -539,7 +548,7 @@ function SilverCalculator() {
       {/* Rate sits above the scale like the gold calculator's — but editable
           here, since silver has no live feed, just an indicative rate. */}
       <div className="mx-auto max-w-36">
-        <label htmlFor="silver-rate" className="block text-center text-xs text-neutral-400">
+        <label htmlFor="silver-rate" className="block text-center text-xs text-neutral-600 dark:text-neutral-400">
           {c.rateLabel}
         </label>
         <input
@@ -549,7 +558,7 @@ function SilverCalculator() {
           inputMode="decimal"
           value={rate}
           onChange={(e) => setRate(e.target.value)}
-          className="mt-1 h-9 w-full rounded-md border border-white/15 bg-ink px-3 text-center text-sm font-semibold text-neutral-200 outline-none focus:border-neutral-300/60"
+          className="mt-1 h-9 w-full rounded-md border border-black/15 bg-white px-3 text-center text-sm font-semibold text-neutral-900 outline-none focus:border-neutral-300/60 dark:border-white/15 dark:bg-ink dark:text-neutral-200"
         />
       </div>
 
@@ -562,7 +571,7 @@ function SilverCalculator() {
           <ReadonlyField value={`${grams.toFixed(3)} g`} />
         </Field>
       </div>
-      <p className="mt-2 hidden text-center text-xs text-neutral-500 sm:block">{c.rateNote}</p>
+      <p className="mt-2 hidden text-center text-xs text-neutral-500 sm:block dark:text-neutral-500">{c.rateNote}</p>
     </CalcCard>
   );
 }
@@ -607,7 +616,7 @@ function MakingChargeCalculator() {
           <NumberInput id="mc-charge" value={chargePercent} onChange={setChargePercent} />
         </Field>
       </div>
-      <div className="mt-3 grid gap-3 border-t border-white/10 pt-3 sm:grid-cols-3">
+      <div className="mt-3 grid gap-3 border-t border-black/10 pt-3 sm:grid-cols-3 dark:border-white/10">
         <Field label={c.goldValueLabel}>
           <ReadonlyField value={formatBDT(goldValue)} />
         </Field>
@@ -695,7 +704,7 @@ function ZakatCalculator() {
             id="zakat-purity"
             value={purity}
             onChange={(e) => setPurity(Number(e.target.value) as (typeof PURITY_OPTIONS)[number])}
-            className="h-10 w-full rounded-md border border-white/15 bg-ink px-3 text-sm text-white outline-none focus:border-gold/60"
+            className="h-10 w-full rounded-md border border-black/15 bg-white px-3 text-sm text-neutral-900 outline-none focus:border-gold/60 dark:border-white/15 dark:bg-ink dark:text-white"
           >
             {PURITY_OPTIONS.map((k) => (
               <option key={k} value={k}>
@@ -709,7 +718,7 @@ function ZakatCalculator() {
         </Field>
       </div>
 
-      <div className="mt-3 grid gap-3 border-t border-white/10 pt-3 sm:grid-cols-2">
+      <div className="mt-3 grid gap-3 border-t border-black/10 pt-3 sm:grid-cols-2 dark:border-white/10">
         <Field label={c.marketValueLabel}>
           <ReadonlyField value={formatBDT(marketValue)} />
         </Field>
@@ -762,10 +771,11 @@ export default function CalculatorPage() {
   }
 
   return (
-    <main className="flex h-dvh flex-col overflow-hidden bg-ink">
+    <main className="flex h-dvh flex-col overflow-hidden bg-background">
       <div className="shrink-0">
         <GoldPriceTicker />
         <LandingHeader />
+        <StatusStrip />
       </div>
 
       {/* ---------- Compact hero + tabs + the active calculator, sized to fit
@@ -781,8 +791,10 @@ export default function CalculatorPage() {
               </span>
               <LiveBadge label={t.todayPrice.live} />
             </div>
-            <h1 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">{c.heading}</h1>
-            <p className="mt-1 hidden text-sm text-neutral-300 sm:block">{c.subheading}</p>
+            <h1 className="mt-1.5 text-xl font-bold sm:text-2xl">
+              <GoldTitle text={c.heading} />
+            </h1>
+            <p className="mt-1 hidden text-sm text-neutral-600 sm:block dark:text-neutral-300">{c.subheading}</p>
           </div>
 
           {/* Calculator + its switcher — the switcher is a right-hand rail
@@ -812,15 +824,15 @@ export default function CalculatorPage() {
               </TabsContent>
             </div>
 
-            <TabsList className="h-fit w-full shrink-0 flex-col gap-1 rounded-md border border-white/10 bg-white/5 p-3 sm:w-56">
+            <TabsList className="h-fit w-full shrink-0 flex-col gap-1 rounded-md border border-black/10 bg-black/5 p-3 sm:w-56 dark:border-white/10 dark:bg-white/5">
               {SECTIONS.map(({ id, icon: Icon }) => (
                 <TabsTrigger
                   key={id}
                   value={id}
                   className={cn(
-                    "w-full justify-start gap-2.5 rounded-md border-l-2 !border-transparent bg-transparent px-3 py-2 text-sm font-medium text-neutral-300 shadow-none transition-colors",
-                    "hover:bg-white/5 hover:text-white",
-                    "data-active:!border-gold data-active:!bg-gold/10 data-active:!text-gold data-active:!shadow-none"
+                    "w-full justify-start gap-2.5 rounded-md !border-transparent bg-transparent px-3 py-2 text-sm font-medium text-neutral-600 shadow-none transition-colors dark:text-neutral-300",
+                    "hover:bg-black/5 hover:text-neutral-900 dark:hover:bg-white/5 dark:hover:text-white",
+                    "data-active:!bg-gold data-active:!text-ink data-active:font-semibold data-active:!shadow-none"
                   )}
                 >
                   <Icon className="size-4 shrink-0" strokeWidth={1.75} />

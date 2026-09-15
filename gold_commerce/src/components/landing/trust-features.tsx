@@ -24,7 +24,7 @@ export function TrustFeatures() {
               }
               strokeWidth={1.5}
             />
-            <span className="w-16 text-[9px] leading-tight font-semibold tracking-wide text-neutral-200 uppercase sm:w-20 sm:text-[11px]">
+            <span className="w-16 text-[9px] leading-tight font-semibold tracking-wide text-neutral-600 uppercase sm:w-20 sm:text-[11px] dark:text-neutral-200">
               {feature.label}
             </span>
           </div>

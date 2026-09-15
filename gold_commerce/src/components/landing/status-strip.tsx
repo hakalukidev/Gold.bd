@@ -50,16 +50,16 @@ export function StatusStrip() {
     : "";
 
   return (
-    <div className="w-full border-b border-[rgba(212,166,42,0.15)] bg-black">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-end gap-x-6 gap-y-1 px-4 py-2 text-[11px] font-medium text-neutral-400 sm:px-6 lg:px-8">
+    <div className="w-full border-b border-[rgba(212,166,42,0.15)] bg-background">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-end gap-x-6 gap-y-1 px-4 py-2 text-[11px] font-medium text-neutral-600 sm:px-6 lg:px-8 dark:text-neutral-400">
         <span className="tabular-nums">
-          {dateLabel} <span className="text-neutral-600">·</span> {t.statusStrip.city}
+          {dateLabel} <span className="text-neutral-300 dark:text-neutral-600">·</span> {t.statusStrip.city}
         </span>
         <span aria-hidden="true" className="hidden h-3 w-px bg-[rgba(212,166,42,0.25)] sm:block" />
         <span className="hidden items-center gap-1.5 sm:flex">
           {t.statusStrip.rateSource}
           <span className="font-semibold text-gold/80">BAJUS</span>
-          <span aria-hidden="true" className="text-neutral-600">
+          <span aria-hidden="true" className="text-neutral-300 dark:text-neutral-600">
             •
           </span>
           <span className="font-semibold text-gold/80">XAU/USD</span>

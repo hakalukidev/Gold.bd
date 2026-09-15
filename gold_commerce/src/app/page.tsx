@@ -11,13 +11,14 @@ import { HeroSection } from "@/components/landing/hero-section";
 import { TodayPriceSection } from "@/components/landing/today-price-section";
 import { WhySection } from "@/components/landing/why-section";
 import { ProductsSection } from "@/components/landing/products-section";
-import { RateHistorySection } from "@/components/landing/rate-history-section";
 import { HowItWorksSection } from "@/components/landing/how-it-works-section";
 import { TrustSection } from "@/components/landing/trust-section";
 import { AboutSection } from "@/components/landing/about-section";
 import { TaglineBanner } from "@/components/landing/tagline-banner";
 import { FaqSection } from "@/components/landing/faq-section";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import { GoldTitle } from "@/components/shared/gold-title";
+import Image from "next/image";
 
 export default function LandingPage() {
   const t = useT();
@@ -35,7 +36,6 @@ export default function LandingPage() {
 
       <WhySection />
       <ProductsSection />
-      <RateHistorySection />
 
       {/* ---------- Features ---------- */}
       <section id="features" className="scroll-mt-24 bg-background py-20">
@@ -67,16 +67,32 @@ export default function LandingPage() {
       <FaqSection />
 
       {/* ---------- CTA footer band ---------- */}
-      <section className="border-t bg-muted/30 py-14">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 text-center sm:px-6">
-          <h2 className="text-xl font-semibold sm:text-2xl">{t.ctaBand.heading}</h2>
-          <p className="max-w-md text-sm text-muted-foreground">{t.ctaBand.body}</p>
-          <Button
-            size="lg"
-            variant="gold"
-            nativeButton={false}
-            render={<a href={WALLET_REGISTER_URL}>{t.ctaBand.cta}</a>}
-          />
+      <section>
+        <div className="w-full">
+          {/* The coin artwork is cropped to its center and clipped to this
+              rounded rectangle, with the copy sitting straight on top of it —
+              no separate blurred card. */}
+          <div className="relative isolate flex min-h-40 flex-col items-center justify-center gap-3 overflow-hidden px-6 py-8 text-center sm:min-h-48 sm:px-10">
+            <Image
+              src="/gold-coins-cta.png"
+              alt=""
+              aria-hidden="true"
+              fill
+              sizes="(min-width: 768px) 900px, 100vw"
+              className="pointer-events-none -z-20 select-none object-cover object-center"
+            />
+            <h2 className="text-xl font-semibold sm:text-2xl">
+              <GoldTitle text={t.ctaBand.heading} baseClassName="text-foreground" />
+            </h2>
+            <p className="max-w-md text-sm text-foreground/80">{t.ctaBand.body}</p>
+            <Button
+              size="lg"
+              variant="gold"
+              nativeButton={false}
+              className="border-0! shadow-[0_0_30px_rgba(244,198,78,0.45)]"
+              render={<a href={WALLET_REGISTER_URL}>{t.ctaBand.cta}</a>}
+            />
+          </div>
         </div>
       </section>
 

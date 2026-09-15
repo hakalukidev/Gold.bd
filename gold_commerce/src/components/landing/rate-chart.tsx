@@ -82,9 +82,10 @@ export function RateChart({ data }: { data: { pricePerGramBDT: string; effective
                 x2={WIDTH - PAD.right}
                 y1={y(tick)}
                 y2={y(tick)}
-                stroke="white"
+                stroke="currentColor"
                 strokeOpacity={0.08}
                 strokeWidth={1}
+                className="text-black dark:text-white"
               />
               <text x={PAD.left - 8} y={y(tick)} textAnchor="end" dominantBaseline="middle" className="fill-neutral-500 text-[9px]">
                 ৳{Math.round(tick).toLocaleString("en-BD")}
@@ -114,9 +115,10 @@ export function RateChart({ data }: { data: { pricePerGramBDT: string; effective
                 x2={x(hoverIndex!)}
                 y1={PAD.top}
                 y2={PAD.top + plotH}
-                stroke="white"
+                stroke="currentColor"
                 strokeOpacity={0.25}
                 strokeWidth={1}
+                className="text-black dark:text-white"
               />
               <circle cx={x(hoverIndex!)} cy={y(Number(hovered.pricePerGramBDT))} r={4} fill="#c8a951" stroke="#0d0d0d" strokeWidth={2} />
             </g>
@@ -136,11 +138,11 @@ export function RateChart({ data }: { data: { pricePerGramBDT: string; effective
 
         {hovered && (
           <div
-            className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-md border border-white/10 bg-ink-light px-3 py-2 text-xs shadow-xl"
+            className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-md border border-black/10 bg-white px-3 py-2 text-xs shadow-xl dark:border-white/10 dark:bg-ink-light"
             style={{ left: `${(x(hoverIndex!) / WIDTH) * 100}%` }}
           >
-            <p className="font-semibold text-white">{formatBDT(hovered.pricePerGramBDT)}</p>
-            <p className="text-neutral-400">{formatDateTime(hovered.effectiveAt)}</p>
+            <p className="font-semibold text-neutral-900 dark:text-white">{formatBDT(hovered.pricePerGramBDT)}</p>
+            <p className="text-neutral-500 dark:text-neutral-400">{formatDateTime(hovered.effectiveAt)}</p>
           </div>
         )}
       </div>
@@ -148,21 +150,21 @@ export function RateChart({ data }: { data: { pricePerGramBDT: string; effective
       <button
         type="button"
         onClick={() => setShowTable((v) => !v)}
-        className="mt-2 text-xs text-neutral-400 underline underline-offset-2 hover:text-neutral-200"
+        className="mt-2 text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
       >
         {showTable ? t.rateHistory.tableHide : t.rateHistory.tableShow}
       </button>
 
       {showTable && (
-        <div className="mt-3 overflow-x-auto rounded-md border border-white/10">
+        <div className="mt-3 overflow-x-auto rounded-md border border-black/10 dark:border-white/10">
           <table className="w-full text-left text-xs">
-            <thead className="bg-white/5 text-neutral-400">
+            <thead className="bg-black/5 text-neutral-500 dark:bg-white/5 dark:text-neutral-400">
               <tr>
                 <th className="px-3 py-2 font-medium">{t.rateHistory.tableDate}</th>
                 <th className="px-3 py-2 font-medium">{t.rateHistory.tablePrice}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10 text-neutral-300">
+            <tbody className="divide-y divide-black/10 text-neutral-700 dark:divide-white/10 dark:text-neutral-300">
               {data.map((d) => (
                 <tr key={d.effectiveAt}>
                   <td className="px-3 py-2">{formatDateTime(d.effectiveAt)}</td>

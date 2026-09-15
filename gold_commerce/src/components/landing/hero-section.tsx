@@ -41,10 +41,36 @@ export function HeroSection() {
 
   return (
     <div
-      className="relative isolate flex min-h-[calc(100vh-9rem)] flex-col overflow-hidden bg-black lg:h-[calc(100vh-9rem)]"
+      className="relative isolate flex min-h-[calc(100vh-9rem)] flex-col overflow-hidden bg-background lg:h-[calc(100vh-9rem)]"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
+      {/* Ambient golden wash across the whole hero — layered radial glows at the
+          top, corners and centre, sitting under all hero content via -z-20
+          against the root's `isolate`. Distinct from the coin's own
+          halo/background image above, which stay local to the coin column. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-20 bg-[radial-gradient(ellipse_85%_55%_at_50%_-10%,rgba(244,198,78,0.38),transparent_62%),radial-gradient(ellipse_55%_50%_at_50%_45%,rgba(244,198,78,0.14),transparent_70%),radial-gradient(ellipse_50%_45%_at_100%_100%,rgba(212,166,42,0.26),transparent_65%),radial-gradient(ellipse_45%_40%_at_0%_100%,rgba(244,198,78,0.20),transparent_65%)] dark:bg-none"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-20 bg-[linear-gradient(180deg,transparent_0%,rgba(244,198,78,0.08)_50%,transparent_100%)] dark:bg-none"
+      />
+      {/* Fine gold dust scattered across the whole hero, echoing the sparkle
+          asset used locally in the coin column so the shimmer reads
+          hero-wide rather than only around the coin. Dark mode keeps the hero
+          a flat black, so this stays light-mode only. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-20 opacity-70 bg-[radial-gradient(1.5px_1.5px_at_15%_25%,rgba(244,198,78,0.9),transparent),radial-gradient(1px_1px_at_32%_60%,rgba(244,198,78,0.7),transparent),radial-gradient(2px_2px_at_48%_18%,rgba(244,198,78,0.8),transparent),radial-gradient(1px_1px_at_63%_48%,rgba(244,198,78,0.6),transparent),radial-gradient(1.5px_1.5px_at_78%_22%,rgba(244,198,78,0.85),transparent),radial-gradient(1px_1px_at_88%_65%,rgba(244,198,78,0.6),transparent),radial-gradient(1.5px_1.5px_at_10%_80%,rgba(244,198,78,0.7),transparent),radial-gradient(1px_1px_at_55%_78%,rgba(244,198,78,0.55),transparent),radial-gradient(2px_2px_at_92%_38%,rgba(244,198,78,0.75),transparent),radial-gradient(1px_1px_at_25%_45%,rgba(244,198,78,0.5),transparent)] dark:hidden"
+      />
+      {/* Warm vignette hugging the hero's edges for a richer golden frame — light mode only. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-20 shadow-[inset_0_0_140px_30px_rgba(244,198,78,0.18)] dark:shadow-none"
+      />
+
       <section className="relative flex flex-1 flex-col justify-center-safe">
         <div className="relative mx-auto grid w-full max-w-6xl place-items-center gap-3 px-4 py-2 sm:px-8 sm:py-4 lg:grid-cols-2 lg:gap-6 lg:px-10 lg:py-4">
           <motion.div
@@ -53,7 +79,7 @@ export function HeroSection() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="min-w-0  text-center lg:text-left"
           >
-            <p className=" text-base font-semibold tracking-[0.2em] text-white uppercase sm:text-xl">
+            <p className=" text-base font-semibold tracking-[0.2em] text-neutral-900 uppercase sm:text-xl dark:text-white">
               {t.hero.eyebrow}
             </p>
 
@@ -70,12 +96,14 @@ export function HeroSection() {
                 const Icon = HIGHLIGHT_ICONS[i];
                 return (
                   <div key={highlight.label} className="flex items-center">
-                    {i > 0 && <span aria-hidden="true" className="mx-4 h-9 w-px shrink-0 bg-white/15 sm:mx-5" />}
+                    {i > 0 && (
+                      <span aria-hidden="true" className="mx-4 h-9 w-px shrink-0 bg-black/15 sm:mx-5 dark:bg-white/15" />
+                    )}
                     <div className="flex items-center gap-2.5">
                       <span className="flex size-11 shrink-0 items-center justify-center text-gold">
                         <Icon className="size-8" strokeWidth={1.75} />
                       </span>
-                      <span className="max-w-16 text-[9px] leading-tight font-semibold tracking-wide text-neutral-200 uppercase sm:max-w-20 sm:text-[10px]">
+                      <span className="max-w-16 text-[9px] leading-tight font-semibold tracking-wide text-neutral-600 uppercase sm:max-w-20 sm:text-[10px] dark:text-neutral-200">
                         {highlight.label}
                       </span>
                     </div>
@@ -103,10 +131,10 @@ export function HeroSection() {
                 nativeButton={false}
                 className="h-12 w-full gap-2 px-6 text-sm sm:w-auto"
                 render={
-                  <a href="#rate-history">
+                  <Link href="/price">
                     {t.hero.ctaSecondary}
                     <TrendingUp className="size-4" />
-                  </a>
+                  </Link>
                 }
               />
             </div>
@@ -137,7 +165,15 @@ export function HeroSection() {
                 rather than dropping it behind the page background). */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute top-[-61%] left-[-201%] -z-10 aspect-1672/941 w-[364%] bg-[url('/hero_background_2.webp')] bg-size-[100%_100%] bg-no-repeat opacity-90"
+              className="pointer-events-none absolute top-[-61%] left-[-201%] -z-10 hidden aspect-1672/941 w-[364%] bg-[url('/hero_background_2.webp')] bg-size-[100%_100%] bg-no-repeat opacity-90 dark:block"
+            />
+
+            {/* Light-mode stand-in for the sparkle image above (which is an opaque
+                black asset and would flood a white background) — a soft warm glow
+                centred behind the coin instead. */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -inset-20 -z-10 rounded-full bg-[radial-gradient(circle,rgba(212,163,38,0.7)_0%,rgba(184,138,24,0.5)_35%,rgba(140,102,16,0.28)_60%,transparent_75%)] blur-[70px] dark:hidden"
             />
 
             <motion.div
@@ -160,7 +196,7 @@ export function HeroSection() {
 
         {/* ---------- Trust features panel ---------- */}
         <div className="relative mx-auto w-full max-w-6xl px-4 pb-2 sm:px-8 sm:pb-3 lg:px-10 lg:pb-1">
-          <div className="flex rounded-md border border-gold/20 bg-white/3 px-4 py-2 backdrop-blur-sm sm:py-2.5">
+          <div className="flex rounded-md border border-gold/20 bg-black/3 px-4 py-2 backdrop-blur-sm sm:py-2.5 dark:bg-white/3">
             <TrustFeatures />
           </div>
         </div>

@@ -40,7 +40,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${notoSerifBengali.variable} ${geistMono.variable} ${playfairDisplay.variable} dark h-full antialiased`}
+      className={`${manrope.variable} ${notoSerifBengali.variable} ${geistMono.variable} ${playfairDisplay.variable} h-full antialiased`}
+      // next-themes' ThemeProvider (see providers.tsx) adds the `dark` class
+      // to this element from an inline script that runs before hydration,
+      // which would otherwise mismatch the server-rendered (theme-less)
+      // markup.
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground" suppressHydrationWarning>
         <Providers>{children}</Providers>

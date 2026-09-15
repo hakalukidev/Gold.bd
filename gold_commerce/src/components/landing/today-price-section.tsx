@@ -23,8 +23,8 @@ import type { Karat, MetalRateSummary } from "@/types";
 // 1 bhori = 1 tola = 16 ana = 96 roti = 768 point = 11.6638g.
 const GRAMS_PER_BHORI = 11.6638;
 const UNITS = [
-  { key: "bhori", grams: GRAMS_PER_BHORI, label: "unitBhori", perLabel: "perBhori" },
   { key: "gram", grams: 1, label: "unitGram", perLabel: "perGram" },
+  { key: "bhori", grams: GRAMS_PER_BHORI, label: "unitBhori", perLabel: "perBhori" },
   { key: "tola", grams: GRAMS_PER_BHORI, label: "unitTola", perLabel: "perTola" },
   { key: "ana", grams: GRAMS_PER_BHORI / 16, label: "unitAna", perLabel: "perAna" },
   { key: "roti", grams: GRAMS_PER_BHORI / 96, label: "unitRoti", perLabel: "perRoti" },
@@ -33,8 +33,9 @@ const UNITS = [
 
 // BAJUS publishes these four grades directly (22K, 21K, 18K, and "সনাতন" —
 // traditional/mixed gold, which has no fixed karat of its own) for both
-// metals, so each cell below is its own real wallet_server reading rather
-// than a ratio derived off the platform's 22K anchor rate. `purityLabel` is
+// metals, so each cell below is its own real scraped reading (see
+// src/lib/rate-store.ts) rather than a ratio derived off the platform's 22K
+// anchor rate. `purityLabel` is
 // just the badge text — 22K, 21K and 18K are exact fractions; সনাতন has none,
 // so it shows no badge.
 const KARATS: { key: Karat; labelKey: "karat22" | "karat21" | "karat18" | "sanatan"; purityLabel: string | null }[] = [
@@ -101,7 +102,7 @@ function MiniBarChart({ data }: { data: { pricePerGramBDT: string; effectiveAt: 
 export function TodayPriceSection() {
   const t = useT();
   const [metalKey, setMetalKey] = useState<Metal>("gold");
-  const [unitKey, setUnitKey] = useState<(typeof UNITS)[number]["key"]>("bhori");
+  const [unitKey, setUnitKey] = useState<(typeof UNITS)[number]["key"]>("gram");
   const unit = UNITS.find((u) => u.key === unitKey)!;
   const metal = METALS.find((m) => m.key === metalKey)!;
 
@@ -136,7 +137,7 @@ export function TodayPriceSection() {
   }, [miniChartData]);
 
   return (
-    <section className="relative overflow-hidden bg-black py-12 sm:py-14">
+    <section className="relative overflow-hidden bg-background py-12 sm:py-14">
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
         {/* ---------- Stat strip: 22K/gram mini chart + marketing tagline ---------- */}
         <div className="grid gap-8 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] sm:items-center">
@@ -157,14 +158,16 @@ export function TodayPriceSection() {
             <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-muted-white">
               <span>{t.todayPrice.basedOnRecords.replace("{count}", String(miniChartData.length))}</span>
               {miniChartBounds && (
-                <span className="font-medium text-neutral-300">
+                <span className="font-medium text-neutral-600 dark:text-neutral-300">
                   {formatBDT(miniChartBounds.min)} - {formatBDT(miniChartBounds.max)}
                 </span>
               )}
             </div>
           </div>
 
-          <p className="text-xl leading-snug font-bold text-white sm:text-right sm:text-2xl">{t.todayPrice.tagline}</p>
+          <p className="text-xl leading-snug font-bold text-neutral-900 sm:text-right sm:text-2xl dark:text-white">
+            {t.todayPrice.tagline}
+          </p>
         </div>
 
         {/* ---------- Divider ---------- */}
@@ -179,12 +182,15 @@ export function TodayPriceSection() {
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label={t.todayPrice.selectMetal}
-                className="flex items-center gap-1.5 rounded-full border border-gold/30 bg-white/5 px-3 py-1 text-xs font-semibold text-neutral-200 outline-none transition-colors hover:border-gold/60 hover:text-white data-popup-open:border-gold/60"
+                className="flex items-center gap-1.5 rounded-full border border-gold/30 bg-black/5 px-3 py-1 text-xs font-semibold text-neutral-600 outline-none transition-colors hover:border-gold/60 hover:text-neutral-900 data-popup-open:border-gold/60 dark:bg-white/5 dark:text-neutral-200 dark:hover:text-white"
               >
                 {t.todayPrice[metal.label]}
                 <ChevronDown className="size-3.5 transition-transform duration-200 data-popup-open:rotate-180" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="min-w-32 border border-white/10 bg-ink-light p-1.5">
+              <DropdownMenuContent
+                align="start"
+                className="min-w-32 border border-black/10 bg-white p-1.5 dark:border-white/10 dark:bg-ink-light"
+              >
                 <DropdownMenuRadioGroup
                   value={metalKey}
                   onValueChange={(value) => setMetalKey(value as Metal)}
@@ -194,7 +200,7 @@ export function TodayPriceSection() {
                       key={m.key}
                       value={m.key}
                       closeOnClick
-                      className="rounded-md px-2 py-1.5 text-sm font-semibold text-neutral-200 focus:text-gold"
+                      className="rounded-md px-2 py-1.5 text-sm font-semibold text-neutral-700 focus:text-gold dark:text-neutral-200"
                     >
                       {t.todayPrice[m.label]}
                     </DropdownMenuRadioItem>
@@ -206,7 +212,9 @@ export function TodayPriceSection() {
             <LiveBadge label={t.todayPrice.live} />
           </div>
           <div className="flex items-center gap-4">
-            <p className="text-xs font-medium text-neutral-300">{rate ? formatDateTime(rate.effectiveAt) : "—"}</p>
+            <p className="text-xs font-medium text-neutral-600 dark:text-neutral-300">
+              {rate ? formatDateTime(rate.effectiveAt) : "—"}
+            </p>
             <Link
               href="/calculator#bhori-gram"
               className="flex items-center gap-1.5 text-xs font-semibold text-gold transition-colors hover:text-gold-light"
@@ -218,7 +226,7 @@ export function TodayPriceSection() {
         </div>
 
         {/* ---------- Karat price grid ---------- */}
-        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4 sm:gap-x-0 sm:divide-x sm:divide-white/10">
+        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4 sm:gap-x-0 sm:divide-x sm:divide-black/10 dark:sm:divide-white/10">
           {KARATS.map(({ key, labelKey, purityLabel }, i) => {
             const gradeRate = rateQueries[i].data;
             const gradeHistory = historyQueries[i].data;
@@ -237,7 +245,7 @@ export function TodayPriceSection() {
                   <p className="text-[11px] font-medium tracking-wide text-muted-white uppercase">{t.todayPrice[labelKey]}</p>
                   {purityLabel && <span className="text-[10px] text-muted-white">{purityLabel}</span>}
                 </div>
-                <p className="mt-1 truncate text-lg font-bold text-white sm:text-xl">
+                <p className="mt-1 truncate text-lg font-bold text-neutral-900 sm:text-xl dark:text-white">
                   {gradeLoading || price === null ? "—" : formatBDT(price)}
                 </p>
                 <p className="text-[10px] text-muted-white">{t.todayPrice[unit.perLabel]}</p>
@@ -264,7 +272,7 @@ export function TodayPriceSection() {
         </div>
 
         {/* ---------- Unit switcher ---------- */}
-        <div className="mt-6 flex flex-wrap gap-1 border-t border-white/10 pt-4">
+        <div className="mt-6 flex flex-wrap gap-1 border-t border-black/10 pt-4 dark:border-white/10">
           {UNITS.map((u) => (
             <button
               key={u.key}
@@ -272,7 +280,9 @@ export function TodayPriceSection() {
               onClick={() => setUnitKey(u.key)}
               className={cn(
                 "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
-                unitKey === u.key ? "bg-gold text-ink" : "text-muted-white hover:bg-white/5 hover:text-neutral-200"
+                unitKey === u.key
+                  ? "bg-gold text-ink"
+                  : "text-muted-white hover:bg-black/5 hover:text-neutral-900 dark:hover:bg-white/5 dark:hover:text-neutral-200"
               )}
             >
               {t.todayPrice[u.label]}

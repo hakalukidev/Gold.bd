@@ -4,7 +4,7 @@ const logger = require("../utils/logger");
 const { sendSms } = require("../utils/sms");
 const HttpError = require("../utils/http-error");
 const metalRateRepo = require("../repositories/metal-rate.repository");
-const { fetchBajusPayload, toRateRows } = require("../modules/rates/bajus.service");
+const { fetchBajusHtml, toRateRows } = require("../modules/rates/bajus.service");
 
 let timer = null;
 
@@ -13,16 +13,16 @@ let timer = null;
 // from BAJUS" for the client.
 let lastSyncedAt = null;
 
-/** Fetches the BAJUS feed once, upserts every (metal, karat, day) reading it
- * carries — today's figure plus the whole `history` backfill — and, if the
- * headline 22K gold rate moved since the last sync, texts ADMIN_ALERT_PHONE. */
+/** Fetches the bajus.org rate page once, upserts today's (metal, karat)
+ * readings it carries, and, if the headline 22K gold rate moved since the
+ * last sync, texts ADMIN_ALERT_PHONE. */
 async function syncOnce() {
   const previous22kGold = await metalRateRepo.getLatest("gold", "22k");
 
-  const payload = await fetchBajusPayload();
-  const rows = toRateRows(payload);
+  const html = await fetchBajusHtml();
+  const rows = toRateRows(html);
   if (rows.length === 0) {
-    logger.warn({ payload }, "BAJUS sync: feed returned no usable rows");
+    logger.warn("BAJUS sync: page returned no usable rows");
     return;
   }
 

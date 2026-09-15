@@ -31,7 +31,8 @@ export interface TransactionSummary {
   createdAt: string;
 }
 
-/** BAJUS's four published grades — see wallet_server's metal_rates table. */
+/** BAJUS's four published grades — see src/lib/rate-store.ts, this app's own
+ * scraped cache (independent of gold_wallet/server's own metal_rates table). */
 export type Karat = "22k" | "21k" | "18k" | "sonaton";
 
 export interface GoldRateSummary {
@@ -41,13 +42,26 @@ export interface GoldRateSummary {
    * the request didn't pass `?karat=`. */
   karat?: Karat;
   pricePerBhoriBDT?: string;
+  /** "manual" means an admin overrode this grade from /admin/rates rather
+   * than it coming straight off today's bajus.org sync. */
+  source?: "bajus" | "manual";
 }
 
 /** Gold and silver rates cross the wire in the same shape. */
 export type MetalRateSummary = GoldRateSummary;
 
+/** One row in the admin "Rate history" table — a manually-set rate, spanning
+ * both metals. See POST/GET /api/admin/rates. */
+export interface AdminRateEntry {
+  metal: "gold" | "silver";
+  karat: Karat;
+  pricePerGramBDT: string;
+  pricePerBhoriBDT: string;
+  effectiveAt: string;
+}
+
 /** Public-facing business details and social links shown in the footer —
- * set from the admin settings/footer pages. Blank fields mean "not set yet";
+ * set from the admin settings page. Blank fields mean "not set yet";
  * the footer hides them rather than showing an empty label/icon. */
 export interface SiteSettings {
   address: string;
@@ -60,6 +74,15 @@ export interface SiteSettings {
   instagramUrl: string;
   linkedinUrl: string;
   youtubeUrl: string;
+}
+
+/** The "About" section's trust stats (customers, vaulted metal, insured
+ * coverage), set from the admin stats page. Every field starts at 0 until an
+ * admin sets a real figure — see mock-stats.ts. */
+export interface AboutStats {
+  customers: number;
+  metalVaultedKg: number;
+  insuredPercent: number;
 }
 
 /** SSLCommerz payment session state — see wallet_server's payments module,
@@ -79,6 +102,65 @@ export interface PaymentStatusResponse {
   amountBDT: string;
   currency: string;
   metadata: Record<string, unknown>;
+}
+
+/** Manual (bKash/Nagad/bank) checkout payments — reviewed by hand from the
+ * admin panel rather than confirmed by a gateway callback. See
+ * src/lib/payments/proof-storage.ts for the bank method's proof image. */
+export type ManualPaymentMethod = "bkash" | "nagad" | "bank";
+export type ManualPaymentStatus = "PENDING" | "APPROVED" | "DECLINED";
+
+export interface ManualPaymentInitResponse {
+  id: string;
+  orderId: string;
+}
+
+export interface ManualPaymentStatusResponse {
+  id: string;
+  orderId: string;
+  method: ManualPaymentMethod;
+  status: ManualPaymentStatus;
+  amountBDT: string;
+  declineReason: string | null;
+}
+
+export interface AdminManualPayment {
+  id: string;
+  orderId: string;
+  method: ManualPaymentMethod;
+  status: ManualPaymentStatus;
+  amountBDT: string;
+  currency: string;
+  customerName: string;
+  customerPhone: string;
+  senderNumber: string | null;
+  transactionId: string | null;
+  bankAccountNumber: string | null;
+  bankAccountName: string | null;
+  bankName: string | null;
+  bankBranch: string | null;
+  hasProofImage: boolean;
+  declineReason: string | null;
+  createdAt: string;
+}
+
+/** Admin-configured receiving-account details shown to shoppers in the
+ * checkout modals — set from /admin/payment-settings. */
+export interface BkashNagadDetails {
+  receiverNumber: string;
+}
+
+export interface BankDetails {
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  branch: string;
+}
+
+export interface PaymentMethodSettings {
+  bkash: Partial<BkashNagadDetails>;
+  nagad: Partial<BkashNagadDetails>;
+  bank: Partial<BankDetails>;
 }
 
 /** Standard envelope returned by every /api/* route. */

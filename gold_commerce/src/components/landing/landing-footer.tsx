@@ -19,7 +19,7 @@ export function LandingFooter() {
     { label: t.footer.phoneLabel, value: settings?.phone, icon: Phone },
   ].filter((row) => row.value);
 
-  // Set from /admin/footer — same blank-hides-it rule as contactRows above,
+  // Set from /admin/settings — same blank-hides-it rule as contactRows above,
   // so an icon only shows up once its URL has actually been filled in.
   const socialLinks = [
     { label: "Facebook", href: settings?.facebookUrl, icon: FacebookIcon },
@@ -51,7 +51,7 @@ export function LandingFooter() {
   ];
 
   return (
-    <footer id="contact" className="scroll-mt-24 border-t border-white/10 bg-ink py-12">
+    <footer id="contact" className="scroll-mt-24 border-t border-black/10 bg-background py-12 dark:border-white/10">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className={cn("grid gap-10", contactRows.length > 0 ? "sm:grid-cols-[1.3fr_1fr_1fr_1fr]" : "sm:grid-cols-[1.5fr_1fr_1fr]")}>
           <div>
@@ -59,11 +59,11 @@ export function LandingFooter() {
               <span className="flex size-9 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-gold">
                 <Gem className="size-4.5" />
               </span>
-              <span className="text-lg font-bold tracking-tight text-white">
+              <span className="text-lg font-bold tracking-tight text-neutral-900 dark:text-white">
                 GOLD<span className="text-gold">.BD</span>
               </span>
             </Link>
-            <p className="mt-3 max-w-xs text-sm text-neutral-400">{t.footer.tagline}</p>
+            <p className="mt-3 max-w-xs text-sm text-neutral-600 dark:text-neutral-400">{t.footer.tagline}</p>
 
             {socialLinks.length > 0 && (
               <>
@@ -76,7 +76,7 @@ export function LandingFooter() {
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={label}
-                      className="flex size-9 items-center justify-center rounded-full border border-white/10 text-neutral-400 transition-colors hover:border-gold/40 hover:text-gold"
+                      className="flex size-9 items-center justify-center rounded-full border border-black/10 text-neutral-500 transition-colors hover:border-gold/40 hover:text-gold dark:border-white/10 dark:text-neutral-400"
                     >
                       <Icon className="size-4" />
                     </a>
@@ -87,16 +87,22 @@ export function LandingFooter() {
           </div>
           {columns.map((col) => (
             <div key={col.title}>
-              <p className="text-sm font-medium text-white">{col.title}</p>
+              <p className="text-sm font-medium text-neutral-900 dark:text-white">{col.title}</p>
               <ul className="mt-3 space-y-2">
                 {col.links.map((link) => (
                   <li key={link.href}>
                     {"external" in link && link.external ? (
-                      <a href={link.href} className="text-sm text-neutral-400 hover:text-white">
+                      <a
+                        href={link.href}
+                        className="text-sm text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+                      >
                         {link.label}
                       </a>
                     ) : (
-                      <Link href={link.href} className="text-sm text-neutral-400 hover:text-white">
+                      <Link
+                        href={link.href}
+                        className="text-sm text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
+                      >
                         {link.label}
                       </Link>
                     )}
@@ -107,10 +113,10 @@ export function LandingFooter() {
           ))}
           {contactRows.length > 0 && (
             <div>
-              <p className="text-sm font-medium text-white">{t.footer.contactInfoHeading}</p>
+              <p className="text-sm font-medium text-neutral-900 dark:text-white">{t.footer.contactInfoHeading}</p>
               <ul className="mt-3 space-y-2.5">
                 {contactRows.map(({ label, value, icon: Icon }) => (
-                  <li key={label} className="flex items-start gap-2 text-sm text-neutral-400">
+                  <li key={label} className="flex items-start gap-2 text-sm text-neutral-600 dark:text-neutral-400">
                     <Icon className="mt-0.5 size-3.5 shrink-0 text-gold" />
                     <span>
                       <span className="sr-only">{label}: </span>
@@ -122,7 +128,7 @@ export function LandingFooter() {
             </div>
           )}
         </div>
-        <div className="mt-10 flex flex-col items-center gap-2 border-t border-white/10 pt-6 text-xs text-neutral-500 sm:flex-row sm:justify-between">
+        <div className="mt-10 flex flex-col items-center gap-2 border-t border-black/10 pt-6 text-xs text-neutral-500 sm:flex-row sm:justify-between dark:border-white/10">
           <span>
             © {new Date().getFullYear()} Gold BD. {t.footer.copyright}
           </span>
@@ -132,7 +138,7 @@ export function LandingFooter() {
               href="https://hakaluki.dev"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-neutral-400 transition-colors hover:text-gold"
+              className="text-neutral-600 transition-colors hover:text-gold dark:text-neutral-400"
             >
               hakaluki.dev
             </a>

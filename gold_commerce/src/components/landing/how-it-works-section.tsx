@@ -1,6 +1,40 @@
 "use client";
 
+import type { ComponentType, SVGProps } from "react";
+import { UserPlus, IdCard, Wallet, ArrowLeftRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/use-t";
+import { GoldTitle } from "@/components/shared/gold-title";
+
+const STEP_ICONS: ComponentType<SVGProps<SVGSVGElement>>[] = [UserPlus, IdCard, Wallet, ArrowLeftRight];
+
+/** Hand-drawn-style curl connecting one step to the next — decorative only,
+ * so it's skipped below the breakpoint where the steps stack into one column. */
+function DoodleArrow({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 90 60"
+      fill="none"
+      className={cn("pointer-events-none absolute hidden text-gold/50 lg:block", className)}
+    >
+      <path
+        d="M4 6c14 2 24 10 22 20-2 9-14 11-18 4-3-6 2-13 10-13 16 0 30 12 32 26"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeDasharray="1 7"
+      />
+      <path
+        d="M40 37l10 6-2 11"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export function HowItWorksSection() {
   const t = useT();
@@ -9,50 +43,50 @@ export function HowItWorksSection() {
     <section id="how-it-works" className="scroll-mt-24 bg-background py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{t.howItWorks.heading}</h2>
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            <GoldTitle text={t.howItWorks.heading} />
+          </h2>
           <p className="mt-3 text-muted-foreground">{t.howItWorks.subheading}</p>
         </div>
 
-        <div className="mt-12 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
-          <ol className="grid gap-4 sm:grid-cols-2">
-            {t.howItWorks.steps.map((s) => (
-              <li key={s.step} className="flex gap-4 rounded-md border p-5">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gold/15 font-semibold text-gold">
-                  {s.step}
+        <div className="relative mt-20 grid gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-4">
+          {t.howItWorks.steps.map((s, i) => {
+            const Icon = STEP_ICONS[i];
+            return (
+              <div
+                key={s.step}
+                className={cn(
+                  "relative rounded-3xl border border-black/10 bg-background pt-10 pb-6 text-center shadow-sm dark:border-white/10",
+                  i % 2 === 1 && "lg:mt-10"
+                )}
+              >
+                {/* Icon badge — an organic "blob" shape (irregular radii) instead of a
+                    plain circle, echoing the sticker-like badges in the reference. */}
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-8 left-1/2 flex size-16 -translate-x-1/2 items-center justify-center bg-gold/15 text-gold [border-radius:62%_38%_53%_47%/41%_55%_45%_59%]"
+                >
+                  <Icon className="size-6" strokeWidth={1.75} />
                 </span>
-                <div>
-                  <p className="font-medium">{s.title}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{s.description}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
 
-          {/* ---------- Phone mockup ---------- */}
-          <div className="relative mx-auto hidden w-56 lg:block">
-            <div className="absolute -inset-6 rounded-md bg-gold/10 blur-2xl" />
-            <div className="relative overflow-hidden rounded-md border-4 border-ink-light bg-ink shadow-2xl">
-              <div className="flex h-104 flex-col gap-3 p-4 pt-8">
-                <p className="text-center text-xs font-semibold tracking-wide text-gold">{t.howItWorks.phoneBrand}</p>
-                <div className="rounded-md border border-white/10 bg-white/5 p-3">
-                  <p className="text-[10px] text-neutral-400">{t.howItWorks.phoneGoldBalance}</p>
-                  <p className="text-lg font-semibold text-white">2.500 g</p>
+                <div className="px-5">
+                  <span className="inline-flex items-center justify-center rounded-full bg-gold px-4 py-1.5 text-xs font-semibold text-ink shadow-sm">
+                    {s.step}. {s.title}
+                  </span>
+                  <p className="mt-3 text-sm text-muted-foreground">{s.description}</p>
                 </div>
-                <div className="rounded-md border border-white/10 bg-white/5 p-3">
-                  <p className="text-[10px] text-neutral-400">{t.howItWorks.phoneCashBalance}</p>
-                  <p className="text-lg font-semibold text-white">৳ 19,250</p>
-                </div>
-                <div className="mt-auto grid grid-cols-2 gap-2">
-                  <div className="rounded-md bg-gold py-2 text-center text-xs font-semibold text-ink">
-                    {t.howItWorks.phoneBuy}
-                  </div>
-                  <div className="rounded-md border border-white/20 py-2 text-center text-xs font-semibold text-white">
-                    {t.howItWorks.phoneSell}
-                  </div>
-                </div>
+
+                {i < t.howItWorks.steps.length - 1 && (
+                  <DoodleArrow
+                    className={cn(
+                      "top-1 -right-9 size-16",
+                      i % 2 === 1 && "top-11 -right-9 -scale-y-100"
+                    )}
+                  />
+                )}
               </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
     </section>

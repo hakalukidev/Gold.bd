@@ -1,0 +1,47 @@
+/* Scoped to the admin workspace; storefront components retain their theme. */
+.admin-shell {
+  --background: #111721;
+  --foreground: #f1f3f6;
+  --card: #1c2430;
+  --card-foreground: #f1f3f6;
+  --popover: #1c2430;
+  --popover-foreground: #f1f3f6;
+  --muted: #26303d;
+  --muted-foreground: #a8b3c2;
+  --border: #354151;
+  --input: #455264;
+  --primary: #d4a62a;
+  --primary-foreground: #171d27;
+  --secondary: #2a3543;
+  --secondary-foreground: #f1f3f6;
+  --accent: #303d4d;
+  --accent-foreground: #f1f3f6;
+  --ring: #b68a25;
+  color: var(--foreground);
+  background: var(--background);
+}
+.admin-sidebar { background: #171d27; color: #f7f8fa; }
+.admin-topbar { background: var(--card); }
+.admin-content h1 { font-size: clamp(1.65rem, 2.5vw, 2rem); font-weight: 750; letter-spacing: -0.045em; }
+.admin-content h1 + p { margin-top: 8px; line-height: 1.7; }
+.admin-content > div > div:first-child:has(h1) { margin-bottom: 32px; }
+.admin-content [data-slot="card"] { border-radius: 14px; box-shadow: 0 2px 5px #080c1640, 0 8px 24px #080c1626; --card-spacing: 24px; }
+.admin-content [data-slot="card-title"] { font-weight: 650; }
+.admin-content [data-slot="card-header"]:has([data-slot="card-title"]) { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.admin-content [data-slot="table-head"] { background: var(--muted); color: var(--muted-foreground); font-size: 11px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; height: 44px; }
+.admin-content [data-slot="table-cell"] { padding-top: 17px; padding-bottom: 17px; }
+.admin-content [data-slot="input"], .admin-content [data-slot="textarea"], .admin-content [data-slot="select-trigger"] { border-radius: 8px; background: var(--card); min-height: 40px; }
+.admin-content [data-slot="button"] { border-radius: 8px; }
+.admin-content .admin-stat [data-slot="card-content"] { flex-direction: column; align-items: flex-start; gap: 18px; position: relative; }
+.admin-content .admin-stat [data-slot="card-content"] > span { position: absolute; right: 20px; top: 0; width: 32px; height: 32px; border-radius: 9px; color: #e8c66a; background: #43391e; border-color: #695522; }
+.admin-content .admin-stat [data-slot="card-content"] > div { padding-top: 3px; width: 100%; }
+.admin-content .admin-stat p:first-child { padding-right: 32px; font-size: 11px; }
+.admin-content .admin-stat p:last-child { margin-top: 22px; font-size: 28px; line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.admin-content .admin-stat { padding-block: 22px; }
+.admin-content .admin-section-heading { color: var(--foreground); font-size: 13px; gap: 8px; margin-bottom: 16px; }
+.admin-content .admin-directory-empty { padding: 30px 0; }
+.admin-shell a:focus-visible { outline: 2px solid #b68a25; outline-offset: 4px; }
+@media (max-width: 639px) {
+  .admin-content [data-slot="card"] { --card-spacing: 16px; }
+  .admin-content .admin-stat [data-slot="card-content"] > span { right: 14px; }
+}

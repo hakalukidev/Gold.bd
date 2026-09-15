@@ -77,14 +77,14 @@ const schema = z
     OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
     OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().positive().default(60),
 
-    // BAJUS (Bangladesh Jewellers Association) gold/silver rate feed. Polled by
-    // src/jobs/rate-sync.job.js on a timer and stored in the metal_rates table;
-    // src/modules/rates serves it back out at /api/gold and /api/silver.
-    BAJUS_API_URL: z
-      .string()
-      .url()
-      .default("https://bajusrate.com/wp-content/bajus/index.php?gold=data"),
-    RATE_SYNC_INTERVAL_MINUTES: z.coerce.number().int().positive().default(30),
+    // BAJUS (Bangladesh Jewellers Association)'s own gold/silver rate page —
+    // no JSON API, so src/modules/rates/bajus.service.js scrapes this HTML
+    // page directly (spoofing a browser User-Agent; bajus.org 403s anything
+    // else). Polled by src/jobs/rate-sync.job.js on a timer and stored in the
+    // metal_rates table; src/modules/rates serves it back out at /api/gold
+    // and /api/silver.
+    BAJUS_URL: z.string().url().default("https://bajus.org/gold-price"),
+    RATE_SYNC_INTERVAL_MINUTES: z.coerce.number().int().positive().default(10),
     // Local phone number (no "88" prefix) texted whenever a sync detects a
     // price change. Optional — leave blank to only log rate changes.
     ADMIN_ALERT_PHONE: z.string().default(""),

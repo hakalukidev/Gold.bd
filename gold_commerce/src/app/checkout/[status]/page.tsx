@@ -36,7 +36,7 @@ function VerifyingBody() {
   return (
     <>
       <Loader2 className="mx-auto size-8 animate-spin text-gold" />
-      <p className="mt-4 text-sm text-neutral-400">{t.checkoutPage.verifyingPayment}</p>
+      <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">{t.checkoutPage.verifyingPayment}</p>
     </>
   );
 }
@@ -44,11 +44,11 @@ function VerifyingBody() {
 function ErrorBody({ message, title }: { message: string; title: string }) {
   return (
     <>
-      <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-red-500/15 text-red-400">
+      <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-red-500/15 text-red-600 dark:text-red-400">
         <AlertTriangle className="size-7" />
       </span>
-      <h1 className="mt-4 text-xl font-bold text-white">{title}</h1>
-      <p className="mt-2 text-sm text-neutral-400">{message}</p>
+      <h1 className="mt-4 text-xl font-bold text-neutral-900 dark:text-white">{title}</h1>
+      <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">{message}</p>
     </>
   );
 }
@@ -58,8 +58,8 @@ function StatusShell({ body }: { body: React.ReactNode }) {
     <main className="flex flex-1 flex-col">
       <GoldPriceTicker />
       <LandingHeader />
-      <div className="flex flex-1 items-center justify-center bg-ink px-4 py-24">
-        <div className="w-full max-w-md rounded-md border border-white/10 bg-white/5 p-8 text-center">{body}</div>
+      <div className="flex flex-1 items-center justify-center bg-background px-4 py-24">
+        <div className="w-full max-w-md rounded-md border border-black/10 bg-black/5 p-8 text-center dark:border-white/10 dark:bg-white/5">{body}</div>
       </div>
       <LandingFooter />
     </main>
@@ -110,20 +110,24 @@ function CheckoutStatusContent({ routeStatus }: { routeStatus: string }) {
         <>
           <span
             className={`mx-auto flex size-14 items-center justify-center rounded-full ${
-              display === "success" ? "bg-gold/15 text-gold" : display === "cancel" ? "bg-white/10 text-neutral-300" : "bg-red-500/15 text-red-400"
+              display === "success"
+                ? "bg-gold/15 text-gold"
+                : display === "cancel"
+                  ? "bg-black/10 text-neutral-600 dark:bg-white/10 dark:text-neutral-300"
+                  : "bg-red-500/15 text-red-600 dark:text-red-400"
             }`}
           >
             {display === "success" ? <Check className="size-7" /> : display === "cancel" ? <X className="size-7" /> : <AlertTriangle className="size-7" />}
           </span>
-          <h1 className="mt-4 text-xl font-bold text-white">
+          <h1 className="mt-4 text-xl font-bold text-neutral-900 dark:text-white">
             {error ? c.failTitle : display === "success" ? c.successTitle : display === "cancel" ? c.cancelTitle : c.failTitle}
           </h1>
-          <p className="mt-2 text-sm text-neutral-400">
+          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
             {error ?? (display === "success" ? c.successDescription : display === "cancel" ? c.cancelDescription : c.failDescription)}
           </p>
           {display === "success" && orderId && (
             <p className="mt-4 text-xs text-neutral-500">
-              {c.successOrderNo}: <span className="font-mono text-neutral-300">{orderId}</span>
+              {c.successOrderNo}: <span className="font-mono text-neutral-700 dark:text-neutral-300">{orderId}</span>
             </p>
           )}
           {display === "success" ? (
