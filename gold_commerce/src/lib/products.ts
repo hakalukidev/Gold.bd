@@ -1,4 +1,5 @@
 import type { Metal } from "@/hooks/use-metal-rate";
+import type { ChargeSettings } from "@/types";
 
 /**
  * The gold/silver bar-and-coin catalog — shared between the homepage's
@@ -26,7 +27,13 @@ export const PRODUCT_WEIGHTS = [
 export type ProductWeight = (typeof PRODUCT_WEIGHTS)[number];
 
 /** The per-gram price a SKU actually sells at: the real 22K anchor rate the
- * platform prices off + this weight's premium. */
-export function effectivePricePerGram(pricePerGram22k: number | null, weight: ProductWeight): number | null {
-  return pricePerGram22k !== null ? pricePerGram22k * (1 + weight.premium) : null;
+ * platform prices off + this weight's premium, plus the admin-configured
+ * platform charge % and VAT % (each computed off that same base and summed
+ * on — see /admin/rates). `charges` is optional so callers that haven't
+ * loaded them yet (or intentionally want the bare base price) still work. */
+export function effectivePricePerGram(pricePerGram22k: number | null, weight: ProductWeight, charges?: ChargeSettings): number | null {
+  if (pricePerGram22k === null) return null;
+  const base = pricePerGram22k * (1 + weight.premium);
+  if (!charges) return base;
+  return base * (1 + (charges.platformChargePercent + charges.vatPercent) / 100);
 }

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useAppDispatch } from "@/store/hooks";
 import { addToCart } from "@/store/slices/cart-slice";
 import { useMetalRate, type Metal } from "@/hooks/use-metal-rate";
+import { useChargeSettings } from "@/hooks/use-charge-settings";
 import { PRODUCT_IMAGES, PRODUCT_WEIGHTS, effectivePricePerGram, type ProductForm, type ProductWeight } from "@/lib/products";
 import { useT } from "@/lib/i18n/use-t";
 import { formatBDT } from "@/lib/format";
@@ -35,6 +36,7 @@ export function ProductCatalog({ metal }: { metal: Metal }) {
   const dispatch = useAppDispatch();
   const { data: goldRate } = useMetalRate("gold");
   const { data: silverRate } = useMetalRate("silver");
+  const { data: charges } = useChargeSettings();
 
   const [form, setForm] = useState<ProductForm>("bar");
 
@@ -60,7 +62,7 @@ export function ProductCatalog({ metal }: { metal: Metal }) {
   }
 
   function skuPricing(sku: Sku) {
-    const perGram = effectivePricePerGram(pricePerGram22k[sku.metal], sku.weight);
+    const perGram = effectivePricePerGram(pricePerGram22k[sku.metal], sku.weight, charges);
     const unitPrice = perGram !== null ? perGram * sku.weight.grams : null;
     return { perGram, unitPrice };
   }

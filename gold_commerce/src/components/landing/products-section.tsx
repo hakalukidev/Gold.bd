@@ -9,21 +9,25 @@ import { Button } from "@/components/ui/button";
 import { useAppDispatch } from "@/store/hooks";
 import { addToCart } from "@/store/slices/cart-slice";
 import { useMetalRate, type Metal } from "@/hooks/use-metal-rate";
+import { useChargeSettings } from "@/hooks/use-charge-settings";
 import { useT } from "@/lib/i18n/use-t";
 import { formatBDT } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PRODUCT_IMAGES, PRODUCT_WEIGHTS, effectivePricePerGram, type ProductForm as Form, type ProductWeight as Weight } from "@/lib/products";
+import type { ChargeSettings } from "@/types";
 
 function ProductCard({
   metal,
   form,
   weight,
   pricePerGram22k,
+  charges,
 }: {
   metal: Metal;
   form: Form;
   weight: Weight;
   pricePerGram22k: number | null;
+  charges: ChargeSettings | undefined;
 }) {
   const t = useT();
   const dispatch = useAppDispatch();
@@ -40,7 +44,7 @@ function ProductCard({
 
   const isSilver = metal === "silver";
 
-  const effectivePerGram = effectivePricePerGram(pricePerGram22k, weight);
+  const effectivePerGram = effectivePricePerGram(pricePerGram22k, weight, charges);
   const unitPrice = effectivePerGram !== null ? effectivePerGram * weight.grams : null;
   const totalPrice = unitPrice !== null ? unitPrice * qty : null;
   const premiumPct = (weight.premium * 100).toFixed(1);
@@ -143,6 +147,7 @@ function ProductCard({
 function MetalRow({ metal, form }: { metal: Metal; form: Form }) {
   const t = useT();
   const { data: rate } = useMetalRate(metal);
+  const { data: charges } = useChargeSettings();
 
   // Already the real 22K anchor rate (see rate.controller.js) — no more
   // back-solving a "fine" price to derive it.
@@ -158,7 +163,7 @@ function MetalRow({ metal, form }: { metal: Metal; form: Form }) {
       </div>
       <div className="mt-4 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
         {PRODUCT_WEIGHTS.map((weight) => (
-          <ProductCard key={weight.grams} metal={metal} form={form} weight={weight} pricePerGram22k={price22k} />
+          <ProductCard key={weight.grams} metal={metal} form={form} weight={weight} pricePerGram22k={price22k} charges={charges} />
         ))}
       </div>
     </div>

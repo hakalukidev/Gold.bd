@@ -14,7 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!session) redirect("/admin/login");
 
   const brandMark = (
-    <Link href="/admin/users" className="flex items-center gap-3">
+    <Link href="/admin" className="flex items-center gap-3">
       <span className="flex size-10 items-center justify-center rounded-xl border border-gold/30 bg-gold/10 text-gold"><Gem className="size-5" /></span>
       <span><span className="block text-lg font-bold tracking-tight">GOLD<span className="text-gold">.BD</span></span><span className="text-[10px] font-medium tracking-[0.2em] uppercase opacity-60">Administration</span></span>
     </Link>

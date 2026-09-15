@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, History, Settings, ShieldCheck, Users } from "lucide-react";
+import { CreditCard, History, LayoutDashboard, Package, Settings, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Shared with admin-sidebar-nav.tsx so the two nav variants (compact mobile
 // header vs. desktop sidebar) can't drift apart.
 export const ADMIN_NAV_LINKS = [
-  { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/orders", label: "Orders", icon: Package },
   { href: "/admin/rates", label: "Rates", icon: ShieldCheck },
   { href: "/admin/transactions", label: "Transactions", icon: History },
   { href: "/admin/payments", label: "Payments", icon: CreditCard },

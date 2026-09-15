@@ -5,11 +5,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Coins, Gem, History, RadioTower, Sparkles } from "lucide-react";
+import { Coins, Gem, History, Percent, RadioTower, Sparkles } from "lucide-react";
 import { z } from "zod";
 import { api, ApiError } from "@/lib/api-client";
 import { useMetalRate, type Metal } from "@/hooks/use-metal-rate";
 import { MANUAL_KARATS, type ManualKarat } from "@/lib/validations/rates";
+import { chargeSettingsSchema } from "@/lib/validations/charges";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -21,7 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatBDT, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { AdminRateEntry } from "@/types";
+import type { AdminRateEntry, ChargeSettings } from "@/types";
 
 const KARAT_LABELS: Record<ManualKarat, string> = { "22k": "22K", "21k": "21K", "18k": "18K" };
 const KARAT_PURITY: Record<ManualKarat, string> = { "22k": "91.7% pure", "21k": "87.5% pure", "18k": "75.0% pure" };
@@ -167,6 +168,105 @@ function MetalRatePanel({ metal }: { metal: Metal }) {
   );
 }
 
+function ChargeSettingsPanel() {
+  const queryClient = useQueryClient();
+
+  const { data: charges } = useQuery({
+    queryKey: ["admin-charge-settings"],
+    queryFn: () => api.get<ChargeSettings>("/api/admin/charges"),
+  });
+
+  const form = useForm<ChargeSettings>({
+    resolver: zodResolver(chargeSettingsSchema),
+    defaultValues: { platformChargePercent: 0, vatPercent: 0 },
+  });
+
+  // Same prefill-without-stomping-an-edit-in-progress pattern as MetalRatePanel above.
+  useEffect(() => {
+    if (form.formState.isDirty) return;
+    if (!charges) return;
+    form.reset(charges);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [charges]);
+
+  const setCharges = useMutation({
+    mutationFn: (values: ChargeSettings) => api.post<ChargeSettings>("/api/admin/charges", values),
+    onSuccess: (_data, values) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-charge-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["charge-settings"] });
+      form.reset(values);
+      toast.success("Charges updated");
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Failed to update charges"),
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Platform &amp; VAT charges</CardTitle>
+        <CardDescription>
+          Percentages added on top of the real gram rate (and weight premium) to arrive at the price shown to
+          shoppers. Applies to both gold and silver, everywhere a product price is computed.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit((values) => setCharges.mutate(values))}
+            className="grid gap-4 sm:grid-cols-2 sm:items-end"
+          >
+            <FormField
+              control={form.control}
+              name="platformChargePercent"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Platform charge (%)</FormLabel>
+                  <FormControl>
+                    <IconInput
+                      icon={Percent}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="vatPercent"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>VAT (%)</FormLabel>
+                  <FormControl>
+                    <IconInput
+                      icon={Percent}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="sm:col-span-2" disabled={setCharges.isPending}>
+              {setCharges.isPending ? "Saving…" : "Update charges"}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminRatesPage() {
   const { data: history } = useQuery({
     queryKey: ["admin-rates-history"],
@@ -196,6 +296,8 @@ export default function AdminRatesPage() {
           <MetalRatePanel metal="silver" />
         </TabsContent>
       </Tabs>
+
+      <ChargeSettingsPanel />
 
       <Card>
         <CardHeader>

@@ -1,17 +1,3 @@
-export type UserRole = "USER" | "ADMIN";
-
-export type KycStatus = "NOT_SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED";
-
-export interface PublicUser {
-  id: string;
-  phone: string;
-  email: string | null;
-  fullName: string;
-  role: UserRole;
-  kycStatus: KycStatus;
-  createdAt: string;
-}
-
 export interface WalletSummary {
   cashBalanceBDT: string; // decimal serialized as string to avoid float precision loss over the wire
   goldBalanceGrams: string;
@@ -58,6 +44,14 @@ export interface AdminRateEntry {
   pricePerGramBDT: string;
   pricePerBhoriBDT: string;
   effectiveAt: string;
+}
+
+/** Platform charge % and VAT % admins set from /admin/rates — applied on top
+ * of the base gram price (real BAJUS rate x weight premium) everywhere a
+ * product price is computed. See src/lib/charge-settings-repository.ts. */
+export interface ChargeSettings {
+  platformChargePercent: number;
+  vatPercent: number;
 }
 
 /** Public-facing business details and social links shown in the footer —
@@ -141,6 +135,43 @@ export interface AdminManualPayment {
   bankBranch: string | null;
   hasProofImage: boolean;
   declineReason: string | null;
+  createdAt: string;
+}
+
+/** A shopping-cart order placed at checkout. gold_commerce has no dedicated
+ * `orders` table — every order is really a payment record (manual_payments
+ * for bKash/Nagad/bank, sslcommerz_payments for the gateway), keyed by the
+ * same client-generated orderId and carrying a metadata snapshot of the
+ * cart/delivery details. AdminOrder merges both sources into one shape for
+ * the admin "Orders" list. See src/lib/orders/orders-service.ts. */
+export type OrderSource = "manual" | "sslcommerz";
+export type OrderMethod = ManualPaymentMethod | "sslcommerz";
+export type OrderStatus = "PENDING" | "APPROVED" | "DECLINED" | "VALID" | "FAILED" | "CANCELLED";
+
+export interface OrderItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPriceBDT: number;
+}
+
+export interface AdminOrder {
+  id: string;
+  orderId: string;
+  source: OrderSource;
+  method: OrderMethod;
+  status: OrderStatus;
+  amountBDT: string;
+  currency: string;
+  customerName: string;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  deliveryMethod: string | null;
+  address: string | null;
+  division: string | null;
+  district: string | null;
+  note: string | null;
+  items: OrderItem[];
   createdAt: string;
 }
 

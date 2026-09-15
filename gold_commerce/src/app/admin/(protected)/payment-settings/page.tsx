@@ -73,8 +73,8 @@ function BkashNagadCard({
     <Card>
       <CardHeader>
         <div className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-background">
-            <Image src={logo} alt={label} width={28} height={28} className="h-5 w-auto" />
+          <span className="flex size-14 shrink-0 items-center justify-center">
+            <Image src={logo} alt={label} width={48} height={48} className="h-12 w-auto" />
           </span>
           <div>
             <CardTitle>{label}</CardTitle>

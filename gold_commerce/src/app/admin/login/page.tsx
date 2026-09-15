@@ -27,7 +27,7 @@ export default function AdminLoginPage() {
   function onSubmit(values: AdminLoginInput) {
     login.mutate(values, {
       onSuccess: () => {
-        router.push("/admin/users");
+        router.push("/admin");
         router.refresh();
       },
       onError: (error) => {
