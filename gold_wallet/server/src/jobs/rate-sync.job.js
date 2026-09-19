@@ -4,7 +4,7 @@ const logger = require("../utils/logger");
 const { sendSms } = require("../utils/sms");
 const HttpError = require("../utils/http-error");
 const metalRateRepo = require("../repositories/metal-rate.repository");
-const { fetchBajusHtml, toRateRows } = require("../modules/rates/bajus.service");
+const { fetchRateRows } = require("../modules/rates/bajus.service");
 
 let timer = null;
 
@@ -13,16 +13,16 @@ let timer = null;
 // from BAJUS" for the client.
 let lastSyncedAt = null;
 
-/** Fetches the bajus.org rate page once, upserts today's (metal, karat)
- * readings it carries, and, if the headline 22K gold rate moved since the
- * last sync, texts ADMIN_ALERT_PHONE. */
+/** Fetches BAJUS rates once (bajus.org, or the bajusrate.com feed if that's
+ * blocked — see bajus.service.js), upserts the (metal, karat) readings, and,
+ * if the headline 22K gold rate moved since the last sync, texts
+ * ADMIN_ALERT_PHONE. */
 async function syncOnce() {
   const previous22kGold = await metalRateRepo.getLatest("gold", "22k");
 
-  const html = await fetchBajusHtml();
-  const rows = toRateRows(html);
+  const { rows, source } = await fetchRateRows();
   if (rows.length === 0) {
-    logger.warn("BAJUS sync: page returned no usable rows");
+    logger.warn({ source }, "BAJUS sync: source returned no usable rows");
     return;
   }
 
@@ -31,8 +31,10 @@ async function syncOnce() {
   }
   lastSyncedAt = new Date();
 
+  // Rows are newest-first from either source, so the first 22K gold row is
+  // the latest reading even when the feed's history backfill is included.
   const latest22kGold = rows.find((r) => r.metal === "gold" && r.karat === "22k");
-  logger.info({ rows: rows.length, latest22kGold: latest22kGold?.pricePerGramBDT }, "BAJUS rate sync complete");
+  logger.info({ source, rows: rows.length, latest22kGold: latest22kGold?.pricePerGramBDT }, "BAJUS rate sync complete");
 
   if (
     env.ADMIN_ALERT_PHONE &&
