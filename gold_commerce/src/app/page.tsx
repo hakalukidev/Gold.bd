@@ -1,102 +1,63 @@
-"use client";
+import type { Metadata } from "next";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { useT } from "@/lib/i18n/use-t";
-import { WALLET_REGISTER_URL } from "@/lib/site-links";
-import { LandingHeader } from "@/components/landing/landing-header";
-import { StatusStrip } from "@/components/landing/status-strip";
-import { GoldPriceTicker } from "@/components/landing/gold-price-ticker";
-import { HeroSection } from "@/components/landing/hero-section";
-import { TodayPriceSection } from "@/components/landing/today-price-section";
-import { WhySection } from "@/components/landing/why-section";
-import { ProductsSection } from "@/components/landing/products-section";
-import { HowItWorksSection } from "@/components/landing/how-it-works-section";
-import { TrustSection } from "@/components/landing/trust-section";
-import { AboutSection } from "@/components/landing/about-section";
-import { TaglineBanner } from "@/components/landing/tagline-banner";
-import { FaqSection } from "@/components/landing/faq-section";
-import { LandingFooter } from "@/components/landing/landing-footer";
-import { GoldTitle } from "@/components/shared/gold-title";
-import Image from "next/image";
+// The storefront landing page is parked while the site is being finished —
+// its markup is untouched in @/components/landing/landing-page. To put it
+// back, import { LandingPage } from "@/components/landing/landing-page" and
+// return <LandingPage /> instead of the holding screen below.
 
-export default function LandingPage() {
-  const t = useT();
+export const metadata: Metadata = {
+  title: "GOLD.BD — শীঘ্রই আসছে",
+  description: "বাংলাদেশের ডিজিটাল গোল্ড প্ল্যাটফর্ম — খুব শিগগিরই।",
+};
 
+export default function ComingSoonPage() {
   return (
-    <main className="flex flex-1 flex-col">
-      <div className="sticky top-0 z-50">
-        <GoldPriceTicker />
-        <LandingHeader />
+    <main className="relative flex min-h-dvh flex-1 flex-col items-center justify-center overflow-hidden bg-ink px-6 py-20 text-center">
+      {/* The coin texture the landing page uses, dimmed to a grain, and a
+          gold glow behind the wordmark. Both sit above <main>'s own black
+          background (a negative z-index would hide them behind it) and below
+          the content, which carries its own stacking context. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[url('/gold_coin.png')] bg-cover bg-center opacity-40"
+      />
+      {/* Scrim over the coins — at full strength they swallow the copy. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-ink/80" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 size-[42rem] max-w-[140vw] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(212,166,42,0.42) 0%, rgba(212,166,42,0.14) 45%, transparent 70%)",
+        }}
+      />
+
+      <div className="relative flex items-center gap-3">
+        <span className="flex size-11 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-xl text-gold">
+          ◆
+        </span>
+        <span className="text-2xl font-bold tracking-tight text-white">
+          GOLD<span className="text-gold">.BD</span>
+        </span>
       </div>
-      <StatusStrip />
 
-      <HeroSection />
-      <TodayPriceSection />
+      <p className="relative mt-10 font-display text-xs uppercase tracking-[0.35em] text-gold/80">
+        Bangladesh&apos;s Trusted Digital Gold
+      </p>
 
-      <WhySection />
-      <ProductsSection />
+      <h1 className="relative mt-5 max-w-3xl bg-gradient-to-b from-gold-light via-gold-bright to-gold bg-clip-text text-4xl font-bold leading-tight text-transparent sm:text-6xl">
+        দারুণ কিছু আসছে
+      </h1>
 
-      {/* ---------- Features ---------- */}
-      <section id="features" className="scroll-mt-24 bg-background py-20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{t.features.heading}</h2>
-            <p className="mt-3 text-muted-foreground">{t.features.subheading}</p>
-          </div>
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {t.features.items.map((feature) => (
-              <Card key={feature.title}>
-                <CardContent className="space-y-2 pt-2">
-                  <div className="flex size-9 items-center justify-center rounded-md bg-gold/15 text-gold">
-                    <span className="text-lg">●</span>
-                  </div>
-                  <p className="font-medium">{feature.title}</p>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+      <p className="relative mt-6 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg">
+        বাংলাদেশের সবচেয়ে নির্ভরযোগ্য ডিজিটাল গোল্ড প্ল্যাটফর্ম তৈরি হচ্ছে। ফোন থেকেই ২৪ ক্যারেট সোনা কেনা, বেচা আর
+        নিরাপদে জমা রাখার সুবিধা নিয়ে আমরা আসছি খুব শিগগিরই।
+      </p>
 
-      <HowItWorksSection />
-      <TrustSection />
-      <AboutSection />
-      <TaglineBanner />
-      <FaqSection />
+      {/* Divider — the same shine the landing page's gold buttons carry. */}
+      <div className="relative mt-10 h-px w-40 bg-gradient-to-r from-transparent via-gold to-transparent" />
 
-      {/* ---------- CTA footer band ---------- */}
-      <section>
-        <div className="w-full">
-          {/* The coin artwork is cropped to its center and clipped to this
-              rounded rectangle, with the copy sitting straight on top of it —
-              no separate blurred card. */}
-          <div className="relative isolate flex min-h-40 flex-col items-center justify-center gap-3 overflow-hidden px-6 py-8 text-center sm:min-h-48 sm:px-10">
-            <Image
-              src="/gold-coins-cta.png"
-              alt=""
-              aria-hidden="true"
-              fill
-              sizes="(min-width: 768px) 900px, 100vw"
-              className="pointer-events-none -z-20 select-none object-cover object-center"
-            />
-            <h2 className="text-xl font-semibold sm:text-2xl">
-              <GoldTitle text={t.ctaBand.heading} baseClassName="text-foreground" />
-            </h2>
-            <p className="max-w-md text-sm text-foreground/80">{t.ctaBand.body}</p>
-            <Button
-              size="lg"
-              variant="gold"
-              nativeButton={false}
-              className="border-0! shadow-[0_0_30px_rgba(244,198,78,0.45)]"
-              render={<a href={WALLET_REGISTER_URL}>{t.ctaBand.cta}</a>}
-            />
-          </div>
-        </div>
-      </section>
-
-      <LandingFooter />
+      <p className="relative mt-10 text-sm text-white/45">শেষ প্রস্তুতি চলছে — চোখ রাখুন।</p>
     </main>
   );
 }

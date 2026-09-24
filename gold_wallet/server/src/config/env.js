@@ -84,6 +84,12 @@ const schema = z
     // metal_rates table; src/modules/rates serves it back out at /api/gold
     // and /api/silver.
     BAJUS_URL: z.string().url().default("https://bajus.org/gold-price"),
+    // Used only when the bajus.org scrape fails — its Cloudflare front 403s
+    // datacenter IPs (our VPS) with a bot challenge. Same BAJUS figures as
+    // JSON, sometimes a few days behind. Set blank to disable the fallback.
+    BAJUS_FALLBACK_URL: z
+      .union([z.string().url(), z.literal("")])
+      .default("https://bajusrate.com/wp-content/bajus/index.php?gold=data"),
     RATE_SYNC_INTERVAL_MINUTES: z.coerce.number().int().positive().default(10),
     // Local phone number (no "88" prefix) texted whenever a sync detects a
     // price change. Optional — leave blank to only log rate changes.

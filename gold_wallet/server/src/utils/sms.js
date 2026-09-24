@@ -7,6 +7,31 @@ function toBulkSmsNumber(localPhone) {
   return `88${localPhone}`;
 }
 
+/** BulkSMSBD's only success code; everything else is a rejection. */
+const BULKSMSBD_ACCEPTED = 202;
+
+/**
+ * BulkSMSBD answers HTTP 200 even when it refuses to send — the real verdict
+ * is the `response_code` in the body, e.g.
+ *   {"response_code":1032,...,"error_message":"Your ip ... not Whitelisted..."}
+ * so a rejection (unwhitelisted IP, wrong sender ID, no balance) would
+ * otherwise be logged as a successful send while no SMS ever arrives.
+ * An unrecognised body shape is left alone rather than assumed broken.
+ */
+function assertAccepted(body) {
+  let payload;
+  try {
+    payload = JSON.parse(body);
+  } catch {
+    logger.warn({ gatewayResponse: body }, "Unrecognised BulkSMSBD response — treating as sent");
+    return;
+  }
+
+  const code = Number(payload?.response_code);
+  if (!Number.isFinite(code) || code === BULKSMSBD_ACCEPTED) return;
+  throw new Error(`BulkSMSBD rejected the message (code ${code}): ${payload.error_message || body}`);
+}
+
 /**
  * Sends an SMS via BulkSMSBD (http://bulksmsbd.net/api/smsapi). Outside
  * production this is a no-op that logs the message instead — local
@@ -44,6 +69,7 @@ async function sendSms(localPhone, message) {
     if (!response.ok) {
       throw new Error(`BulkSMSBD responded with HTTP ${response.status}: ${body}`);
     }
+    assertAccepted(body);
     logger.info({ phone: localPhone, gatewayResponse: body }, "SMS sent via BulkSMSBD");
   } catch (err) {
     logger.error({ err, phone: localPhone }, "Failed to send SMS via BulkSMSBD");

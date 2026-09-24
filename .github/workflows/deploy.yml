@@ -1,0 +1,33 @@
+name: Deploy to production
+
+# Runs on demand from the Actions tab (pick which app to rebuild), or on a
+# push to main. The VPS has 1 GB of RAM, so deploys are serialised — a second
+# run waits for the first instead of building alongside it.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which app to rebuild
+        type: choice
+        default: all
+        options: [all, api, wallet, commerce]
+  push:
+    branches: [main]
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run the deploy script over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          # A Next build on this box takes minutes, and there are two of them.
+          command_timeout: 30m
+          script: goldbd-deploy ${{ inputs.target || 'all' }}

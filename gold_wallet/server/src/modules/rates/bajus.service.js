@@ -1,4 +1,5 @@
 const env = require("../../config/env");
+const logger = require("../../utils/logger");
 const { KARATS } = require("../../repositories/metal-rate.repository");
 
 /** 1 bhori (ভরি), also called a vori or tola = 11.664 grams = 16 ana. */
@@ -87,4 +88,92 @@ function toRateRows(html) {
   ];
 }
 
-module.exports = { fetchBajusHtml, toRateRows, GRAMS_PER_BHORI };
+// ---------------------------------------------------------------------------
+// Fallback: the bajusrate.com JSON feed.
+//
+// bajus.org sits behind Cloudflare, which serves a bot challenge (HTTP 403,
+// `cf-mitigated: challenge`) to datacenter IPs — i.e. to our own VPS — no
+// matter what User-Agent we send. bajusrate.com mirrors the same BAJUS
+// figures as plain JSON and isn't challenged, though it can lag bajus.org by
+// a few days, so it's only used when the scrape above fails.
+// ---------------------------------------------------------------------------
+
+/** The feed reports times in Asia/Dhaka local time with no offset of its
+ * own ("YYYY-MM-DD HH:mm:ss" / "YYYY-MM-DD"), so both parse against a fixed
+ * +06:00 rather than the server's local timezone. */
+function parseBdDateTime(value) {
+  return new Date(`${value.replace(" ", "T")}+06:00`);
+}
+
+function parseBdDate(value) {
+  return new Date(`${value}T00:00:00+06:00`);
+}
+
+async function fetchBajusFeed() {
+  const res = await fetch(env.BAJUS_FALLBACK_URL, { signal: AbortSignal.timeout(10_000) });
+  if (!res.ok) throw new Error(`bajusrate.com responded with HTTP ${res.status}`);
+  return res.json();
+}
+
+function buildFeedRow(metal, karat, rawValue, reportedAt, effectiveAt) {
+  const pricePerGramBDT = Number(rawValue);
+  if (!Number.isFinite(pricePerGramBDT) || pricePerGramBDT <= 0) return null;
+  return {
+    metal,
+    karat,
+    pricePerGramBDT: pricePerGramBDT.toFixed(4),
+    pricePerBhoriBDT: (pricePerGramBDT * GRAMS_PER_BHORI).toFixed(2),
+    source: "bajusrate.com",
+    reportedAt,
+    effectiveAt,
+  };
+}
+
+/** Flattens the feed (latest `rates` plus its `history` backfill) into one
+ * row per (metal, karat, day). The feed's field names (`gold_22k`,
+ * `silver_sonaton`, ...) line up with our karat keys directly. */
+function feedToRateRows(payload) {
+  const rows = [];
+  const pushDay = (source, reportedAt, effectiveAt) => {
+    for (const karat of KARATS) {
+      for (const metal of ["gold", "silver"]) {
+        const row = buildFeedRow(metal, karat, source[`${metal}_${karat}`], reportedAt, effectiveAt);
+        if (row) rows.push(row);
+      }
+    }
+  };
+
+  if (payload.last_updated) {
+    const reportedAt = parseBdDateTime(payload.last_updated);
+    const effectiveAt = parseBdDate(payload.last_updated.slice(0, 10));
+    pushDay({ ...payload.rates?.gold_rates, ...payload.rates?.silver_rates }, reportedAt, effectiveAt);
+  }
+
+  for (const entry of payload.history ?? []) {
+    if (entry?.date) pushDay(entry, null, parseBdDate(entry.date));
+  }
+
+  return rows;
+}
+
+/** Tries the bajus.org scrape first and falls back to the bajusrate.com
+ * feed if that throws or yields no rows. Throws only when both fail (or the
+ * fallback is disabled by leaving BAJUS_FALLBACK_URL blank). */
+async function fetchRateRows() {
+  let primaryError;
+  try {
+    const rows = toRateRows(await fetchBajusHtml());
+    if (rows.length > 0) return { rows, source: "bajus.org" };
+    primaryError = new Error("bajus.org page returned no usable rows");
+  } catch (err) {
+    primaryError = err;
+  }
+
+  if (!env.BAJUS_FALLBACK_URL) throw primaryError;
+
+  logger.warn({ err: primaryError }, "bajus.org unavailable, falling back to bajusrate.com");
+  const rows = feedToRateRows(await fetchBajusFeed());
+  return { rows, source: "bajusrate.com" };
+}
+
+module.exports = { fetchBajusHtml, toRateRows, fetchBajusFeed, feedToRateRows, fetchRateRows, GRAMS_PER_BHORI };
